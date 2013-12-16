@@ -1,5 +1,6 @@
 import wx
 
+
 class PokemonDataEditor(wx.Panel):
     #This tab will allow editing of Pokemon Stats, moves, etc
     def __init__(self, parent):
@@ -30,7 +31,7 @@ class DataEditingTabs(wx.Notebook):
         self.AddPage(moves, "Moves")
         self.AddPage(evo, "Evolutions")
         self.AddPage(dex, "PokeDex")
-
+        
         self.SetSizer(sizer)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
