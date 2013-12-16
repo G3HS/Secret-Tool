@@ -76,3 +76,44 @@ class PokeDexTab(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.SetSizer(sizer)
+        
+        
+"""
+~Stats structure
+http://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_base_stats_data_structure_in_Generation_III
+BPRE Main stats @0x2547A0:
+28/0x1C Long
+
++0 HP [1]
++1 ATK [1]
++2 DEF [1]
++3 SPD[1]
++4 SPATK [1]
++5 SPDEF[1]
+
++6 Type1 [1]
++7 Type2 [1]
+
++8 Catch Rate[1]
++9 BaseExp[1]
++10 Evs: [2] (HP, ATK, DEF | SAT, SDF, SPD) Stored in bits, so SPD|DEF|ATK|HP --|--|SDF|SAT
+
++12 Item1 [2] Reverse Hex
++14 Item2 [2] Reverse Hex
+
++16 Gender [1]
++17 Steps to hatch[1] Value*256d = real steps
+
++18 BaseFriendship[1]
++19 Level-up Type [1] 
++20 EggGroup1 [1]
++21 EggGroup2 [1]
++22 Ability1 [1]
++23 Ability2 [1]
+
++24 SafariRunRate [1]
++25 Color
+ 
+ +26 Padding [2]
+
+"""
