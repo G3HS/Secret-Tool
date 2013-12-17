@@ -55,56 +55,61 @@ class MainWindow(wx.Frame):
             Config = ConfigParser.ConfigParser()
             ini = os.path.join(self.path,"PokeRoms.ini")
             Config.read(ini)
-            
-            rom_id_offset_hex = str(Config.get("ALL", "OffsetThatContainsSecondRomID"))
-            rom_id_offset = get_decimal_offset_from_hex_string(rom_id_offset_hex)
-            
-            self.open_rom.seek(rom_id_offset) #Seek to last 2 bytes in rom
-            self.rom_id = self.open_rom.read(2)
-            self.rom_id = str(binascii.hexlify(self.rom_id)) 
-
-            all_possible_rom_ids = Config.sections()
-            
-            if self.rom_id != "ffff":
-                if self.rom_id not in all_possible_rom_ids:
-                    wx.MessageBox(
-                    "At rom offset %s there is an unknown rom id. Please see documentation." %rom_id_offset_hex, 
-                    'Error', 
-                    wx.OK | wx.ICON_INFORMATION)
-                
-            else:
+            if str(Config.get("ALL", "JustUseStandardIni")) == "True":
                 game_code_offset = get_decimal_offset_from_hex_string("AC")
                 self.open_rom.seek(game_code_offset, 0)
-                game_code = self.open_rom.read(4)
-                self.open_rom.seek(rom_id_offset)
-                x = "0000"
-                y = None
-                while y == None:
-                    if x in all_possible_rom_ids:
-                        x = str(int(x) + 1)
-                        if len(x) != 4:
-                            n = 4 - len(x)
-                            for n in range(n):
-                                x = "0"+x
-                        continue
-                    else:
-                        self.rom_id = x
-                        
-                        #Write new rom_id to rom.
-                        byte_rom_id = get_bytes_string_from_hex_string(self.rom_id)
-                        self.open_rom.write(byte_rom_id)
-                        
-                        Config.add_section(self.rom_id)
-                        options = Config.options(game_code)
-                        tmp_ini = {}
-                        for opt in options:
-                            tmp_ini[opt] = Config.get(game_code, opt)
+                self.rom_id = self.open_rom.read(4)
+            
+            else:
+                rom_id_offset_hex = str(Config.get("ALL", "OffsetThatContainsSecondRomID"))
+                rom_id_offset = get_decimal_offset_from_hex_string(rom_id_offset_hex)
+                
+                self.open_rom.seek(rom_id_offset) #Seek to last 2 bytes in rom
+                self.rom_id = self.open_rom.read(2)
+                self.rom_id = str(binascii.hexlify(self.rom_id)) 
+
+                all_possible_rom_ids = Config.sections()
+                
+                if self.rom_id != "ffff":
+                    if self.rom_id not in all_possible_rom_ids:
+                        wx.MessageBox(
+                        "At rom offset %s there is an unknown rom id. Please see documentation." %rom_id_offset_hex, 
+                        'Error', 
+                        wx.OK | wx.ICON_INFORMATION)
+                    
+                else:
+                    game_code_offset = get_decimal_offset_from_hex_string("AC")
+                    self.open_rom.seek(game_code_offset, 0)
+                    game_code = self.open_rom.read(4)
+                    self.open_rom.seek(rom_id_offset)
+                    x = "0000"
+                    y = None
+                    while y == None:
+                        if x in all_possible_rom_ids:
+                            x = str(int(x) + 1)
+                            if len(x) != 4:
+                                n = 4 - len(x)
+                                for n in range(n):
+                                    x = "0"+x
+                            continue
+                        else:
+                            self.rom_id = x
                             
-                        for opt, value in tmp_ini.items():
-                            Config.set(self.rom_id, opt, value)
-                        with open(ini, "w") as PokeRomsIni:
-                            Config.write(PokeRomsIni)
-                        y = True
+                            #Write new rom_id to rom.
+                            byte_rom_id = get_bytes_string_from_hex_string(self.rom_id)
+                            self.open_rom.write(byte_rom_id)
+                            
+                            Config.add_section(self.rom_id)
+                            options = Config.options(game_code)
+                            tmp_ini = {}
+                            for opt in options:
+                                tmp_ini[opt] = Config.get(game_code, opt)
+                                
+                            for opt, value in tmp_ini.items():
+                                Config.set(self.rom_id, opt, value)
+                            with open(ini, "w") as PokeRomsIni:
+                                Config.write(PokeRomsIni)
+                            y = True
                 
 
 #############################################################
