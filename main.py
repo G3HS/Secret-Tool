@@ -13,15 +13,14 @@ class MainWindow(wx.Frame):
         self.path = module_path()
         self.open_rom_ini = {}
         
-        panel = wx.Panel(self)
+        self.panel = wx.Panel(self)
         
-        tabbed_area = TabbedEditorArea(panel)
+        self.tabbed_area = TabbedEditorArea(self.panel)
         
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(tabbed_area, 1, wx.ALL|wx.EXPAND, 5)
-        panel.SetSizer(sizer)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 5)
+        self.panel.SetSizer(self.sizer)
         self.Layout()
-        
         
         self.CreateStatusBar() # A Statusbar in the bottom of the window
 
@@ -44,8 +43,8 @@ class MainWindow(wx.Frame):
         self.Show(True)
         
     def open_file(self, *args):
-        open_dialog = wx.FileDialog(self, message="Open a rom...", defaultDir=os.getcwd(),
-                                                        style=wx.OPEN)
+        open_dialog = wx.FileDialog(self, message="Open a rom...", 
+                                                        defaultDir=os.getcwd(), style=wx.OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
@@ -110,7 +109,12 @@ class MainWindow(wx.Frame):
                             with open(ini, "w") as PokeRomsIni:
                                 Config.write(PokeRomsIni)
                             y = True
-                
+            self.reload_all_tabs()
+    def reload_all_tabs(self):
+        self.sizer.Remove(self.tabbed_area)
+        self.tabbed_area = TabbedEditorArea(self.panel)
+        self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 5)
+        
 
 #############################################################
 #This class is what holds all of the main tabs.
@@ -155,8 +159,12 @@ class PokemonDataEditor(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         tabbed_area = DataEditingTabs(self)
+        Pokes = wx.ComboBox(self, -1, choices=[], 
+                                style=wx.SUNKEN_BORDER,
+                                pos=(0, 0), size=(200, -1))
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(tabbed_area, 1, wx.ALL|wx.EXPAND, 5)
+        sizer.Add(Pokes, 0, wx.ALL, 2)
+        sizer.Add(tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
         self.SetSizer(sizer)
         self.Layout()
         

@@ -15,6 +15,12 @@ def get_bytes_string_from_hex_string(string):
         string = "0"+string
     return binascii.unhexlify(string)
     
+def insert_string_of_bytes_into_rom(offset, rom, string):
+    offset = get_decimal_offset_from_hex_string(offset)
+    rom.seek(offset, 0)
+    rom.write(string)
+    return
+    
 def convert_ascii_and_poke(string, mode):
     #modes: "to_poke" and "to_ascii"
     
@@ -56,4 +62,6 @@ cdefghijklmnopqrstuvwxyz?\
     else: return False
     
     return string.translate(table)
+    
+
     
