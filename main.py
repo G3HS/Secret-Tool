@@ -166,21 +166,24 @@ class TabbedEditorArea(wx.Notebook):
 class PokemonDataEditor(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
-        tabbed_area = DataEditingTabs(self)
         if 'frame' in globals():
             if frame.open_rom is not None:
                 poke_names = self.get_pokemon_names()
             else: poke_names = []
         else: poke_names = ["-"]
         
-        Pokes = wx.ComboBox(self, -1, choices=poke_names, 
+        self.Pokes = wx.ComboBox(self, -1, choices=poke_names, 
                                 value=poke_names[0],
                                 style=wx.SUNKEN_BORDER,
                                 pos=(0, 0), size=(200, -1))
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(Pokes, 0, wx.ALL, 2)
-        sizer.Add(tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
-        self.SetSizer(sizer)
+        self.Pokes.Bind(wx.EVT_COMBOBOX, self.on_change_poke)
+        self.poke_num = 0
+        
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.Pokes, 0, wx.ALL, 2)
+        self.tabbed_area = DataEditingTabs(self)
+        self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
+        self.SetSizer(self.sizer)
         self.Layout()
         
     def get_pokemon_names(self):
@@ -196,7 +199,13 @@ class PokemonDataEditor(wx.Panel):
             name = tmp_name.split("\xff")
             names.append(name[0])
         return names
-        
+    
+    def on_change_poke(self, event):
+        self.poke_num = self.Pokes.GetSelection()
+        self.tabbed_area.Destroy()
+        self.tabbed_area = DataEditingTabs(self)
+        self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
+        self.Layout()
         
 class DataEditingTabs(wx.Notebook):
     def __init__(self, parent):
