@@ -7,7 +7,7 @@ from module_locator import *
 from rom_insertion_operations import *
 
 OPEN = 1
-
+poke_num = 0
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title, size=(800,600))
@@ -97,7 +97,7 @@ class MainWindow(wx.Frame):
                             self.rom_id = x
                             
                             #Write new rom_id to rom.
-                            byte_rom_id = get_bytes_string_from_hex_string(self.rom_id)
+                            byte_rom_id = get_hex_from_string(self.rom_id)
                             self.open_rom.write(byte_rom_id)
                             
                             self.Config.add_section(self.rom_id)
@@ -169,21 +169,19 @@ class PokemonDataEditor(wx.Panel):
         if 'frame' in globals():
             if frame.open_rom is not None:
                 poke_names = self.get_pokemon_names()
-            else: poke_names = []
-        else: poke_names = ["-"]
-        
-        self.Pokes = wx.ComboBox(self, -1, choices=poke_names, 
+                self.Pokes = wx.ComboBox(self, -1, choices=poke_names, 
                                 value=poke_names[0],
                                 style=wx.SUNKEN_BORDER,
                                 pos=(0, 0), size=(200, -1))
-        self.Pokes.Bind(wx.EVT_COMBOBOX, self.on_change_poke)
-        self.poke_num = 0
-        
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.Pokes, 0, wx.ALL, 2)
-        self.tabbed_area = DataEditingTabs(self)
-        self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
-        self.SetSizer(self.sizer)
+                self.Pokes.Bind(wx.EVT_COMBOBOX, self.on_change_poke)
+                global poke_num
+                poke_num = 0
+                
+                self.sizer = wx.BoxSizer(wx.VERTICAL)
+                self.sizer.Add(self.Pokes, 0, wx.ALL, 2)
+                self.tabbed_area = DataEditingTabs(self)
+                self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
+                self.SetSizer(self.sizer)
         self.Layout()
         
     def get_pokemon_names(self):
@@ -201,7 +199,8 @@ class PokemonDataEditor(wx.Panel):
         return names
     
     def on_change_poke(self, event):
-        self.poke_num = self.Pokes.GetSelection()
+        global poke_num
+        poke_num = self.Pokes.GetSelection()
         self.tabbed_area.Destroy()
         self.tabbed_area = DataEditingTabs(self)
         self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
@@ -248,9 +247,57 @@ class StatsTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         sizer = wx.BoxSizer(wx.VERTICAL)
-
+        basestatsoffset = int(frame.Config.get(frame.rom_id, "pokebasestats"), 16)
+        basestatslength = int(frame.Config.get(frame.rom_id, "pokebasestatslength"), 16)
+        global poke_num
+        basestatsoffset = basestatslength*poke_num + basestatsoffset
+        frame.open_rom.seek(basestatsoffset, 0)
+        self.base_stats_dict = {}
+        self.basestats = frame.open_rom.read(basestatslength)
+        self.sort_base_stats()
         self.SetSizer(sizer)
-
+    
+    def sort_base_stats(self):
+        d = self.base_stats_dict
+        s = self.basestats
+        d["HP"] = int(get_bytes_string_from_hex_string(s[0]),16)
+        d["ATK"] = int(get_bytes_string_from_hex_string(s[1]),16)
+        d["DEF"] = int(get_bytes_string_from_hex_string(s[2]),16)
+        d["SPD"] = int(get_bytes_string_from_hex_string(s[3]),16)
+        d["SAT"] = int(get_bytes_string_from_hex_string(s[4]),16)
+        d["SDE"] = int(get_bytes_string_from_hex_string(s[5]),16)
+        d["TYPE1"] = int(get_bytes_string_from_hex_string(s[6]),16)
+        d["TYPE2"] = int(get_bytes_string_from_hex_string(s[7]),16)
+        d["CATCHRATE"] = int(get_bytes_string_from_hex_string(s[8]),16)
+        d["BASEEXP"] = int(get_bytes_string_from_hex_string(s[9]),16)
+        #Deal with EV bits:
+        evs = int(get_bytes_string_from_hex_string(s[10]+s[11]),16)
+        evs = DECIMAL(str(evs))
+        evs.base = BINARY
+        evs_list = split_string_into_bytes(str(evs))
+        evs_list_length = len(evs_list)
+        if evs_list_length < 8:
+            need = 8 - evs_list_length
+            for n in range(need):
+                evs_list.insert(0, "00")
+        d["EVS"] = evs_list
+        #Done with evs....
+        d["ITEM1"] = int(get_bytes_string_from_hex_string(s[13]+s[12]),16)
+        d["ITEM2"] = int(get_bytes_string_from_hex_string(s[15]+s[14]),16)
+        d["GENDER"] = int(get_bytes_string_from_hex_string(s[16]),16)
+        d["HATCHINGSTEPS"] = int(get_bytes_string_from_hex_string(s[17]),16)
+        d["FRIENDSHIP"] = int(get_bytes_string_from_hex_string(s[18]),16)
+        d["LEVELUPTYPE"] = int(get_bytes_string_from_hex_string(s[19]),16)
+        d["EGGGROUP1"] = int(get_bytes_string_from_hex_string(s[20]),16)
+        d["EGGGROUP2"] = int(get_bytes_string_from_hex_string(s[21]),16)
+        d["ABILITY1"] = int(get_bytes_string_from_hex_string(s[22]),16)
+        d["ABILITY2"] = int(get_bytes_string_from_hex_string(s[23]),16)
+        d["RUNRATE"] = int(get_bytes_string_from_hex_string(s[24]),16)
+        d["COLOR"] = int(get_bytes_string_from_hex_string(s[25]),16)
+        
+        self.base_stats_dict = d
+        
+        print self.base_stats_dict
 class MovesTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)

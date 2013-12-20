@@ -3,6 +3,7 @@
 from baseconv import *
 import binascii
 import string as st
+import re
 
 def get_decimal_offset_from_hex_string(string):
     offset = HEXADECIMAL(string)
@@ -10,10 +11,19 @@ def get_decimal_offset_from_hex_string(string):
     offset = int(str(offset))
     return offset
     
-def get_bytes_string_from_hex_string(string):
+def get_hex_from_string(string):
     if len(string) % 2 != 0:
-        string = "0"+string
+        string = "\x00"+string
     return binascii.unhexlify(string)
+    
+def get_bytes_string_from_hex_string(string):
+    return binascii.hexlify(string)
+
+def split_string_into_bytes(string):
+    if len(string)%2 != 0:
+        string = "0"+string
+    list_of_bytes = re.findall('..',string)
+    return list_of_bytes
     
 def insert_string_of_bytes_into_rom(offset, rom, string):
     offset = get_decimal_offset_from_hex_string(offset)
