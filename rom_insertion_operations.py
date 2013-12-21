@@ -12,11 +12,17 @@ def get_decimal_offset_from_hex_string(string):
     return offset
     
 def get_hex_from_string(string):
+    """
+    Take a hex string like "00FF58" and convert it to a UTF-8 string.
+    """
     if len(string) % 2 != 0:
-        string = "\x00"+string
+        string = "0"+string
     return binascii.unhexlify(string)
     
 def get_bytes_string_from_hex_string(string):
+    """
+    Take a UTF-8 string and convert it to a hex string.
+    """
     return binascii.hexlify(string)
 
 def split_string_into_bytes(string):
@@ -71,4 +77,35 @@ cdefghijklmnopqrstuvwxyz?\
     return string.translate(table)
     
 
+"""
+def int_from_bytes(bytes, byteorder, signed=False):
+    out = 0
     
+    if byteorder == "little":
+        bytes = bytes[::-1]
+
+    for byte in bytes:
+        out <<= 8
+        out += ord(byte)
+    
+    if signed and ord(bytes[-1]) >= 0x80:
+        out -= 256 ** len(bytes)
+    
+    return out
+
+def int_to_bytes(integer, length, byteorder):
+    bytes = []
+    
+    if integer < 0:
+        integer += 256 ** length
+    
+    while length > 0:
+        bytes.append(chr(integer & 0xFF))
+        integer >>= 8
+        length -= 1
+    
+    if byteorder == "big":
+        bytes = bytes[::-1]
+    
+    return "".join(bytes)
+"""
