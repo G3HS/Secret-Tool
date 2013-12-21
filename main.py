@@ -335,17 +335,17 @@ class StatsTab(wx.Panel):
         catch_rate_base_exp_sizer = wx.GridBagSizer(3,3)
         
         CATCHRATE_txt = wx.StaticText(catch_rate_base_exp, -1,"Catch Rate:")
-        catch_rate_base_exp_sizer.Add(CATCHRATE_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        catch_rate_base_exp_sizer.Add(CATCHRATE_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.CATCHRATE = wx.TextCtrl(catch_rate_base_exp, -1,style=wx.TE_CENTRE, size=(40,-1))
-        catch_rate_base_exp_sizer.Add(self.CATCHRATE,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        catch_rate_base_exp_sizer.Add(self.CATCHRATE,(0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         BASEEXP_txt = wx.StaticText(catch_rate_base_exp, -1,"Base Exp:")
-        catch_rate_base_exp_sizer.Add(BASEEXP_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        catch_rate_base_exp_sizer.Add(BASEEXP_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.BASEEXP = wx.TextCtrl(catch_rate_base_exp, -1,style=wx.TE_CENTRE, size=(40,-1))
-        catch_rate_base_exp_sizer.Add(self.BASEEXP,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        catch_rate_base_exp_sizer.Add(self.BASEEXP,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
-        catch_rate_base_exp.SetSizerAndFit(catch_rate_base_expsizer)
-        self.sizer.Add(catch_rate_base_exp, (1,0), wx.DefaultSpan,  wx.ALL, 2)
+        catch_rate_base_exp.SetSizerAndFit(catch_rate_base_exp_sizer)
+        self.sizer.Add(catch_rate_base_exp, (2,0), wx.DefaultSpan,  wx.ALL, 2)
         
         
         
