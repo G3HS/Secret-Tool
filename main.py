@@ -331,6 +331,26 @@ class StatsTab(wx.Panel):
         self.sizer.Add(types, (1,0), wx.DefaultSpan,  wx.ALL, 2)
         
         #----------Set up a panel for Catch Rate and Base EXP----------#
+        catch_rate_base_exp = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        catch_rate_base_exp_sizer = wx.GridBagSizer(3,3)
+        
+        CATCHRATE_txt = wx.StaticText(catch_rate_base_exp, -1,"Catch Rate:")
+        catch_rate_base_exp_sizer.Add(CATCHRATE_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.CATCHRATE = wx.TextCtrl(catch_rate_base_exp, -1,style=wx.TE_CENTRE, size=(40,-1))
+        catch_rate_base_exp_sizer.Add(self.CATCHRATE,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        BASEEXP_txt = wx.StaticText(catch_rate_base_exp, -1,"Base Exp:")
+        catch_rate_base_exp_sizer.Add(BASEEXP_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.BASEEXP = wx.TextCtrl(catch_rate_base_exp, -1,style=wx.TE_CENTRE, size=(40,-1))
+        catch_rate_base_exp_sizer.Add(self.BASEEXP,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        catch_rate_base_exp.SetSizerAndFit(catch_rate_base_expsizer)
+        self.sizer.Add(catch_rate_base_exp, (1,0), wx.DefaultSpan,  wx.ALL, 2)
+        
+        
+        
+        
+        
         
         self.load_stats_into_boxes()
         
@@ -345,6 +365,9 @@ class StatsTab(wx.Panel):
         
         self.TYPE1.SetSelection(d["TYPE1"])
         self.TYPE2.SetSelection(d["TYPE2"])
+        
+        self.CATCHRATE.SetValue(str(d["CATCHRATE"]))
+        self.BASEEXP.SetValue(str(d["BASEEXP"]))
         
     def create_string_of_hex_values_to_be_written(self):
         try:
@@ -371,12 +394,19 @@ class StatsTab(wx.Panel):
             SpDEF = hex(int(self.SpDEF.GetValue()))
             if len(SpDEF) > 2:
                 SpDEF = "FF"
+                
+            TYPE1 = hex(int(self.TYPE1.GetSelection()))
+            TYPE2 = hex(int(self.TYPE2.GetSelection()))
+            
+            CATCHRATE = hex(int(self.CATCHRATE.GetValue()))
+            BASEEXP = hex(int(self.BASEEXP.GetValue()))
             
             #Create a string off all of the stats to be written to the rom.
             base = HP+ATK+DEF+SPD+SpATK+SpDEF
+            types = TYPE1+TYPE2
+            rate_exp = CATCHRATE+BASEEXP
             
-            
-            stats = base
+            stats = base+types+rate_exp
             
             
             
