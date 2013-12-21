@@ -392,11 +392,35 @@ class StatsTab(wx.Panel):
         evs.SetSizerAndFit(evs_sizer)
         self.sizer.Add(evs, (0,1), wx.DefaultSpan,  wx.ALL, 2)
         
-        #---------- ----------#
+        #----------Panel for items----------#
+        items = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        items_sizer = wx.GridBagSizer(3,3)
+        
+        items_offset = int(frame.Config.get(frame.rom_id, "Items"), 16)
+        number_of_items = int(frame.Config.get(frame.rom_id, "NumberofItems"), 16)
+        item_data_len = int(frame.Config.get(frame.rom_id, "ItemsDataLength"), 16)
+        
+        items_list = generate_list_of_names(items_offset, item_data_len, 
+                            "\xff", number_of_items, frame.open_rom)
+                            
+        ITEM1_txt = wx.StaticText(items, -1,"Item 1:")
+        items_sizer.Add(ITEM1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.ITEM1 = wx.ComboBox(items, -1, choices=items_list,
+                                style=wx.SUNKEN_BORDER, size=(110, 20))
+        items_sizer.Add(self.ITEM1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        ITEM2_txt = wx.StaticText(items, -1,"Item 2:")
+        items_sizer.Add(ITEM2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.ITEM2 = wx.ComboBox(items, -1, choices=items_list,
+                                style=wx.SUNKEN_BORDER, size=(110, 20))
+        items_sizer.Add(self.ITEM2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        items.SetSizerAndFit(items_sizer)
+        self.sizer.Add(items, (1,1), wx.DefaultSpan,  wx.ALL, 2)
         
         #---------- ----------#
         self.load_stats_into_boxes()
-        #self.create_string_of_hex_values_to_be_written()
+        self.create_string_of_hex_values_to_be_written()
         
     def load_stats_into_boxes(self):
         d = self.base_stats_dict
@@ -419,6 +443,9 @@ class StatsTab(wx.Panel):
         self.e_SPD.SetValue(str(d["EVS"][0]))
         self.e_SpATK.SetValue(str(d["EVS"][6]))
         self.e_SpDEF.SetValue(str(d["EVS"][7]))
+        
+        self.ITEM1.SetSelection(d["ITEM1"])
+        self.ITEM2.SetSelection(d["ITEM2"])
         
     def create_string_of_hex_values_to_be_written(self):
         try:
@@ -512,15 +539,29 @@ class StatsTab(wx.Panel):
                     ev = bin(int(value))[2:].zfill(2)
                     evs_bin = evs_bin+ev
             evs_hex = hex(int(evs_bin, 2))[2:]
-                
+
+            ITEM1 = hex(int(self.ITEM1.GetSelection()))[2:]
+            ITEM1_len = len(ITEM1)
+            if ITEM1_len < 4:
+                for n in range(4-ITEM1_len):
+                    ITEM1 = "0"+ITEM1
+            ITEM1 = ITEM1[2:]+ITEM1[:2] #Flip the bytes around.
+
+            ITEM2 = hex(int(self.ITEM2.GetSelection()))[2:]
+            ITEM2_len = len(ITEM2)
+            if ITEM2_len < 4:
+                for n in range(4-ITEM2_len):
+                    ITEM2 = "0"+ITEM2
+            ITEM2 = ITEM2[2:]+ITEM2[:2] #Flip the bytes around.
 
             #Create a string off all of the stats to be written to the rom.
             base = HP+ATK+DEF+SPD+SpATK+SpDEF
             types = TYPE1+TYPE2
             rate_exp = CATCHRATE+BASEEXP
             evs = evs_hex
+            items = ITEM1+ITEM2
             
-            stats = base+types+rate_exp+evs
+            stats = base+types+rate_exp+evs+items
             print stats
             
             

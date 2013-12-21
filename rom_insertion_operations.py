@@ -37,6 +37,16 @@ def insert_string_of_bytes_into_rom(offset, rom, string):
     rom.write(string)
     return
     
+def generate_list_of_names(offset, datalength, terminating_character, num_of_names, rom):
+    rom.seek(offset)
+    list_of_names = []
+    for n in range(num_of_names):
+        tmp = rom.read(datalength)
+        tmp = tmp.split(terminating_character)
+        tmp = convert_ascii_and_poke(tmp[0], "to_poke")
+        list_of_names.append(tmp)
+    return list_of_names    
+        
 def convert_ascii_and_poke(string, mode):
     #modes: "to_poke" and "to_ascii"
     hex_chart="\x00\x01\x02\x03\x04\x05\x06\x07\x08\
