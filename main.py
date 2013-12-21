@@ -194,7 +194,7 @@ class PokemonDataEditor(wx.Panel):
         for num in range(number):
             tmp_name = frame.open_rom.read(name_length)
             tmp_name = convert_ascii_and_poke(tmp_name, "to_poke")
-            name = tmp_name.split("\xff")
+            name = tmp_name.split("\xff", 1)
             names.append(name[0])
         return names
     
@@ -418,6 +418,22 @@ class StatsTab(wx.Panel):
         items.SetSizerAndFit(items_sizer)
         self.sizer.Add(items, (1,1), wx.DefaultSpan,  wx.ALL, 2)
         
+        #----------Panel for Gender, Hatch Speed, Friendship, Level-up speed, and egg groups----------#
+        assorted = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        assorted_sizer = wx.GridBagSizer(3,3)
+        
+        GENDER_txt = wx.StaticText(assorted, -1,"Gender Ratio:")
+        assorted_sizer.Add(GENDER_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.GENDER = wx.TextCtrl(assorted, -1,style=wx.TE_CENTRE, size=(40,-1))
+        assorted_sizer.Add(self.GENDER, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        HATCH_txt = wx.StaticText(assorted, -1,"Hatch Speed:")
+        assorted_sizer.Add(HATCH_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.HATCH = wx.TextCtrl(assorted, -1,style=wx.TE_CENTRE, size=(40,-1))
+        assorted_sizer.Add(self.HATCH, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        assorted.SetSizerAndFit(assorted_sizer)
+        self.sizer.Add(assorted, (0,2), wx.DefaultSpan,  wx.ALL, 2)
         #---------- ----------#
         self.load_stats_into_boxes()
         self.create_string_of_hex_values_to_be_written()
@@ -446,6 +462,9 @@ class StatsTab(wx.Panel):
         
         self.ITEM1.SetSelection(d["ITEM1"])
         self.ITEM2.SetSelection(d["ITEM2"])
+        
+        self.GENDER.SetValue(str(d["GENDER"]))
+        self.HATCH.SetValue(str(d["HATCHINGSTEPS"]))
         
     def create_string_of_hex_values_to_be_written(self):
         try:
@@ -553,15 +572,32 @@ class StatsTab(wx.Panel):
                 for n in range(4-ITEM2_len):
                     ITEM2 = "0"+ITEM2
             ITEM2 = ITEM2[2:]+ITEM2[:2] #Flip the bytes around.
-
+            
+            GENDER = hex(int(self.GENDER.GetValue()))[2:]
+            if len(GENDER) > 2:
+                GENDER = "FF"
+            elif len(GENDER) == 0:
+                GENDER = "00"
+            elif len(GENDER) == 1:
+                GENDER = "0"+GENDER
+                
+            HATCH = hex(int(self.HATCH.GetValue()))[2:]
+            if len(HATCH) > 2:
+                HATCH = "FF"
+            elif len(HATCH) == 0:
+                HATCH = "00"
+            elif len(HATCH) == 1:
+                HATCH = "0"+HATCH
+                
             #Create a string off all of the stats to be written to the rom.
             base = HP+ATK+DEF+SPD+SpATK+SpDEF
             types = TYPE1+TYPE2
             rate_exp = CATCHRATE+BASEEXP
             evs = evs_hex
             items = ITEM1+ITEM2
+            assort = GENDER+HATCH
             
-            stats = base+types+rate_exp+evs+items
+            stats = base+types+rate_exp+evs+items+assort
             print stats
             
             
