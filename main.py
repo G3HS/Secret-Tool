@@ -265,35 +265,40 @@ class StatsTab(wx.Panel):
         basic_stats = wx.Panel(self, -1, style=wx.RAISED_BORDER)
         basic_stats_sizer = wx.GridBagSizer(3,3)
         
+        basic_stats_txt = wx.StaticText(basic_stats, -1,"Base Stats:")
+        basic_stats_sizer.Add(basic_stats_txt, (0, 0), (1,2), wx.EXPAND)
+        
         HP_txt = wx.StaticText(basic_stats, -1,"HP:")
-        basic_stats_sizer.Add(HP_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(HP_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.HP = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
-        basic_stats_sizer.Add(self.HP,(0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.HP,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ATK_txt = wx.StaticText(basic_stats, -1,"ATK:")
-        basic_stats_sizer.Add(ATK_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(ATK_txt, (2, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.ATK = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
-        basic_stats_sizer.Add(self.ATK,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.ATK,(2, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         DEF_txt = wx.StaticText(basic_stats, -1,"DEF:")
-        basic_stats_sizer.Add(DEF_txt, (2, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(DEF_txt, (3, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.DEF = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
-        basic_stats_sizer.Add(self.DEF,(2, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.DEF,(3, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         SPD_txt = wx.StaticText(basic_stats, -1,"SPD:")
-        basic_stats_sizer.Add(SPD_txt, (3, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(SPD_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SPD = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
-        basic_stats_sizer.Add(self.SPD,(3, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.SPD,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         SpATK_txt = wx.StaticText(basic_stats, -1,"Sp. ATK:")
-        basic_stats_sizer.Add(SpATK_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(SpATK_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SpATK = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
-        basic_stats_sizer.Add(self.SpATK,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.SpATK,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         SpDEF_txt = wx.StaticText(basic_stats, -1,"Sp. DEF:")
-        basic_stats_sizer.Add(SpDEF_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(SpDEF_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SpDEF = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
-        basic_stats_sizer.Add(self.SpDEF,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.SpDEF,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        basic_stats_sizer.SetFlexibleDirection(wx.BOTH)
         
         basic_stats.SetSizerAndFit(basic_stats_sizer)
         self.sizer.Add(basic_stats, (0,0), wx.DefaultSpan,  wx.ALL, 2)
@@ -347,11 +352,48 @@ class StatsTab(wx.Panel):
         catch_rate_base_exp.SetSizerAndFit(catch_rate_base_exp_sizer)
         self.sizer.Add(catch_rate_base_exp, (2,0), wx.DefaultSpan,  wx.ALL, 2)
         
+        #----------Set up a panel for EVs----------#
+        evs = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        evs_sizer = wx.GridBagSizer(3,3)
+        
+        e_txt = wx.StaticText(evs, -1,"Effort Values:")
+        evs_sizer.Add(e_txt, (0, 0), (1,2), wx.EXPAND)
+        
+        e_HP_txt = wx.StaticText(evs, -1,"HP:")
+        evs_sizer.Add(e_HP_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.e_HP = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
+        evs_sizer.Add(self.e_HP,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        e_ATK_txt = wx.StaticText(evs, -1,"ATK:")
+        evs_sizer.Add(e_ATK_txt, (2, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.e_ATK = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
+        evs_sizer.Add(self.e_ATK,(2, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        e_DEF_txt = wx.StaticText(evs, -1,"DEF:")
+        evs_sizer.Add(e_DEF_txt, (3, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.e_DEF = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
+        evs_sizer.Add(self.e_DEF,(3, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        e_SPD_txt = wx.StaticText(evs, -1,"SPD:")
+        evs_sizer.Add(e_SPD_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.e_SPD = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
+        evs_sizer.Add(self.e_SPD,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        e_SpATK_txt = wx.StaticText(evs, -1,"Sp. ATK:")
+        evs_sizer.Add(e_SpATK_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.e_SpATK = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
+        evs_sizer.Add(self.e_SpATK,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        e_SpDEF_txt = wx.StaticText(evs, -1,"Sp. DEF:")
+        evs_sizer.Add(e_SpDEF_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.e_SpDEF = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
+        evs_sizer.Add(self.e_SpDEF,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        evs.SetSizerAndFit(evs_sizer)
+        self.sizer.Add(evs, (0,1), wx.DefaultSpan,  wx.ALL, 2)
         
         
-        
-        
-        
+        #---------- ----------#
         self.load_stats_into_boxes()
         
     def load_stats_into_boxes(self):
@@ -368,6 +410,13 @@ class StatsTab(wx.Panel):
         
         self.CATCHRATE.SetValue(str(d["CATCHRATE"]))
         self.BASEEXP.SetValue(str(d["BASEEXP"]))
+        
+        self.e_HP.SetValue(str(d["EVS"][3]))
+        self.e_ATK.SetValue(str(d["EVS"][2]))
+        self.e_DEF.SetValue(str(d["EVS"][1]))
+        self.e_SPD.SetValue(str(d["EVS"][0]))
+        self.e_SpATK.SetValue(str(d["EVS"][6]))
+        self.e_SpDEF.SetValue(str(d["EVS"][7]))
         
     def create_string_of_hex_values_to_be_written(self):
         try:
@@ -428,16 +477,9 @@ class StatsTab(wx.Panel):
         d["CATCHRATE"] = int(get_bytes_string_from_hex_string(s[8]),16)
         d["BASEEXP"] = int(get_bytes_string_from_hex_string(s[9]),16)
         #Deal with EV bits:
-        evs = int(get_bytes_string_from_hex_string(s[10]+s[11]),16)
-        evs = DECIMAL(str(evs))
-        evs.base = BINARY
-        evs_list = split_string_into_bytes(str(evs))
-        evs_list_length = len(evs_list)
-        if evs_list_length < 8:
-            need = 8 - evs_list_length
-            for n in range(need):
-                evs_list.insert(0, "00")
-        d["EVS"] = evs_list
+        evs = get_bytes_string_from_hex_string(s[10]+s[11])
+
+        d["EVS"] = evs_list_ints
         #Done with evs....
         d["ITEM1"] = int(get_bytes_string_from_hex_string(s[13]+s[12]),16)
         d["ITEM2"] = int(get_bytes_string_from_hex_string(s[15]+s[14]),16)
