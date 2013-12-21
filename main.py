@@ -392,9 +392,11 @@ class StatsTab(wx.Panel):
         evs.SetSizerAndFit(evs_sizer)
         self.sizer.Add(evs, (0,1), wx.DefaultSpan,  wx.ALL, 2)
         
+        #---------- ----------#
         
         #---------- ----------#
         self.load_stats_into_boxes()
+        #self.create_string_of_hex_values_to_be_written()
         
     def load_stats_into_boxes(self):
         d = self.base_stats_dict
@@ -420,42 +422,106 @@ class StatsTab(wx.Panel):
         
     def create_string_of_hex_values_to_be_written(self):
         try:
-            HP = hex(int(self.HP.GetValue()))
+            HP = hex(int(self.HP.GetValue()))[2:]
             if len(HP) > 2:
                 HP = "FF"
-            
-            ATK = hex(int(self.ATK.GetValue()))
+            elif len(HP) == 0:
+                HP = "00"
+            elif len(HP) == 1:
+                HP = "0"+HP
+                
+            ATK = hex(int(self.ATK.GetValue()))[2:]
             if len(ATK) > 2:
                 ATK = "FF"
-            
-            DEF = hex(int(self.DEF.GetValue()))
+            elif len(ATK) == 0:
+                ATK = "00"
+            elif len(ATK) == 1:
+                ATK = "0"+ATK
+                
+            DEF = hex(int(self.DEF.GetValue()))[2:]
             if len(DEF) > 2:
                 DEF = "FF"
+            elif len(DEF) == 0:
+                DEF = "00"
+            elif len(DEF) == 1:
+                DEF = "0"+DEF
                  
-            SPD = hex(int(self.SPD.GetValue()))
+            SPD = hex(int(self.SPD.GetValue()))[2:]
             if len(SPD) > 2:
                 SPD = "FF"
+            elif len(SPD) == 0:
+                SPD = "00"
+            elif len(SPD) == 1:
+                SPD = "0"+SPD
                  
-            SpATK = hex(int(self.SpATK.GetValue()))
+            SpATK = hex(int(self.SpATK.GetValue()))[2:]
             if len(SpATK) > 2:
                 SpATK = "FF"
+            elif len(SpATK) == 0:
+                SpATK = "00"
+            elif len(SpATK) == 1:
+                SpATK = "0"+SpATK
                  
-            SpDEF = hex(int(self.SpDEF.GetValue()))
+            SpDEF = hex(int(self.SpDEF.GetValue()))[2:]
             if len(SpDEF) > 2:
                 SpDEF = "FF"
+            elif len(SpDEF) == 0:
+                SpDEF = "00"
+            elif len(SpDEF) == 1:
+                SpDEF = "0"+SpDEF
+                 
+            TYPE1 = hex(int(self.TYPE1.GetSelection()))[2:]
+            if len(TYPE1) == 1:
+                TYPE1 = "0"+TYPE1
+                 
+            TYPE2 = hex(int(self.TYPE2.GetSelection()))[2:]
+            if len(TYPE2) == 1:
+                TYPE2 = "0"+TYPE2
+            
+            CATCHRATE = hex(int(self.CATCHRATE.GetValue()))[2:]
+            if len(CATCHRATE) > 2:
+                CATCHRATE = "FF"
+            elif len(CATCHRATE) == 0:
+                CATCHRATE = "00"
+            elif len(CATCHRATE) == 1:
+                CATCHRATE = "0"+CATCHRATE
                 
-            TYPE1 = hex(int(self.TYPE1.GetSelection()))
-            TYPE2 = hex(int(self.TYPE2.GetSelection()))
-            
-            CATCHRATE = hex(int(self.CATCHRATE.GetValue()))
-            BASEEXP = hex(int(self.BASEEXP.GetValue()))
-            
+            BASEEXP = hex(int(self.BASEEXP.GetValue()))[2:]
+            if len(BASEEXP) > 2:
+                BASEEXP = "FF"
+            elif len(BASEEXP) == 0:
+                BASEEXP = "00"
+            elif len(BASEEXP) == 1:
+                BASEEXP = "0"+BASEEXP
+                
+            evs_list = [str(self.e_SPD.GetValue()), str(self.e_DEF.GetValue()),
+                            str(self.e_ATK.GetValue()), str(self.e_HP.GetValue()),
+                            "0","0",str(self.e_SpATK.GetValue()),
+                            str(self.e_SpDEF.GetValue())]
+            evs_bin = ""
+            for i, value in enumerate(evs_list):
+                if i == 4:
+                    evs_bin = evs_bin+"00"
+                elif i == 5:
+                    evs_bin = evs_bin+"00"
+                else:
+                    if len(value) > 1:
+                        value = "3"
+                    elif value == "":
+                        value = "0"
+                    ev = bin(int(value))[2:].zfill(2)
+                    evs_bin = evs_bin+ev
+            evs_hex = hex(int(evs_bin, 2))[2:]
+                
+
             #Create a string off all of the stats to be written to the rom.
             base = HP+ATK+DEF+SPD+SpATK+SpDEF
             types = TYPE1+TYPE2
             rate_exp = CATCHRATE+BASEEXP
+            evs = evs_hex
             
-            stats = base+types+rate_exp
+            stats = base+types+rate_exp+evs
+            print stats
             
             
             
@@ -478,7 +544,14 @@ class StatsTab(wx.Panel):
         d["BASEEXP"] = int(get_bytes_string_from_hex_string(s[9]),16)
         #Deal with EV bits:
         evs = get_bytes_string_from_hex_string(s[10]+s[11])
-
+        scale = 16 ## equals to hexadecimal
+        num_of_bits = 16
+        evs = bin(int(evs, scale))[2:].zfill(num_of_bits)
+        evs_list = split_string_into_bytes(evs)
+        evs_list_ints = []
+        for ev in evs_list:
+            ev = int(ev,2)
+            evs_list_ints.append(ev)
         d["EVS"] = evs_list_ints
         #Done with evs....
         d["ITEM1"] = int(get_bytes_string_from_hex_string(s[13]+s[12]),16)
