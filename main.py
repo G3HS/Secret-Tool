@@ -1,10 +1,11 @@
 #!/usr/local/bin/python
 # coding: utf-8
-
+from __future__ import division
 import wx, os, binascii, ConfigParser
 from baseconv import *
 from module_locator import *
 from rom_insertion_operations import *
+
 
 OPEN = 1
 poke_num = 0
@@ -168,25 +169,37 @@ class PokemonDataEditor(wx.Panel):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         if 'frame' in globals():
             if frame.open_rom is not None:
-                poke_names = self.get_pokemon_names()
-                self.Pokes = wx.ComboBox(self, -1, choices=poke_names, 
-                                value=poke_names[0],
+                self.poke_names = self.get_pokemon_names()
+                self.Pokes = wx.ComboBox(self, -1, choices=self.poke_names, 
+                                value=self.poke_names[0],
                                 style=wx.SUNKEN_BORDER,
-                                pos=(0, 0), size=(200, 20))
+                                pos=(0, 0), size=(150, -1))
                 self.Pokes.Bind(wx.EVT_COMBOBOX, self.on_change_poke)
                 global poke_num
                 poke_num = 0
                 
+                Change_Name = wx.StaticText(self, -1, "Change Name:")
+                self.Poke_Name = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(150,-1))
+                self.Poke_Name.SetValue(self.poke_names[0])
+                
+                save = wx.Button(self, 1, "Save All")
+                self.Bind(wx.EVT_BUTTON, self.OnSave, id=1)
                 self.sizer = wx.BoxSizer(wx.VERTICAL)
-                self.sizer.Add(self.Pokes, 0, wx.ALL, 2)
+                self.sizer_top = wx.BoxSizer(wx.HORIZONTAL)
+                
+                self.sizer_top.Add(self.Pokes, 0, wx.ALL, 5)
+                self.sizer_top.Add(Change_Name, 0, wx.ALL, 5)
+                self.sizer_top.Add(self.Poke_Name, 0, wx.ALL, 5)
+                self.sizer_top.Add(save, 0, wx.LEFT, 20)
+                
+                self.sizer.Add(self.sizer_top, 0, wx.ALL, 2)
                 self.tabbed_area = DataEditingTabs(self)
                 self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
                 self.SetSizer(self.sizer)
         self.Layout()
         
     def get_pokemon_names(self):
-        offset = frame.Config.get(frame.rom_id, "PokeNames")
-        offset = get_decimal_offset_from_hex_string(offset)
+        offset = int(frame.Config.get(frame.rom_id, "PokeNames"),16)
         frame.open_rom.seek(offset, 0)
         number = int(frame.Config.get(frame.rom_id, "NumberofPokes"))
         name_length = int(frame.Config.get(frame.rom_id, "PokeNamesLength"), 16)
@@ -201,10 +214,38 @@ class PokemonDataEditor(wx.Panel):
     def on_change_poke(self, event):
         global poke_num
         poke_num = self.Pokes.GetSelection()
+        self.Poke_Name.SetValue(self.poke_names[poke_num])
         self.tabbed_area.Destroy()
         self.tabbed_area = DataEditingTabs(self)
         self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
         self.Layout()
+        
+    def OnSave(self, event):
+        self.tabbed_area.stats.save()
+        self.save_new_poke_name()
+        self.poke_names = self.get_pokemon_names()
+        self.Pokes.SetItems(self.poke_names)
+        global poke_num
+        self.Pokes.SetSelection(poke_num)
+        
+    
+    def save_new_poke_name(self):
+        name = self.Poke_Name.GetValue()
+        name = convert_ascii_and_poke(str(name), "to_ascii")
+        name += "\xff"
+        max_length = int(frame.Config.get(frame.rom_id, "PokeNamesLength"), 16)
+        need = max_length-len(name)
+        if need < 0:
+            m = max_length - 1
+            name = name[:m]+"\xff"
+            need = 0
+        for n in range(need):
+            name += "\x00"
+        global poke_num
+        offset = int(frame.Config.get(frame.rom_id, "PokeNames"),16)
+        offset = max_length*poke_num + offset
+        frame.open_rom.seek(offset,0)
+        frame.open_rom.write(name)
         
 class DataEditingTabs(wx.Notebook):
     def __init__(self, parent):
@@ -217,15 +258,15 @@ class DataEditingTabs(wx.Notebook):
                                              )
         sizer = wx.BoxSizer(wx.VERTICAL)
         
-        stats = StatsTab(self)
-        moves = MovesTab(self)
-        evo = EvoTab(self)
-        dex = PokeDexTab(self)
+        self.stats = StatsTab(self)
+        self.moves = MovesTab(self)
+        self.evo = EvoTab(self)
+        self.dex = PokeDexTab(self)
         
-        self.AddPage(stats, "Stats")
-        self.AddPage(moves, "Moves")
-        self.AddPage(evo, "Evolutions")
-        self.AddPage(dex, "PokeDex")
+        self.AddPage(self.stats, "Stats")
+        self.AddPage(self.moves, "Moves")
+        self.AddPage(self.evo, "Evolutions")
+        self.AddPage(self.dex, "PokeDex")
         
         self.SetSizer(sizer)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
@@ -250,8 +291,8 @@ class StatsTab(wx.Panel):
         basestatsoffset = int(frame.Config.get(frame.rom_id, "pokebasestats"), 16)
         basestatslength = int(frame.Config.get(frame.rom_id, "pokebasestatslength"), 16)
         global poke_num
-        basestatsoffset = basestatslength*poke_num + basestatsoffset
-        frame.open_rom.seek(basestatsoffset, 0)
+        self.basestatsoffset = basestatslength*poke_num + basestatsoffset
+        frame.open_rom.seek(self.basestatsoffset, 0)
         self.base_stats_dict = {}
         self.basestats = frame.open_rom.read(basestatslength)
         self.sort_base_stats()
@@ -301,7 +342,6 @@ class StatsTab(wx.Panel):
         basic_stats_sizer.SetFlexibleDirection(wx.BOTH)
         
         basic_stats.SetSizerAndFit(basic_stats_sizer)
-        self.sizer.Add(basic_stats, (0,0), wx.DefaultSpan,  wx.ALL, 2)
         
         #---------Set up a panel for Types----------#
         types = wx.Panel(self, -1, style=wx.RAISED_BORDER)
@@ -333,7 +373,6 @@ class StatsTab(wx.Panel):
         types_sizer.Add(self.TYPE2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         types.SetSizerAndFit(types_sizer)
-        self.sizer.Add(types, (1,0), wx.DefaultSpan,  wx.ALL, 2)
         
         #----------Set up a panel for Catch Rate and Base EXP----------#
         catch_rate_base_exp = wx.Panel(self, -1, style=wx.RAISED_BORDER)
@@ -350,7 +389,6 @@ class StatsTab(wx.Panel):
         catch_rate_base_exp_sizer.Add(self.BASEEXP,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         catch_rate_base_exp.SetSizerAndFit(catch_rate_base_exp_sizer)
-        self.sizer.Add(catch_rate_base_exp, (2,0), wx.DefaultSpan,  wx.ALL, 2)
         
         #----------Set up a panel for EVs----------#
         evs = wx.Panel(self, -1, style=wx.RAISED_BORDER)
@@ -390,7 +428,6 @@ class StatsTab(wx.Panel):
         evs_sizer.Add(self.e_SpDEF,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         evs.SetSizerAndFit(evs_sizer)
-        self.sizer.Add(evs, (0,1), wx.DefaultSpan,  wx.ALL, 2)
         
         #----------Panel for items----------#
         items = wx.Panel(self, -1, style=wx.RAISED_BORDER)
@@ -416,7 +453,6 @@ class StatsTab(wx.Panel):
         items_sizer.Add(self.ITEM2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         items.SetSizerAndFit(items_sizer)
-        self.sizer.Add(items, (1,1), wx.DefaultSpan,  wx.ALL, 2)
         
         #----------Panel for Gender, Hatch Speed, Friendship, Level-up speed, and egg groups----------#
         assorted = wx.Panel(self, -1, style=wx.RAISED_BORDER)
@@ -425,19 +461,149 @@ class StatsTab(wx.Panel):
         GENDER_txt = wx.StaticText(assorted, -1,"Gender Ratio:")
         assorted_sizer.Add(GENDER_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.GENDER = wx.TextCtrl(assorted, -1,style=wx.TE_CENTRE, size=(40,-1))
-        assorted_sizer.Add(self.GENDER, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        self.gender_label = wx.StaticText(assorted, -1,"100.0% Female")
+        gender_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        gender_sizer.Add(self.GENDER, 0, wx.ALL|wx.EXPAND, 0)
+        gender_sizer.Add(self.gender_label, 0, wx.LEFT|wx.EXPAND, 3)
+        assorted_sizer.Add(gender_sizer, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        self.GENDER.Bind(wx.EVT_TEXT, self.update_gender_ratio)
         
         HATCH_txt = wx.StaticText(assorted, -1,"Hatch Speed:")
         assorted_sizer.Add(HATCH_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.HATCH = wx.TextCtrl(assorted, -1,style=wx.TE_CENTRE, size=(40,-1))
-        assorted_sizer.Add(self.HATCH, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        self.HATCH_label = wx.StaticText(assorted, -1,"65280 Steps")
+        HATCH_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        HATCH_sizer.Add(self.HATCH, 0, wx.ALL|wx.EXPAND, 0)
+        HATCH_sizer.Add(self.HATCH_label, 0, wx.LEFT|wx.EXPAND, 3)
+        assorted_sizer.Add(HATCH_sizer, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        self.HATCH.Bind(wx.EVT_TEXT, self.update_HATCH_steps)
+        
+        
+        
+        FRIEND_txt = wx.StaticText(assorted, -1,"Base Friendship:")
+        assorted_sizer.Add(FRIEND_txt, (2, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.FRIEND = wx.TextCtrl(assorted, -1,style=wx.TE_CENTRE, size=(40,-1))
+        assorted_sizer.Add(self.FRIEND, (2, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        level_up_list = ["Erratic","Fast","Medium Fast","Medium Slow","Slow","Fluctuating"]
+        LEVEL_txt = wx.StaticText(assorted, -1,"Level-Up Rate:")
+        assorted_sizer.Add(LEVEL_txt, (3, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.LEVEL = wx.ComboBox(assorted, -1, choices=level_up_list,
+                                style=wx.SUNKEN_BORDER, size=(90, 20))
+        assorted_sizer.Add(self.LEVEL, (3, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        egg_groups = ["Monster", "Water 1", "Bug", "Flying","Field","Fairy","Grass","Human-Like","Water 3",
+                                "Mineral", "Amorphous", "Water 2", "Ditto", "Dragon", "Undiscovered"]
+        
+        EGG1_txt = wx.StaticText(assorted, -1,"Egg Group 1:")
+        assorted_sizer.Add(EGG1_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.EGG1 = wx.ComboBox(assorted, -1, choices=egg_groups,
+                                style=wx.SUNKEN_BORDER, size=(90, 20))
+        assorted_sizer.Add(self.EGG1, (4, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        EGG2_txt = wx.StaticText(assorted, -1,"Egg Group 2:")
+        assorted_sizer.Add(EGG2_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.EGG2 = wx.ComboBox(assorted, -1, choices=egg_groups,
+                                style=wx.SUNKEN_BORDER, size=(90, 20))
+        assorted_sizer.Add(self.EGG2, (5, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         assorted.SetSizerAndFit(assorted_sizer)
+        
+        #----------Panel for Abilities----------#
+        abilities = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        abilities_sizer = wx.GridBagSizer(3,3)
+        
+        abil_offset = int(frame.Config.get(frame.rom_id, "Abilities"), 16)
+        abil_num = int(frame.Config.get(frame.rom_id, "NumberofAbilities"), 16)
+        abil_len = int(frame.Config.get(frame.rom_id, "AbiltiesNameLength"), 16)
+
+        abilities_list = generate_list_of_names(abil_offset, abil_len, "\xff", abil_num, frame.open_rom)
+        
+        ABILITY1_txt = wx.StaticText(abilities, -1,"Ability 1:")
+        abilities_sizer.Add(ABILITY1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.ABILITY1 = wx.ComboBox(abilities, -1, choices=abilities_list,
+                                style=wx.SUNKEN_BORDER, size=(90, 20))
+        abilities_sizer.Add(self.ABILITY1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        ABILITY2_txt = wx.StaticText(abilities, -1,"Ability 2:")
+        abilities_sizer.Add(ABILITY2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.ABILITY2 = wx.ComboBox(abilities, -1, choices=abilities_list,
+                                style=wx.SUNKEN_BORDER, size=(90, 20))
+        abilities_sizer.Add(self.ABILITY2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        abilities.SetSizerAndFit(abilities_sizer)
+        
+        #----------Panel for Run Rate and Color----------#
+        run_rate_color = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        run_rate_color_sizer = wx.GridBagSizer(3,3)
+
+        RUNRATE_txt = wx.StaticText(run_rate_color, -1,"Run Rate:")
+        run_rate_color_sizer.Add(RUNRATE_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.RUNRATE = wx.TextCtrl(run_rate_color, -1,style=wx.TE_CENTRE, size=(40,-1))
+        run_rate_color_sizer.Add(self.RUNRATE, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        colors_list = ["Red","Blue","Yellow","Green","Black",
+                            "Brown","Purple","Gray","White","Pink"]
+
+        COLOR_txt = wx.StaticText(run_rate_color, -1,"Color:")
+        run_rate_color_sizer.Add(COLOR_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.COLOR = wx.ComboBox(run_rate_color, -1, choices=colors_list,
+                                style=wx.SUNKEN_BORDER, size=(90, 20))
+        run_rate_color_sizer.Add(self.COLOR, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        run_rate_color.SetSizerAndFit(run_rate_color_sizer)
+        #----------Add everything to the SIZER----------#
+        boxa = wx.BoxSizer(wx.HORIZONTAL)
+        boxb = wx.BoxSizer(wx.HORIZONTAL)
+        boxc = wx.BoxSizer(wx.HORIZONTAL)
+        
+        boxa.Add(basic_stats, 0, wx.ALL|wx.EXPAND, 5)
+        boxb.Add(types, 0, wx.ALL|wx.EXPAND, 5)
+        boxc.Add(catch_rate_base_exp,  0, wx.ALL|wx.EXPAND, 5)
+        boxa.Add(evs, 0, wx.ALL|wx.EXPAND, 5)
+        boxb.Add(abilities, 0, wx.ALL|wx.EXPAND, 5)
+        boxb.Add(items, 0, wx.ALL|wx.EXPAND, 5)
+        boxa.Add(assorted, 0, wx.ALL|wx.EXPAND, 5)
+        boxc.Add(run_rate_color, 0, wx.ALL|wx.EXPAND, 5)
+        
+        self.sizer.Add(boxa, (0,0), wx.DefaultSpan,  wx.ALL, 0)
+        self.sizer.Add(boxb, (1,0), wx.DefaultSpan,  wx.ALL, 0)
+        self.sizer.Add(boxc, (2,0), wx.DefaultSpan,  wx.ALL, 0)
+        
+        """self.sizer.Add(basic_stats, (0,0), wx.DefaultSpan,  wx.ALL, 2)
+        self.sizer.Add(types, (1,0), wx.DefaultSpan,  wx.ALL, 2)
+        self.sizer.Add(catch_rate_base_exp, (2,0), wx.DefaultSpan,  wx.ALL, 2)
+        self.sizer.Add(evs, (0,1), wx.DefaultSpan,  wx.ALL, 2)
+        self.sizer.Add(items, (1,1), wx.DefaultSpan,  wx.ALL, 2)
         self.sizer.Add(assorted, (0,2), wx.DefaultSpan,  wx.ALL, 2)
+        self.sizer.Add(abilities, (1,2), wx.DefaultSpan,  wx.ALL, 2)
+        self.sizer.Add(run_rate_color, (2,2), wx.DefaultSpan,  wx.ALL, 2)"""
         #---------- ----------#
         self.load_stats_into_boxes()
-        self.create_string_of_hex_values_to_be_written()
+    def update_HATCH_steps(self, *args):
+        txt = self.HATCH.GetValue()
+        try: 
+            if int(txt) >= 255: self.HATCH_label.SetLabel("65025 Steps")
+            elif int(txt) == 0: self.HATCH_label.SetLabel("Instant")
+            else:
+                ratio = (int(txt)+1)*255
+                self.HATCH_label.SetLabel(str(ratio)+" Steps")
+        except:
+            self.HATCH_label.SetLabel("Bad Number")
         
+    def update_gender_ratio(self, *args):
+        txt = self.GENDER.GetValue()
+        try: 
+            if int(txt) >= 255: self.gender_label.SetLabel("Genderless")
+            elif int(txt) == 254: self.gender_label.SetLabel("100% Female")
+            else:
+                ratio = (int(txt)/256)*100
+                self.gender_label.SetLabel("{0:.1f}% Female".format(ratio))
+        except:
+            self.gender_label.SetLabel("Bad Number")
+            
     def load_stats_into_boxes(self):
         d = self.base_stats_dict
         self.HP.SetValue(str(d["HP"]))
@@ -465,6 +631,16 @@ class StatsTab(wx.Panel):
         
         self.GENDER.SetValue(str(d["GENDER"]))
         self.HATCH.SetValue(str(d["HATCHINGSTEPS"]))
+        self.FRIEND.SetValue(str(d["FRIENDSHIP"]))
+        self.LEVEL.SetSelection(d["LEVELUPTYPE"])
+        self.EGG1.SetSelection(d["EGGGROUP1"]-1)
+        self.EGG2.SetSelection(d["EGGGROUP2"]-1)
+        
+        self.ABILITY1.SetSelection(d["ABILITY1"])
+        self.ABILITY2.SetSelection(d["ABILITY2"])
+        
+        self.RUNRATE.SetValue(str(d["RUNRATE"]))
+        self.COLOR.SetSelection(d["COLOR"])
         
     def create_string_of_hex_values_to_be_written(self):
         try:
@@ -589,22 +765,66 @@ class StatsTab(wx.Panel):
             elif len(HATCH) == 1:
                 HATCH = "0"+HATCH
                 
+            FRIEND = hex(int(self.FRIEND.GetValue()))[2:]
+            if len(FRIEND) > 2:
+                FRIEND = "FF"
+            elif len(FRIEND) == 0:
+                FRIEND = "00"
+            elif len(FRIEND) == 1:
+                FRIEND = "0"+FRIEND
+            
+            LEVEL = hex(int(self.LEVEL.GetSelection()))[2:]
+            if len(LEVEL) == 1:
+                LEVEL = "0"+LEVEL          
+                
+            EGG1 = hex(int(self.EGG1.GetSelection())+1)[2:]
+            if len(EGG1) == 1:
+                EGG1 = "0"+EGG1 
+                
+            EGG2 = hex(int(self.EGG2.GetSelection())+1)[2:]
+            if len(EGG2) == 1:
+                EGG2 = "0"+EGG2 
+            
+            ABILITY1 = hex(int(self.ABILITY1.GetSelection()))[2:]
+            if len(ABILITY1) == 1:
+                ABILITY1 = "0"+ABILITY1 
+            
+            ABILITY2 = hex(int(self.ABILITY2.GetSelection()))[2:]
+            if len(ABILITY2) == 1:
+                ABILITY2 = "0"+ABILITY2 
+                
+            RUNRATE = hex(int(self.RUNRATE.GetValue()))[2:]
+            if len(RUNRATE) > 2:
+                RUNRATE = "FF"
+            elif len(RUNRATE) == 0:
+                RUNRATE = "00"
+            elif len(RUNRATE) == 1:
+                RUNRATE = "0"+RUNRATE
+                
+            COLOR = hex(int(self.COLOR.GetSelection()))[2:]
+            if len(COLOR) == 1:
+                COLOR = "0"+COLOR
+                
             #Create a string off all of the stats to be written to the rom.
             base = HP+ATK+DEF+SPD+SpATK+SpDEF
             types = TYPE1+TYPE2
             rate_exp = CATCHRATE+BASEEXP
             evs = evs_hex
             items = ITEM1+ITEM2
-            assort = GENDER+HATCH
+            assort = GENDER+HATCH+FRIEND+LEVEL+EGG1+EGG2
+            abilities = ABILITY1+ABILITY2
+            runrate_color = RUNRATE+COLOR
             
-            stats = base+types+rate_exp+evs+items+assort
-            print stats
             
-            
+            stats = base+types+rate_exp+evs+items+assort+abilities+runrate_color+"0000"
+            return stats
             
         except:
-            pass
-            #need to print an error here.
+            ERROR = wx.MessageDialog(None, 
+                                'One of your entries contains in the stats tab contains bad data.', 
+                                'Data Error', 
+                                wx.OK | wx.ICON_ERROR)
+            ERROR.ShowModal()
         
     def sort_base_stats(self):
         d = self.base_stats_dict
@@ -645,6 +865,12 @@ class StatsTab(wx.Panel):
         d["COLOR"] = int(get_bytes_string_from_hex_string(s[25]),16)
         
         self.base_stats_dict = d
+        
+    def save(self):
+        string = self.create_string_of_hex_values_to_be_written()
+        frame.open_rom.seek(self.basestatsoffset, 0)
+        string = binascii.unhexlify(string)
+        frame.open_rom.write(string)
         
 class MovesTab(wx.Panel):
     def __init__(self, parent):

@@ -22,11 +22,11 @@ BPRE Main stats @0x2547A0:
 
 +16 Gender [1]
 +17 Steps to hatch[1] Value*256d = real steps
-
 +18 BaseFriendship[1]
 +19 Level-up Type [1] 
 +20 EggGroup1 [1]
 +21 EggGroup2 [1]
+
 +22 Ability1 [1]
 +23 Ability2 [1]
 
