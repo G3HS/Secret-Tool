@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+﻿#!/usr/local/bin/python
 # coding: utf-8
 from __future__ import division
 import wx, os, binascii, ConfigParser
@@ -487,26 +487,27 @@ class StatsTab(wx.Panel):
         self.FRIEND = wx.TextCtrl(assorted, -1,style=wx.TE_CENTRE, size=(40,-1))
         assorted_sizer.Add(self.FRIEND, (2, 1), wx.DefaultSpan,  wx.ALL, 4)
         
-        level_up_list = ["Erratic","Fast","Medium Fast","Medium Slow","Slow","Fluctuating"]
+        level_up_tmp = frame.Config.get(frame.rom_id, "LevelUpTypes")
+        level_up_list = level_up_tmp.split(",")
         LEVEL_txt = wx.StaticText(assorted, -1,"Level-Up Rate:")
         assorted_sizer.Add(LEVEL_txt, (3, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.LEVEL = wx.ComboBox(assorted, -1, choices=level_up_list,
-                                style=wx.SUNKEN_BORDER, size=(90, 20))
+                                style=wx.SUNKEN_BORDER, size=(100, -1))
         assorted_sizer.Add(self.LEVEL, (3, 1), wx.DefaultSpan,  wx.ALL, 4)
         
-        egg_groups = ["Monster", "Water 1", "Bug", "Flying","Field","Fairy","Grass","Human-Like","Water 3",
-                                "Mineral", "Amorphous", "Water 2", "Ditto", "Dragon", "Undiscovered"]
+        egg_tmp = frame.Config.get(frame.rom_id, "EggGroups")
+        egg_groups = egg_tmp.split(",")
         
         EGG1_txt = wx.StaticText(assorted, -1,"Egg Group 1:")
         assorted_sizer.Add(EGG1_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.EGG1 = wx.ComboBox(assorted, -1, choices=egg_groups,
-                                style=wx.SUNKEN_BORDER, size=(90, 20))
+                                style=wx.SUNKEN_BORDER, size=(100, -1))
         assorted_sizer.Add(self.EGG1, (4, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         EGG2_txt = wx.StaticText(assorted, -1,"Egg Group 2:")
         assorted_sizer.Add(EGG2_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.EGG2 = wx.ComboBox(assorted, -1, choices=egg_groups,
-                                style=wx.SUNKEN_BORDER, size=(90, 20))
+                                style=wx.SUNKEN_BORDER, size=(100, -1))
         assorted_sizer.Add(self.EGG2, (5, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         assorted.SetSizerAndFit(assorted_sizer)
