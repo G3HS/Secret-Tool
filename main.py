@@ -143,7 +143,7 @@ class TabbedEditorArea(wx.Notebook):
                                              )
         
         PokeDataTab = PokemonDataEditor(self)
-        self.AddPage(PokeDataTab, "Pokemon Data Editor")
+        self.AddPage(PokeDataTab, "POK\xe9MON Data Editor")
         
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -207,7 +207,7 @@ class PokemonDataEditor(wx.Panel):
         for num in range(number):
             tmp_name = frame.open_rom.read(name_length)
             tmp_name = convert_ascii_and_poke(tmp_name, "to_poke")
-            name = tmp_name.split("\xff", 1)
+            name = tmp_name.split("\\xFF", 1)
             names.append(name[0])
         return names
     
@@ -266,7 +266,7 @@ class DataEditingTabs(wx.Notebook):
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
-        self.AddPage(self.dex, "PokeDex")
+        self.AddPage(self.dex, "POK\xe9Dex")
         
         self.SetSizer(sizer)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
@@ -357,7 +357,7 @@ class StatsTab(wx.Panel):
         for n in range(t_number):
             temp_type = frame.open_rom.read(t_name_length)
             temp_type = convert_ascii_and_poke(temp_type, "to_poke")
-            temp_type = temp_type.split("\xff")
+            temp_type = temp_type.split("\\xFF")
             list_of_types.append(temp_type[0])
         
         TYPE1_txt = wx.StaticText(types, -1,"Type 1:")
@@ -898,5 +898,5 @@ class PokeDexTab(wx.Panel):
 
 
 app = wx.App(False)
-frame = MainWindow(None, "Pokemon Gen III Hacking Suite")
+frame = MainWindow(None, "POK\xe9MON Gen III Hacking Suite")
 app.MainLoop()
