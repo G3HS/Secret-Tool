@@ -912,13 +912,14 @@ class MovesTab(wx.Panel):
         v_lm_box.Add(self.MOVESET, wx.EXPAND | wx.ALL, 5)
         
         editing_box = wx.BoxSizer(wx.HORIZONTAL)
-        
-        self.LEVEL = wx.TextCtrl(learned_moves, -1,style=wx.TE_CENTRE, size=(40,-1))
-        editing_box.Add(self.LEVEL, 0, wx.EXPAND | wx.ALL, 5)
+
         
         self.ATTACK = wx.ComboBox(learned_moves, -1, choices=self.MOVES_LIST,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         editing_box.Add(self.ATTACK, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.LEVEL = wx.TextCtrl(learned_moves, -1,style=wx.TE_CENTRE, size=(40,-1))
+        editing_box.Add(self.LEVEL, 0, wx.EXPAND | wx.ALL, 5)
         
         SET = wx.Button(learned_moves, 6, "Set")
         self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=6)
