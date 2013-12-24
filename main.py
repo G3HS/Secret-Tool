@@ -881,11 +881,11 @@ class MovesTab(wx.Panel):
         self.sizer = wx.GridBagSizer(3,3)
         self.NEW_LEARNED_OFFSET = None
         self.NEW_NUMBER_OF_MOVES = None
+        self.original_amount_of_moves = 0
         self.generate_ui()
         self.SetSizer(self.sizer)
         
         #FLAGS
-        self.original_amount_of_moves = None
         
         
         self.Layout()
@@ -910,6 +910,22 @@ class MovesTab(wx.Panel):
         self.MOVESET.InsertColumn(0, 'Attack', width=140)
         self.MOVESET.InsertColumn(1, 'Level', width=50)
         v_lm_box.Add(self.MOVESET, wx.EXPAND | wx.ALL, 5)
+        
+        editing_box = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.LEVEL = wx.TextCtrl(learned_moves, -1,style=wx.TE_CENTRE, size=(40,-1))
+        editing_box.Add(self.LEVEL, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.ATTACK = wx.ComboBox(learned_moves, -1, choices=self.MOVES_LIST,
+                                style=wx.SUNKEN_BORDER, size=(100, -1))
+        editing_box.Add(self.ATTACK, 0, wx.EXPAND | wx.ALL, 5)
+        
+        SET = wx.Button(learned_moves, 6, "Set")
+        self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=6)
+        editing_box.Add(SET, 0, wx.EXPAND | wx.ALL, 5)
+        
+        v_lm_box.Add(editing_box, 0, wx.EXPAND | wx.ALL, 5)
+        
         
         self.LEARNED_OFFSET = wx.StaticText(learned_moves, -1, "0xXXXXXX")
         v_lm_box_buttons.Add(self.LEARNED_OFFSET, 0, wx.EXPAND | wx.ALL, 5)
@@ -944,6 +960,7 @@ class MovesTab(wx.Panel):
         self.sizer.Add(learned_moves, (0,0), wx.DefaultSpan, wx.ALL, 4)
         
         self.load_everything()
+        
     def save(self):
         if self.NEW_LEARNED_OFFSET != None:
             pointer = "08"+self.NEW_LEARNED_OFFSET
@@ -957,7 +974,29 @@ class MovesTab(wx.Panel):
         repoint.Show()
         
     def OnAdd(self, *args):
-        pass
+        move_len = len(self.learned_moves)
+        if self.NEW_NUMBER_OF_MOVES == None:
+            if self.original_amount_of_moves != move_len:
+                if self.original_amount_of_moves < move_len:
+                    index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[1])
+                    self.MOVESET.SetStringItem(index, 1, str(level))
+            elif self.original_amount_of_moves == move_len:
+                ERROR = wx.MessageDialog(None, 
+                                'You must repoint or delete before adding a new entry.', 
+                                'Data Error', 
+                                wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+        else:
+            if self.NEW_NUMBER_OF_MOVES != move_len:
+                if self.NEW_NUMBER_OF_MOVES < move_len:
+                    index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
+                    self.MOVESET.SetStringItem(index, 1, "1")
+            elif self.NEW_NUMBER_OF_MOVES == move_len:
+                ERROR = wx.MessageDialog(None, 
+                                'You must repoint or delete before adding a new entry.', 
+                                'Data Error', 
+                                wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
         
     def OnDelete(self, *args):
         pass
@@ -967,11 +1006,14 @@ class MovesTab(wx.Panel):
         
     def OnMoveDown(self, *args):
         pass
-    
+        
+    def OnChangeMove(self, *args):
+        pass
+        
     def load_everything(self):
         #Load learned move data:
-        learned_moves = self.get_move_data()
-        for move, level in learned_moves:
+        self.learned_moves = self.get_move_data()
+        for move, level in self.learned_moves:
             index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
             self.MOVESET.SetStringItem(index, 1, str(level))
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
@@ -1060,6 +1102,7 @@ class MOVE_REPOINTER(wx.Dialog):
         frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
         frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
         frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
+        frame.tabbed_area.PokeDataTab.tabbed_area.moves.OnAdd()
         self.OnClose()
         
     def OnSearch(self, *args):

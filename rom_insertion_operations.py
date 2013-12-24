@@ -60,8 +60,7 @@ def read_pointer(string):
     
 def make_pointer(string):
     #make a pointer in XXYYZZ08 format from 08ZZYYXX.
-    bytes = get_bytes_string_from_hex_string(string)
-    list_of_bytes = split_string_into_bytes(bytes)
+    list_of_bytes = split_string_into_bytes(string)
     list_of_bytes = reversed(list_of_bytes)
     offset = ""
     for byte in list_of_bytes:
