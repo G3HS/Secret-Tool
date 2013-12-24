@@ -142,8 +142,8 @@ class TabbedEditorArea(wx.Notebook):
                                              #wx.BK_RIGHT
                                              )
         
-        PokeDataTab = PokemonDataEditor(self)
-        self.AddPage(PokeDataTab, "POK\xe9MON Data Editor")
+        self.PokeDataTab = PokemonDataEditor(self)
+        self.AddPage(self.PokeDataTab, "POK\xe9MON Data Editor")
         
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -194,6 +194,7 @@ class PokemonDataEditor(wx.Panel):
                 
                 self.sizer.Add(self.sizer_top, 0, wx.ALL, 2)
                 self.tabbed_area = DataEditingTabs(self)
+                
                 self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
                 self.SetSizer(self.sizer)
         self.Layout()
@@ -227,7 +228,7 @@ class PokemonDataEditor(wx.Panel):
         self.Pokes.SetItems(self.poke_names)
         global poke_num
         self.Pokes.SetSelection(poke_num)
-        
+        self.tabbed_area.moves.save()
     
     def save_new_poke_name(self):
         name = self.Poke_Name.GetValue()
@@ -878,6 +879,8 @@ class MovesTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.sizer = wx.GridBagSizer(3,3)
+        self.NEW_LEARNED_OFFSET = None
+        self.NEW_NUMBER_OF_MOVES = None
         self.generate_ui()
         self.SetSizer(self.sizer)
         
@@ -898,6 +901,7 @@ class MovesTab(wx.Panel):
         learned_moves_sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         v_lm_box = wx.BoxSizer(wx.VERTICAL)
+        v_lm_box_buttons = wx.BoxSizer(wx.VERTICAL)
         
         learned_moves_txt = wx.StaticText(learned_moves, -1, "Learned Moves:")
         v_lm_box.Add(learned_moves_txt, 0, wx.EXPAND | wx.ALL, 5)
@@ -907,7 +911,31 @@ class MovesTab(wx.Panel):
         self.MOVESET.InsertColumn(1, 'Level', width=50)
         v_lm_box.Add(self.MOVESET, wx.EXPAND | wx.ALL, 5)
         
+        self.LEARNED_OFFSET = wx.StaticText(learned_moves, -1, "0xXXXXXX")
+        v_lm_box_buttons.Add(self.LEARNED_OFFSET, 0, wx.EXPAND | wx.ALL, 5)
+        
+        REPOINT = wx.Button(learned_moves, 1, "Repoint")
+        self.Bind(wx.EVT_BUTTON, self.OnRepoint, id=1)
+        v_lm_box_buttons.Add(REPOINT, 0, wx.EXPAND | wx.ALL, 5)
+        
+        ADD = wx.Button(learned_moves, 2, "Add")
+        self.Bind(wx.EVT_BUTTON, self.OnAdd, id=2)
+        v_lm_box_buttons.Add(ADD, 0, wx.EXPAND | wx.ALL, 5)
+        
+        DELETE = wx.Button(learned_moves, 3, "Delete")
+        self.Bind(wx.EVT_BUTTON, self.OnDelete, id=3)
+        v_lm_box_buttons.Add(DELETE, 0, wx.EXPAND | wx.ALL, 5)
+        
+        MOVE_UP = wx.Button(learned_moves, 4, "Move Up")
+        self.Bind(wx.EVT_BUTTON, self.OnMoveUp, id=4)
+        v_lm_box_buttons.Add(MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
+        
+        MOVE_DOWN = wx.Button(learned_moves, 5, "Move Down")
+        self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=5)
+        v_lm_box_buttons.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
+        
         learned_moves_sizer.Add(v_lm_box, 0, wx.EXPAND | wx.ALL, 5)
+        learned_moves_sizer.Add(v_lm_box_buttons, 0, wx.EXPAND | wx.ALL, 5)
         learned_moves.SetSizerAndFit(learned_moves_sizer)
         
         
@@ -916,22 +944,46 @@ class MovesTab(wx.Panel):
         self.sizer.Add(learned_moves, (0,0), wx.DefaultSpan, wx.ALL, 4)
         
         self.load_everything()
+    def save(self):
+        if self.NEW_LEARNED_OFFSET != None:
+            pointer = "08"+self.NEW_LEARNED_OFFSET
+            pointer = make_pointer(pointer)
+            pointer = get_hex_from_string(pointer)
+            frame.open_rom.seek(self.learned_moves_pointer)
+            frame.open_rom.write(pointer)
+            
+    def OnRepoint(self, *args):
+        repoint = MOVE_REPOINTER(parent=None)
+        repoint.Show()
         
+    def OnAdd(self, *args):
+        pass
+        
+    def OnDelete(self, *args):
+        pass
+    
+    def OnMoveUp(self, *args):
+        pass
+        
+    def OnMoveDown(self, *args):
+        pass
+    
     def load_everything(self):
         #Load learned move data:
         learned_moves = self.get_move_data()
         for move, level in learned_moves:
             index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
             self.MOVESET.SetStringItem(index, 1, str(level))
+        self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
         
     def get_move_data(self):
-        learned_moves_offset = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 16)
+        self.learned_moves_pointer = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 16)
         learned_moves_length = int(frame.Config.get(frame.rom_id, "LearnedMovesLength"), 16)
         global poke_num
-        learned_moves_offset = poke_num*4+learned_moves_offset
-        frame.open_rom.seek(learned_moves_offset, 0)
-        learned_moves_offset = read_pointer(frame.open_rom.read(4))
-        frame.open_rom.seek(learned_moves_offset, 0)
+        self.learned_moves_offset = poke_num*4+self.learned_moves_pointer
+        frame.open_rom.seek(self.learned_moves_offset, 0)
+        self.learned_moves_offset = read_pointer(frame.open_rom.read(4))
+        frame.open_rom.seek(self.learned_moves_offset, 0)
         learned_moves = []
         while True:
             last_read = frame.open_rom.read(2)
@@ -966,6 +1018,78 @@ class PokeDexTab(wx.Panel):
         self.SetSizer(sizer)
 #############################################################
 
+class MOVE_REPOINTER(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.InitUI()
+        self.SetSize((250, 265))
+        self.SetTitle("Repoint")
+        
+        
+    def InitUI(self):
+
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        txt = wx.StaticText(pnl, -1, "How many moves would you like the\nnew move set to be?")
+        vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.New_Move_Num = wx.TextCtrl(pnl, -1,style=wx.TE_CENTRE, size=(50,-1))
+        vbox.Add(self.New_Move_Num, 0, wx.EXPAND | wx.ALL, 5)
+        
+        SEARCH = wx.Button(pnl, 1, "Search")
+        self.Bind(wx.EVT_BUTTON, self.OnSearch, id=1)
+        vbox.Add(SEARCH, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.OFFSETS = wx.ListBox(pnl, -1)
+        vbox.Add(self.OFFSETS, 0, wx.EXPAND | wx.ALL, 5)
+        
+        txt2 = wx.StaticText(pnl, -1, "Please choose an offset to repoint to.")
+        vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
+        
+        SUBMIT = wx.Button(pnl, 2, "Submit")
+        self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
+        vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
+        
+        pnl.SetSizer(vbox)
+        
+    def OnSubmit(self, *args):
+        sel = self.OFFSETS.GetSelection()
+        if sel != -1:
+            new_offset = self.OFFSETS.GetString(sel)[2:]
+        frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
+        frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
+        frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
+        self.OnClose()
+        
+    def OnSearch(self, *args):
+        self.OFFSETS.Clear()
+        try:
+            self.num = int(self.New_Move_Num.GetValue())
+        except:
+            return
+        search = "\xff\xff"*self.num
+        frame.open_rom.seek(0)
+        rom = frame.open_rom.read()
+        x = (0,True)
+        start = 7602176
+        for n in range(5):
+            if x[1] == None:
+                break
+            x = (0,True)
+            while x[0] != 1:
+                offset = rom.find(search, start)
+                if offset == -1:
+                    x = (1,None)
+                if offset%4 != 0:
+                    start = offset+1
+                    continue
+                self.OFFSETS.Append(hex(offset))
+                x = (1,True)
+                start = offset+len(search)
+                
+    def OnClose(self, *args):
+        self.Destroy()
 
 
 app = wx.App(False)

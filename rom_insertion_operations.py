@@ -58,6 +58,16 @@ def read_pointer(string):
     offset = offset[2:]
     return int(offset, 16)
     
+def make_pointer(string):
+    #make a pointer in XXYYZZ08 format from 08ZZYYXX.
+    bytes = get_bytes_string_from_hex_string(string)
+    list_of_bytes = split_string_into_bytes(bytes)
+    list_of_bytes = reversed(list_of_bytes)
+    offset = ""
+    for byte in list_of_bytes:
+        offset += byte
+    return offset
+    
 def convert_ascii_and_poke(string, mode):
     #modes: "to_poke" and "to_ascii"
     chart = [("\\xB5",'[MALE]'),("\\xB6",'[FEMALE]'),("\\x34",'[Lv]'),("\\x53",'[PK]'),
