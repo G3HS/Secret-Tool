@@ -1,7 +1,7 @@
 ﻿#!/usr/local/bin/python
 # coding: utf-8
 from __future__ import division
-import wx, os, binascii, ConfigParser
+import wx, os, binascii, ConfigParser, sys
 from baseconv import *
 from module_locator import *
 from rom_insertion_operations import *
@@ -443,13 +443,13 @@ class StatsTab(wx.Panel):
         ITEM1_txt = wx.StaticText(items, -1,"Item 1:")
         items_sizer.Add(ITEM1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ITEM1 = wx.ComboBox(items, -1, choices=items_list,
-                                style=wx.SUNKEN_BORDER, size=(110, 20))
+                                style=wx.SUNKEN_BORDER, size=(160, 20))
         items_sizer.Add(self.ITEM1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ITEM2_txt = wx.StaticText(items, -1,"Item 2:")
         items_sizer.Add(ITEM2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ITEM2 = wx.ComboBox(items, -1, choices=items_list,
-                                style=wx.SUNKEN_BORDER, size=(110, 20))
+                                style=wx.SUNKEN_BORDER, size=(160, 20))
         items_sizer.Add(self.ITEM2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         items.SetSizerAndFit(items_sizer)
@@ -525,13 +525,13 @@ class StatsTab(wx.Panel):
         ABILITY1_txt = wx.StaticText(abilities, -1,"Ability 1:")
         abilities_sizer.Add(ABILITY1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ABILITY1 = wx.ComboBox(abilities, -1, choices=abilities_list,
-                                style=wx.SUNKEN_BORDER, size=(90, 20))
+                                style=wx.SUNKEN_BORDER, size=(150, 20))
         abilities_sizer.Add(self.ABILITY1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ABILITY2_txt = wx.StaticText(abilities, -1,"Ability 2:")
         abilities_sizer.Add(ABILITY2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ABILITY2 = wx.ComboBox(abilities, -1, choices=abilities_list,
-                                style=wx.SUNKEN_BORDER, size=(90, 20))
+                                style=wx.SUNKEN_BORDER, size=(150, 20))
         abilities_sizer.Add(self.ABILITY2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         abilities.SetSizerAndFit(abilities_sizer)
@@ -583,6 +583,7 @@ class StatsTab(wx.Panel):
         self.sizer.Add(run_rate_color, (2,2), wx.DefaultSpan,  wx.ALL, 2)"""
         #---------- ----------#
         self.load_stats_into_boxes()
+    
     def update_HATCH_steps(self, *args):
         txt = self.HATCH.GetValue()
         try: 
@@ -719,8 +720,7 @@ class StatsTab(wx.Panel):
                 
             evs_list = [str(self.e_SPD.GetValue()), str(self.e_DEF.GetValue()),
                             str(self.e_ATK.GetValue()), str(self.e_HP.GetValue()),
-                            "0","0",str(self.e_SpATK.GetValue()),
-                            str(self.e_SpDEF.GetValue())]
+                            "0","0",str(self.e_SpDEF.GetValue()),str(self.e_SpATK.GetValue())]
             evs_bin = ""
             for i, value in enumerate(evs_list):
                 if i == 4:
@@ -734,8 +734,9 @@ class StatsTab(wx.Panel):
                         value = "0"
                     ev = bin(int(value))[2:].zfill(2)
                     evs_bin = evs_bin+ev
-            evs_hex = hex(int(evs_bin, 2))[2:]
-
+            evs_hex = hex(int(evs_bin, 2))[2:].zfill(4)
+            
+            
             ITEM1 = hex(int(self.ITEM1.GetSelection()))[2:]
             ITEM1_len = len(ITEM1)
             if ITEM1_len < 4:
@@ -876,10 +877,80 @@ class StatsTab(wx.Panel):
 class MovesTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.SetSizer(sizer)
-
+        self.sizer = wx.GridBagSizer(3,3)
+        self.generate_ui()
+        self.SetSizer(self.sizer)
+        
+        #FLAGS
+        self.original_amount_of_moves = None
+        
+        
+        self.Layout()
+        
+    def generate_ui(self):
+        moves_offset = int(frame.Config.get(frame.rom_id, "AttackNames"), 16)
+        moves_length = int(frame.Config.get(frame.rom_id, "AttackNameLength"), 16)
+        moves_num = int(frame.Config.get(frame.rom_id, "NumberofAttacks"), 16)
+        
+        self.MOVES_LIST = generate_list_of_names(moves_offset, moves_length, "\xff", moves_num, frame.open_rom)
+        #----Create a panel for Learned Moves----#
+        learned_moves = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        learned_moves_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        v_lm_box = wx.BoxSizer(wx.VERTICAL)
+        
+        learned_moves_txt = wx.StaticText(learned_moves, -1, "Learned Moves:")
+        v_lm_box.Add(learned_moves_txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.MOVESET = wx.ListCtrl(learned_moves, -1, style=wx.LC_REPORT, size=(200,200))
+        self.MOVESET.InsertColumn(0, 'Attack', width=140)
+        self.MOVESET.InsertColumn(1, 'Level', width=50)
+        v_lm_box.Add(self.MOVESET, wx.EXPAND | wx.ALL, 5)
+        
+        learned_moves_sizer.Add(v_lm_box, 0, wx.EXPAND | wx.ALL, 5)
+        learned_moves.SetSizerAndFit(learned_moves_sizer)
+        
+        
+        
+        #----Add Everything to the Sizer----#
+        self.sizer.Add(learned_moves, (0,0), wx.DefaultSpan, wx.ALL, 4)
+        
+        self.load_everything()
+        
+    def load_everything(self):
+        #Load learned move data:
+        learned_moves = self.get_move_data()
+        for move, level in learned_moves:
+            index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
+            self.MOVESET.SetStringItem(index, 1, str(level))
+        
+    def get_move_data(self):
+        learned_moves_offset = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 16)
+        learned_moves_length = int(frame.Config.get(frame.rom_id, "LearnedMovesLength"), 16)
+        global poke_num
+        learned_moves_offset = poke_num*4+learned_moves_offset
+        frame.open_rom.seek(learned_moves_offset, 0)
+        learned_moves_offset = read_pointer(frame.open_rom.read(4))
+        frame.open_rom.seek(learned_moves_offset, 0)
+        learned_moves = []
+        while True:
+            last_read = frame.open_rom.read(2)
+            if last_read != "\xff\xff":
+                #moves will be a tupple of (move, level)
+                last_read = get_bytes_string_from_hex_string(last_read)
+                last_read = split_string_into_bytes(last_read)
+                if int(last_read[1],16)%2 == 0:
+                    level = int(int(last_read[1], 16)/2)
+                    move = int(last_read[0], 16)
+                else:
+                    level = int((int(last_read[1], 16)-1)/2)
+                    move = int(last_read[0],16)+256
+                learned_moves.append((move, level))
+            else:
+                break
+        self.original_amount_of_moves = len(learned_moves)
+        return learned_moves
+        
 class EvoTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
