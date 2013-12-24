@@ -909,6 +909,7 @@ class MovesTab(wx.Panel):
         self.MOVESET = wx.ListCtrl(learned_moves, -1, style=wx.LC_REPORT, size=(200,200))
         self.MOVESET.InsertColumn(0, 'Attack', width=140)
         self.MOVESET.InsertColumn(1, 'Level', width=50)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnSelectMove,  self.MOVESET)
         v_lm_box.Add(self.MOVESET, wx.EXPAND | wx.ALL, 5)
         
         editing_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -963,13 +964,24 @@ class MovesTab(wx.Panel):
         self.load_everything()
         
     def save(self):
+        learned_offset = self.learned_moves_offset
         if self.NEW_LEARNED_OFFSET != None:
             pointer = "08"+self.NEW_LEARNED_OFFSET
             pointer = make_pointer(pointer)
             pointer = get_hex_from_string(pointer)
             frame.open_rom.seek(self.learned_moves_pointer)
             frame.open_rom.write(pointer)
-            
+            learned_offset = int(self.NEW_LEARNED_OFFSET, 16)
+        frame.open_rom.seek(learned_offset)
+        learned_moves = self.prepare_string_of_learned_moves()
+        learned_moves = get_hex_from_string(learned_moves)
+        frame.open_rom.write(learned_moves)
+    def OnSelectMove(self, *args):
+        sel = self.MOVESET.GetFocusedItem()
+        
+        self.LEVEL.SetValue(str(self.learned_moves[sel][1]))
+        self.ATTACK.SetSelection(self.learned_moves[sel][0])
+        
     def OnRepoint(self, *args):
         repoint = MOVE_REPOINTER(parent=None)
         repoint.Show()
@@ -979,8 +991,7 @@ class MovesTab(wx.Panel):
         if self.NEW_NUMBER_OF_MOVES == None:
             if self.original_amount_of_moves != move_len:
                 if self.original_amount_of_moves < move_len:
-                    index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[1])
-                    self.MOVESET.SetStringItem(index, 1, str(level))
+                    self.AddNewMove()
             elif self.original_amount_of_moves == move_len:
                 ERROR = wx.MessageDialog(None, 
                                 'You must repoint or delete before adding a new entry.', 
@@ -989,9 +1000,8 @@ class MovesTab(wx.Panel):
                 ERROR.ShowModal()
         else:
             if self.NEW_NUMBER_OF_MOVES != move_len:
-                if self.NEW_NUMBER_OF_MOVES < move_len:
-                    index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
-                    self.MOVESET.SetStringItem(index, 1, "1")
+                if self.NEW_NUMBER_OF_MOVES > move_len:
+                    self.AddNewMove()
             elif self.NEW_NUMBER_OF_MOVES == move_len:
                 ERROR = wx.MessageDialog(None, 
                                 'You must repoint or delete before adding a new entry.', 
@@ -1000,17 +1010,91 @@ class MovesTab(wx.Panel):
                 ERROR.ShowModal()
         
     def OnDelete(self, *args):
-        pass
-    
+        selection = self.MOVESET.GetFocusedItem()
+        if selection != -1:
+            self.MOVESET.DeleteItem(selection)
+            del self.learned_moves[selection]
+        
     def OnMoveUp(self, *args):
-        pass
-        
+        selection = self.MOVESET.GetFocusedItem()
+        if selection != -1 and selection != 0:
+            self.learned_moves[selection], self.learned_moves[selection-1] = self.learned_moves[selection-1], self.learned_moves[selection]
+            self.MOVESET.DeleteAllItems()
+            for move, level in self.learned_moves:
+                index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
+                self.MOVESET.SetStringItem(index, 1, str(level))
+            self.MOVESET.Select(selection-1)
+            self.MOVESET.Focus(selection-1)
+            
     def OnMoveDown(self, *args):
-        pass
-        
+        selection = self.MOVESET.GetFocusedItem()
+        length = len(self.learned_moves)-1
+        if selection != -1 and selection != length:
+            self.learned_moves[selection], self.learned_moves[selection+1] = self.learned_moves[selection+1], self.learned_moves[selection]
+            self.MOVESET.DeleteAllItems()
+            for move, level in self.learned_moves:
+                index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
+                self.MOVESET.SetStringItem(index, 1, str(level))
+            self.MOVESET.Select(selection+1)
+            self.MOVESET.Focus(selection+1)
+            
     def OnChangeMove(self, *args):
-        pass
+        selection = self.MOVESET.GetFocusedItem()
+        if selection != -1:
+            try: level = int(self.LEVEL.GetValue())
+            except: return
+            attack = self.ATTACK.GetSelection()
+            if attack == -1: return
+            self.learned_moves[selection] = (attack, level)
+            self.MOVESET.DeleteAllItems()
+            for move, level in self.learned_moves:
+                index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
+                self.MOVESET.SetStringItem(index, 1, str(level))
+            self.MOVESET.Select(selection)
+            self.MOVESET.Focus(selection)
         
+    def AddNewMove(self, *args):
+        try: level = int(self.LEVEL.GetValue())
+        except: level = ""
+        attack = self.ATTACK.GetSelection()
+        if attack == -1:
+            index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[1])
+        else:
+            index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[attack])
+        if level == "":
+            self.MOVESET.SetStringItem(index, 1, "1")
+        else:
+            if level > 100:
+                level = 100
+            self.MOVESET.SetStringItem(index, 1, str(level))
+        if level == "":
+            level = 1
+        self.learned_moves.append((attack, level))
+        
+    def prepare_string_of_learned_moves(self):
+        Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
+        string = ""
+        if Jambo51HackCheck == "False":
+            for attack, level in self.learned_moves:
+                lvl = level
+                atk = attack
+                lvl *= 2
+                if attack > 256:
+                    lvl += 1
+                    atk = atk-256
+                set = hex(atk)[2:].zfill(2)+hex(lvl)[2:].zfill(2)
+                string += set
+            string += "ffff"
+        else:
+            for attack, level in self.learned_moves:
+                lvl = hex(level)[2:]
+                atk = hex(attack)[2:].zfill(4)
+                atk = atk[2:]+atk[:2]
+                set = atk+lvl
+                string += set
+            string += "ffffff"
+        return string
+    
     def load_everything(self):
         #Load learned move data:
         self.learned_moves = self.get_move_data()
@@ -1022,27 +1106,42 @@ class MovesTab(wx.Panel):
     def get_move_data(self):
         self.learned_moves_pointer = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 16)
         learned_moves_length = int(frame.Config.get(frame.rom_id, "LearnedMovesLength"), 16)
+        
+        Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
         global poke_num
         self.learned_moves_offset = poke_num*4+self.learned_moves_pointer
         frame.open_rom.seek(self.learned_moves_offset, 0)
         self.learned_moves_offset = read_pointer(frame.open_rom.read(4))
         frame.open_rom.seek(self.learned_moves_offset, 0)
         learned_moves = []
-        while True:
-            last_read = frame.open_rom.read(2)
-            if last_read != "\xff\xff":
-                #moves will be a tupple of (move, level)
-                last_read = get_bytes_string_from_hex_string(last_read)
-                last_read = split_string_into_bytes(last_read)
-                if int(last_read[1],16)%2 == 0:
-                    level = int(int(last_read[1], 16)/2)
-                    move = int(last_read[0], 16)
-                else:
-                    level = int((int(last_read[1], 16)-1)/2)
-                    move = int(last_read[0],16)+256
-                learned_moves.append((move, level))
-            else:
-                break
+        if Jambo51HackCheck == "False":
+            while True:
+                    last_read = frame.open_rom.read(2)
+                    if last_read != "\xff\xff":
+                        #moves will be a tupple of (move, level)
+                        last_read = get_bytes_string_from_hex_string(last_read)
+                        last_read = split_string_into_bytes(last_read)
+                        if int(last_read[1],16)%2 == 0:
+                            level = int(int(last_read[1], 16)/2)
+                            move = int(last_read[0], 16)
+                        else:
+                            level = int((int(last_read[1], 16)-1)/2)
+                            move = int(last_read[0],16)+256
+                        learned_moves.append((move, level))
+                    else:
+                        break
+        else:
+             while True:
+                    last_read = frame.open_rom.read(3)
+                    last_read = get_bytes_string_from_hex_string(last_read)
+                    last_read = split_string_into_bytes(last_read)
+                    if last_read[2] != "FF":
+                        #moves will be a tupple of (move, level)
+                        move = int(last_read[1]+last_read[0], 16)
+                        level = int(last_read[2], 16)
+                        learned_moves.append((move, level))
+                    else:
+                        break
         self.original_amount_of_moves = len(learned_moves)
         return learned_moves
         
@@ -1103,7 +1202,7 @@ class MOVE_REPOINTER(wx.Dialog):
         frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
         frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
         frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
-        frame.tabbed_area.PokeDataTab.tabbed_area.moves.OnAdd()
+        #frame.tabbed_area.PokeDataTab.tabbed_area.moves.OnAdd()
         self.OnClose()
         
     def OnSearch(self, *args):
