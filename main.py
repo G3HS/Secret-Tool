@@ -200,10 +200,10 @@ class PokemonDataEditor(wx.Panel):
         self.Layout()
         
     def get_pokemon_names(self):
-        offset = int(frame.Config.get(frame.rom_id, "PokeNames"),16)
+        offset = int(frame.Config.get(frame.rom_id, "PokeNames"),0)
         frame.open_rom.seek(offset, 0)
-        number = int(frame.Config.get(frame.rom_id, "NumberofPokes"))
-        name_length = int(frame.Config.get(frame.rom_id, "PokeNamesLength"), 16)
+        number = int(frame.Config.get(frame.rom_id, "NumberofPokes"), 0)
+        name_length = int(frame.Config.get(frame.rom_id, "PokeNamesLength"), 0)
         names = [] 
         for num in range(number):
             tmp_name = frame.open_rom.read(name_length)
@@ -234,7 +234,7 @@ class PokemonDataEditor(wx.Panel):
         name = self.Poke_Name.GetValue()
         name = convert_ascii_and_poke(str(name), "to_ascii")
         name += "\xff"
-        max_length = int(frame.Config.get(frame.rom_id, "PokeNamesLength"), 16)
+        max_length = int(frame.Config.get(frame.rom_id, "PokeNamesLength"), 0)
         need = max_length-len(name)
         if need < 0:
             m = max_length - 1
@@ -243,7 +243,7 @@ class PokemonDataEditor(wx.Panel):
         for n in range(need):
             name += "\x00"
         global poke_num
-        offset = int(frame.Config.get(frame.rom_id, "PokeNames"),16)
+        offset = int(frame.Config.get(frame.rom_id, "PokeNames"),0)
         offset = max_length*poke_num + offset
         frame.open_rom.seek(offset,0)
         frame.open_rom.write(name)
@@ -263,11 +263,13 @@ class DataEditingTabs(wx.Notebook):
         self.moves = MovesTab(self)
         self.evo = EvoTab(self)
         self.dex = PokeDexTab(self)
+        self.egg_moves = EggMoveTab(self)
         
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
         self.AddPage(self.dex, "POK\xe9Dex")
+        self.AddPage(self.egg_moves, "Egg Moves")
         
         self.SetSizer(sizer)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
@@ -289,8 +291,8 @@ class StatsTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.sizer = wx.GridBagSizer(3,3)
-        basestatsoffset = int(frame.Config.get(frame.rom_id, "pokebasestats"), 16)
-        basestatslength = int(frame.Config.get(frame.rom_id, "pokebasestatslength"), 16)
+        basestatsoffset = int(frame.Config.get(frame.rom_id, "pokebasestats"), 0)
+        basestatslength = int(frame.Config.get(frame.rom_id, "pokebasestatslength"), 0)
         global poke_num
         self.basestatsoffset = basestatslength*poke_num + basestatsoffset
         frame.open_rom.seek(self.basestatsoffset, 0)
@@ -349,9 +351,9 @@ class StatsTab(wx.Panel):
         types_sizer = wx.GridBagSizer(3,3)
         
         #Get list of types:
-        t_offset = int(frame.Config.get(frame.rom_id, "TypeNames"), 16)
-        t_name_length = int(frame.Config.get(frame.rom_id, "TypeNamesLength"), 16)
-        t_number = int(frame.Config.get(frame.rom_id, "NumberofTypes"))
+        t_offset = int(frame.Config.get(frame.rom_id, "TypeNames"), 0)
+        t_name_length = int(frame.Config.get(frame.rom_id, "TypeNamesLength"), 0)
+        t_number = int(frame.Config.get(frame.rom_id, "NumberofTypes"), 0)
         list_of_types = []
         
         frame.open_rom.seek(t_offset, 0)
@@ -517,9 +519,9 @@ class StatsTab(wx.Panel):
         abilities = wx.Panel(self, -1, style=wx.RAISED_BORDER)
         abilities_sizer = wx.GridBagSizer(3,3)
         
-        abil_offset = int(frame.Config.get(frame.rom_id, "Abilities"), 16)
-        abil_num = int(frame.Config.get(frame.rom_id, "NumberofAbilities"), 16)
-        abil_len = int(frame.Config.get(frame.rom_id, "AbiltiesNameLength"), 16)
+        abil_offset = int(frame.Config.get(frame.rom_id, "Abilities"), 0)
+        abil_num = int(frame.Config.get(frame.rom_id, "NumberofAbilities"), 0)
+        abil_len = int(frame.Config.get(frame.rom_id, "AbiltiesNameLength"), 0)
 
         abilities_list = generate_list_of_names(abil_offset, abil_len, "\xff", abil_num, frame.open_rom)
         
@@ -588,10 +590,10 @@ class StatsTab(wx.Panel):
     def update_HATCH_steps(self, *args):
         txt = self.HATCH.GetValue()
         try: 
-            if int(txt) >= 255: self.HATCH_label.SetLabel("65025 Steps")
-            elif int(txt) == 0: self.HATCH_label.SetLabel("Instant")
+            if int(txt, 0) >= 255: self.HATCH_label.SetLabel("65025 Steps")
+            elif int(txt, 0) == 0: self.HATCH_label.SetLabel("Instant")
             else:
-                ratio = (int(txt)+1)*255
+                ratio = (int(txt, 0)+1)*255
                 self.HATCH_label.SetLabel(str(ratio)+" Steps")
         except:
             self.HATCH_label.SetLabel("Bad Number")
@@ -599,10 +601,10 @@ class StatsTab(wx.Panel):
     def update_gender_ratio(self, *args):
         txt = self.GENDER.GetValue()
         try: 
-            if int(txt) >= 255: self.gender_label.SetLabel("Genderless")
-            elif int(txt) == 254: self.gender_label.SetLabel("100% Female")
+            if int(txt, 0) >= 255: self.gender_label.SetLabel("Genderless")
+            elif int(txt, 0) == 254: self.gender_label.SetLabel("100% Female")
             else:
-                ratio = (int(txt)/256)*100
+                ratio = (int(txt, 0)/256)*100
                 self.gender_label.SetLabel("{0:.1f}% Female".format(ratio))
         except:
             self.gender_label.SetLabel("Bad Number")
@@ -647,7 +649,7 @@ class StatsTab(wx.Panel):
         
     def create_string_of_hex_values_to_be_written(self):
         try:
-            HP = hex(int(self.HP.GetValue()))[2:]
+            HP = hex(int(self.HP.GetValue(), 0))[2:]
             if len(HP) > 2:
                 HP = "FF"
             elif len(HP) == 0:
@@ -655,7 +657,7 @@ class StatsTab(wx.Panel):
             elif len(HP) == 1:
                 HP = "0"+HP
                 
-            ATK = hex(int(self.ATK.GetValue()))[2:]
+            ATK = hex(int(self.ATK.GetValue(), 0))[2:]
             if len(ATK) > 2:
                 ATK = "FF"
             elif len(ATK) == 0:
@@ -663,7 +665,7 @@ class StatsTab(wx.Panel):
             elif len(ATK) == 1:
                 ATK = "0"+ATK
                 
-            DEF = hex(int(self.DEF.GetValue()))[2:]
+            DEF = hex(int(self.DEF.GetValue(), 0))[2:]
             if len(DEF) > 2:
                 DEF = "FF"
             elif len(DEF) == 0:
@@ -671,7 +673,7 @@ class StatsTab(wx.Panel):
             elif len(DEF) == 1:
                 DEF = "0"+DEF
                  
-            SPD = hex(int(self.SPD.GetValue()))[2:]
+            SPD = hex(int(self.SPD.GetValue(), 0))[2:]
             if len(SPD) > 2:
                 SPD = "FF"
             elif len(SPD) == 0:
@@ -679,7 +681,7 @@ class StatsTab(wx.Panel):
             elif len(SPD) == 1:
                 SPD = "0"+SPD
                  
-            SpATK = hex(int(self.SpATK.GetValue()))[2:]
+            SpATK = hex(int(self.SpATK.GetValue(), 0))[2:]
             if len(SpATK) > 2:
                 SpATK = "FF"
             elif len(SpATK) == 0:
@@ -687,7 +689,7 @@ class StatsTab(wx.Panel):
             elif len(SpATK) == 1:
                 SpATK = "0"+SpATK
                  
-            SpDEF = hex(int(self.SpDEF.GetValue()))[2:]
+            SpDEF = hex(int(self.SpDEF.GetValue(), 0))[2:]
             if len(SpDEF) > 2:
                 SpDEF = "FF"
             elif len(SpDEF) == 0:
@@ -695,15 +697,15 @@ class StatsTab(wx.Panel):
             elif len(SpDEF) == 1:
                 SpDEF = "0"+SpDEF
                  
-            TYPE1 = hex(int(self.TYPE1.GetSelection()))[2:]
+            TYPE1 = hex(int(self.TYPE1.GetSelection(), 0))[2:]
             if len(TYPE1) == 1:
                 TYPE1 = "0"+TYPE1
                  
-            TYPE2 = hex(int(self.TYPE2.GetSelection()))[2:]
+            TYPE2 = hex(int(self.TYPE2.GetSelection(), 0))[2:]
             if len(TYPE2) == 1:
                 TYPE2 = "0"+TYPE2
             
-            CATCHRATE = hex(int(self.CATCHRATE.GetValue()))[2:]
+            CATCHRATE = hex(int(self.CATCHRATE.GetValue(), 0))[2:]
             if len(CATCHRATE) > 2:
                 CATCHRATE = "FF"
             elif len(CATCHRATE) == 0:
@@ -711,7 +713,7 @@ class StatsTab(wx.Panel):
             elif len(CATCHRATE) == 1:
                 CATCHRATE = "0"+CATCHRATE
                 
-            BASEEXP = hex(int(self.BASEEXP.GetValue()))[2:]
+            BASEEXP = hex(int(self.BASEEXP.GetValue(), 0))[2:]
             if len(BASEEXP) > 2:
                 BASEEXP = "FF"
             elif len(BASEEXP) == 0:
@@ -733,26 +735,26 @@ class StatsTab(wx.Panel):
                         value = "3"
                     elif value == "":
                         value = "0"
-                    ev = bin(int(value))[2:].zfill(2)
+                    ev = bin(int(value), 0)[2:].zfill(2)
                     evs_bin = evs_bin+ev
             evs_hex = hex(int(evs_bin, 2))[2:].zfill(4)
             
             
-            ITEM1 = hex(int(self.ITEM1.GetSelection()))[2:]
+            ITEM1 = hex(int(self.ITEM1.GetSelection(), 0))[2:]
             ITEM1_len = len(ITEM1)
             if ITEM1_len < 4:
                 for n in range(4-ITEM1_len):
                     ITEM1 = "0"+ITEM1
             ITEM1 = ITEM1[2:]+ITEM1[:2] #Flip the bytes around.
 
-            ITEM2 = hex(int(self.ITEM2.GetSelection()))[2:]
+            ITEM2 = hex(int(self.ITEM2.GetSelection(), 0))[2:]
             ITEM2_len = len(ITEM2)
             if ITEM2_len < 4:
                 for n in range(4-ITEM2_len):
                     ITEM2 = "0"+ITEM2
             ITEM2 = ITEM2[2:]+ITEM2[:2] #Flip the bytes around.
             
-            GENDER = hex(int(self.GENDER.GetValue()))[2:]
+            GENDER = hex(int(self.GENDER.GetValue(), 0))[2:]
             if len(GENDER) > 2:
                 GENDER = "FF"
             elif len(GENDER) == 0:
@@ -760,7 +762,7 @@ class StatsTab(wx.Panel):
             elif len(GENDER) == 1:
                 GENDER = "0"+GENDER
                 
-            HATCH = hex(int(self.HATCH.GetValue()))[2:]
+            HATCH = hex(int(self.HATCH.GetValue(), 0))[2:]
             if len(HATCH) > 2:
                 HATCH = "FF"
             elif len(HATCH) == 0:
@@ -768,7 +770,7 @@ class StatsTab(wx.Panel):
             elif len(HATCH) == 1:
                 HATCH = "0"+HATCH
                 
-            FRIEND = hex(int(self.FRIEND.GetValue()))[2:]
+            FRIEND = hex(int(self.FRIEND.GetValue(), 0))[2:]
             if len(FRIEND) > 2:
                 FRIEND = "FF"
             elif len(FRIEND) == 0:
@@ -776,27 +778,27 @@ class StatsTab(wx.Panel):
             elif len(FRIEND) == 1:
                 FRIEND = "0"+FRIEND
             
-            LEVEL = hex(int(self.LEVEL.GetSelection()))[2:]
+            LEVEL = hex(int(self.LEVEL.GetSelection(), 0))[2:]
             if len(LEVEL) == 1:
                 LEVEL = "0"+LEVEL          
                 
-            EGG1 = hex(int(self.EGG1.GetSelection())+1)[2:]
+            EGG1 = hex(int(self.EGG1.GetSelection(), 0)+1)[2:]
             if len(EGG1) == 1:
                 EGG1 = "0"+EGG1 
                 
-            EGG2 = hex(int(self.EGG2.GetSelection())+1)[2:]
+            EGG2 = hex(int(self.EGG2.GetSelection(), 0)+1)[2:]
             if len(EGG2) == 1:
                 EGG2 = "0"+EGG2 
             
-            ABILITY1 = hex(int(self.ABILITY1.GetSelection()))[2:]
+            ABILITY1 = hex(int(self.ABILITY1.GetSelection(), 0))[2:]
             if len(ABILITY1) == 1:
                 ABILITY1 = "0"+ABILITY1 
             
-            ABILITY2 = hex(int(self.ABILITY2.GetSelection()))[2:]
+            ABILITY2 = hex(int(self.ABILITY2.GetSelection(), 0))[2:]
             if len(ABILITY2) == 1:
                 ABILITY2 = "0"+ABILITY2 
                 
-            RUNRATE = hex(int(self.RUNRATE.GetValue()))[2:]
+            RUNRATE = hex(int(self.RUNRATE.GetValue(), 0))[2:]
             if len(RUNRATE) > 2:
                 RUNRATE = "FF"
             elif len(RUNRATE) == 0:
@@ -804,7 +806,7 @@ class StatsTab(wx.Panel):
             elif len(RUNRATE) == 1:
                 RUNRATE = "0"+RUNRATE
                 
-            COLOR = hex(int(self.COLOR.GetSelection()))[2:]
+            COLOR = hex(int(self.COLOR.GetSelection(), 0))[2:]
             if len(COLOR) == 1:
                 COLOR = "0"+COLOR
                 
@@ -891,9 +893,9 @@ class MovesTab(wx.Panel):
         self.Layout()
         
     def generate_ui(self):
-        moves_offset = int(frame.Config.get(frame.rom_id, "AttackNames"), 16)
-        moves_length = int(frame.Config.get(frame.rom_id, "AttackNameLength"), 16)
-        moves_num = int(frame.Config.get(frame.rom_id, "NumberofAttacks"), 16)
+        moves_offset = int(frame.Config.get(frame.rom_id, "AttackNames"), 0)
+        moves_length = int(frame.Config.get(frame.rom_id, "AttackNameLength"), 0)
+        moves_num = int(frame.Config.get(frame.rom_id, "NumberofAttacks"), 0)
         
         self.MOVES_LIST = generate_list_of_names(moves_offset, moves_length, "\xff", moves_num, frame.open_rom)
         #----Create a panel for Learned Moves----#
@@ -976,6 +978,7 @@ class MovesTab(wx.Panel):
         learned_moves = self.prepare_string_of_learned_moves()
         learned_moves = get_hex_from_string(learned_moves)
         frame.open_rom.write(learned_moves)
+    
     def OnSelectMove(self, *args):
         sel = self.MOVESET.GetFocusedItem()
         
@@ -1041,7 +1044,7 @@ class MovesTab(wx.Panel):
     def OnChangeMove(self, *args):
         selection = self.MOVESET.GetFocusedItem()
         if selection != -1:
-            try: level = int(self.LEVEL.GetValue())
+            try: level = int(self.LEVEL.GetValue(), 0)
             except: return
             attack = self.ATTACK.GetSelection()
             if attack == -1: return
@@ -1054,7 +1057,7 @@ class MovesTab(wx.Panel):
             self.MOVESET.Focus(selection)
         
     def AddNewMove(self, *args):
-        try: level = int(self.LEVEL.GetValue())
+        try: level = int(self.LEVEL.GetValue(), 0)
         except: level = ""
         attack = self.ATTACK.GetSelection()
         if attack == -1:
@@ -1104,8 +1107,8 @@ class MovesTab(wx.Panel):
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
         
     def get_move_data(self):
-        self.learned_moves_pointer = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 16)
-        learned_moves_length = int(frame.Config.get(frame.rom_id, "LearnedMovesLength"), 16)
+        self.learned_moves_pointer = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 0)
+        learned_moves_length = int(frame.Config.get(frame.rom_id, "LearnedMovesLength"), 0)
         
         Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
         global poke_num
@@ -1158,6 +1161,36 @@ class PokeDexTab(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.SetSizer(sizer)
+        
+class EggMoveTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.load_egg_moves()
+        
+        
+        self.SetSizer(sizer)
+        
+    def load_egg_moves(self):
+        self.EGG_MOVES = {}
+        self.OFFSET = int(frame.Config.get(frame.rom_id, "EggMoves"), 0)
+        self.POINTERS = [int(frame.Config.get(frame.rom_id, "EggMovePointer1"), 0), int(frame.Config.get(frame.rom_id, "EggMovePointer2"), 0)]
+        frame.open_rom.seek(self.OFFSET, 0)
+        number = int("0x4E20", 0)
+        while True:
+            read = frame.open_rom.read(2)
+            read = read[1]+read[0]
+            if read == "\xff\xff":
+                break
+            read = int(get_bytes_string_from_hex_string(read), 16)
+            
+            if read-number >= 0:
+                poke = read-number
+                self.EGG_MOVES[poke] = []
+            else:
+                self.EGG_MOVES[poke].append(read)
+                        
 #############################################################
 
 class MOVE_REPOINTER(wx.Dialog):
@@ -1208,7 +1241,7 @@ class MOVE_REPOINTER(wx.Dialog):
     def OnSearch(self, *args):
         self.OFFSETS.Clear()
         try:
-            self.num = int(self.New_Move_Num.GetValue())
+            self.num = int(self.New_Move_Num.GetValue(), 0)
         except:
             return
         search = "\xff\xff"*self.num
