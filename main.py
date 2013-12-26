@@ -9,6 +9,9 @@ from rom_insertion_operations import *
 
 OPEN = 1
 poke_num = 0
+poke_names = None
+MOVES_LIST = None
+
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title, size=(800,600))
@@ -170,6 +173,8 @@ class PokemonDataEditor(wx.Panel):
         if 'frame' in globals():
             if frame.open_rom is not None:
                 self.poke_names = self.get_pokemon_names()
+                global poke_names
+                poke_names = self.poke_names
                 self.Pokes = wx.ComboBox(self, -1, choices=self.poke_names, 
                                 value=self.poke_names[0],
                                 style=wx.SUNKEN_BORDER,
@@ -898,6 +903,8 @@ class MovesTab(wx.Panel):
         moves_num = int(frame.Config.get(frame.rom_id, "NumberofAttacks"), 0)
         
         self.MOVES_LIST = generate_list_of_names(moves_offset, moves_length, "\xff", moves_num, frame.open_rom)
+        global MOVES_LIST
+        MOVES_LIST = self.MOVES_LIST
         #----Create a panel for Learned Moves----#
         learned_moves = wx.Panel(self, -1, style=wx.RAISED_BORDER)
         learned_moves_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1165,12 +1172,53 @@ class PokeDexTab(wx.Panel):
 class EggMoveTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        names_buttons_vbox = wx.BoxSizer(wx.VERTICAL)
+        
         self.load_egg_moves()
         
+        poke_names_vbox = wx.BoxSizer(wx.VERTICAL)
+        self.POKES = wx.ListCtrl(self, -1, style=wx.LC_REPORT, size=(200,400))
+        self.POKES.InsertColumn(0, '#', width=50)
+        self.POKES.InsertColumn(1, 'Name', width=140)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnSelectPoke,  self.POKES)
+        poke_names_vbox.Add(self.POKES, 0, wx.EXPAND | wx.ALL, 5)
         
+        self.LoadPOKESList()
+        
+        moves_vbox = wx.BoxSizer(wx.VERTICAL)
+        self.MOVES = wx.ListBox(self, -1, size=(100,400))
+        moves_vbox.Add(self.MOVES, 0, wx.EXPAND | wx.ALL, 5)
+        
+        moves_butons_vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        
+        
+        sizer.Add(names_buttons_vbox, 0, wx.EXPAND | wx.ALL, 5)
+        sizer.Add(poke_names_vbox, 0, wx.EXPAND | wx.ALL, 5)
+        sizer.Add(moves_vbox, 0, wx.EXPAND | wx.ALL, 5)
+        sizer.Add(moves_butons_vbox, 0, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(sizer)
+        
+        
+    def OnSelectPoke(self, *args):
+        global MOVES_LIST
+        self.MOVES.Clear()
+        
+        selection = self.POKES.GetFocusedItem()
+        selection = self.POKES.GetItem(selection, 0)
+        selection = int(selection.GetText())
+        for move in self.EGG_MOVES[selection]:
+            self.MOVES.Append(MOVES_LIST[move])
+    
+    def LoadPOKESList(self):
+        global poke_names
+        poke_names
+        for poke in self.EGG_MOVES:
+            index = self.POKES.InsertStringItem(sys.maxint, str(poke))
+            self.POKES.SetStringItem(index, 1, poke_names[poke-1])
+        
         
     def load_egg_moves(self):
         self.EGG_MOVES = {}
