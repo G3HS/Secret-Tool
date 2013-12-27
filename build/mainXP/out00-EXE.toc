@@ -1,9 +1,0 @@
-('d:\\Secret-Tool\\dist\\main.exe',
- False,
- False,
- None,
- None,
- [],
- False,
- False,
- 1388122661L)
