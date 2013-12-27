@@ -342,7 +342,7 @@ class StatsTab(wx.Panel):
         
     def generate_ui(self):
         #----------Set up a panel for the regular stats.----------#
-        basic_stats = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        basic_stats = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         basic_stats_sizer = wx.GridBagSizer(3,3)
         
         basic_stats_txt = wx.StaticText(basic_stats, -1,"Base Stats:")
@@ -382,55 +382,8 @@ class StatsTab(wx.Panel):
         
         basic_stats.SetSizerAndFit(basic_stats_sizer)
         
-        #---------Set up a panel for Types----------#
-        types = wx.Panel(self, -1, style=wx.RAISED_BORDER)
-        types_sizer = wx.GridBagSizer(3,3)
-        
-        #Get list of types:
-        t_offset = int(frame.Config.get(frame.rom_id, "TypeNames"), 0)
-        t_name_length = int(frame.Config.get(frame.rom_id, "TypeNamesLength"), 0)
-        t_number = int(frame.Config.get(frame.rom_id, "NumberofTypes"), 0)
-        list_of_types = []
-        
-        frame.open_rom.seek(t_offset, 0)
-        for n in range(t_number):
-            temp_type = frame.open_rom.read(t_name_length)
-            temp_type = convert_ascii_and_poke(temp_type, "to_poke")
-            temp_type = temp_type.split("\\xFF")
-            list_of_types.append(temp_type[0])
-        
-        TYPE1_txt = wx.StaticText(types, -1,"Type 1:")
-        types_sizer.Add(TYPE1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.TYPE1 = wx.ComboBox(types, -1, choices=list_of_types,
-                                style=wx.SUNKEN_BORDER, size=(80, 20))
-        types_sizer.Add(self.TYPE1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
-        TYPE2_txt = wx.StaticText(types, -1,"Type 2:")
-        types_sizer.Add(TYPE2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.TYPE2 = wx.ComboBox(types, -1, choices=list_of_types,
-                                style=wx.SUNKEN_BORDER, size=(80, 20))
-        types_sizer.Add(self.TYPE2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
-        types.SetSizerAndFit(types_sizer)
-        
-        #----------Set up a panel for Catch Rate and Base EXP----------#
-        catch_rate_base_exp = wx.Panel(self, -1, style=wx.RAISED_BORDER)
-        catch_rate_base_exp_sizer = wx.GridBagSizer(3,3)
-        
-        CATCHRATE_txt = wx.StaticText(catch_rate_base_exp, -1,"Catch Rate:")
-        catch_rate_base_exp_sizer.Add(CATCHRATE_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 6)
-        self.CATCHRATE = wx.TextCtrl(catch_rate_base_exp, -1,style=wx.TE_CENTRE, size=(40,-1))
-        catch_rate_base_exp_sizer.Add(self.CATCHRATE,(0, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
-        BASEEXP_txt = wx.StaticText(catch_rate_base_exp, -1,"Base Exp:")
-        catch_rate_base_exp_sizer.Add(BASEEXP_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
-        self.BASEEXP = wx.TextCtrl(catch_rate_base_exp, -1,style=wx.TE_CENTRE, size=(40,-1))
-        catch_rate_base_exp_sizer.Add(self.BASEEXP,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
-        catch_rate_base_exp.SetSizerAndFit(catch_rate_base_exp_sizer)
-        
-        #----------Set up a panel for EVs----------#
-        evs = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+         #----------Set up a panel for EVs----------#
+        evs = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         evs_sizer = wx.GridBagSizer(3,3)
         
         e_txt = wx.StaticText(evs, -1,"Effort Values:")
@@ -468,33 +421,9 @@ class StatsTab(wx.Panel):
         
         evs.SetSizerAndFit(evs_sizer)
         
-        #----------Panel for items----------#
-        items = wx.Panel(self, -1, style=wx.RAISED_BORDER)
-        items_sizer = wx.GridBagSizer(3,3)
-        
-        items_offset = int(frame.Config.get(frame.rom_id, "Items"), 16)
-        number_of_items = int(frame.Config.get(frame.rom_id, "NumberofItems"), 16)
-        item_data_len = int(frame.Config.get(frame.rom_id, "ItemsDataLength"), 16)
-        
-        items_list = generate_list_of_names(items_offset, item_data_len, 
-                            "\xff", number_of_items, frame.open_rom)
-                            
-        ITEM1_txt = wx.StaticText(items, -1,"Item 1:")
-        items_sizer.Add(ITEM1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.ITEM1 = wx.ComboBox(items, -1, choices=items_list,
-                                style=wx.SUNKEN_BORDER, size=(160, 20))
-        items_sizer.Add(self.ITEM1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
-        ITEM2_txt = wx.StaticText(items, -1,"Item 2:")
-        items_sizer.Add(ITEM2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.ITEM2 = wx.ComboBox(items, -1, choices=items_list,
-                                style=wx.SUNKEN_BORDER, size=(160, 20))
-        items_sizer.Add(self.ITEM2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
-        items.SetSizerAndFit(items_sizer)
         
         #----------Panel for Gender, Hatch Speed, Friendship, Level-up speed, and egg groups----------#
-        assorted = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        assorted = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         assorted_sizer = wx.GridBagSizer(3,3)
         
         GENDER_txt = wx.StaticText(assorted, -1,"Gender Ratio:")
@@ -518,8 +447,6 @@ class StatsTab(wx.Panel):
         assorted_sizer.Add(HATCH_sizer, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         self.HATCH.Bind(wx.EVT_TEXT, self.update_HATCH_steps)
-        
-        
         
         FRIEND_txt = wx.StaticText(assorted, -1,"Base Friendship:")
         assorted_sizer.Add(FRIEND_txt, (2, 0), wx.DefaultSpan,  wx.ALL, 6)
@@ -550,9 +477,40 @@ class StatsTab(wx.Panel):
         assorted_sizer.Add(self.EGG2, (5, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         assorted.SetSizerAndFit(assorted_sizer)
+
+        #---------Set up a panel for Types----------#
+        types = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        types_sizer = wx.GridBagSizer(3,3)
+        
+        #Get list of types:
+        t_offset = int(frame.Config.get(frame.rom_id, "TypeNames"), 0)
+        t_name_length = int(frame.Config.get(frame.rom_id, "TypeNamesLength"), 0)
+        t_number = int(frame.Config.get(frame.rom_id, "NumberofTypes"), 0)
+        list_of_types = []
+        
+        frame.open_rom.seek(t_offset, 0)
+        for n in range(t_number):
+            temp_type = frame.open_rom.read(t_name_length)
+            temp_type = convert_ascii_and_poke(temp_type, "to_poke")
+            temp_type = temp_type.split("\\xFF")
+            list_of_types.append(temp_type[0])
+        
+        TYPE1_txt = wx.StaticText(types, -1,"Type 1:")
+        types_sizer.Add(TYPE1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.TYPE1 = wx.ComboBox(types, -1, choices=list_of_types,
+                                style=wx.SUNKEN_BORDER, size=(80, 20))
+        types_sizer.Add(self.TYPE1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        TYPE2_txt = wx.StaticText(types, -1,"Type 2:")
+        types_sizer.Add(TYPE2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.TYPE2 = wx.ComboBox(types, -1, choices=list_of_types,
+                                style=wx.SUNKEN_BORDER, size=(80, 20))
+        types_sizer.Add(self.TYPE2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        types.SetSizerAndFit(types_sizer)
         
         #----------Panel for Abilities----------#
-        abilities = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        abilities = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         abilities_sizer = wx.GridBagSizer(3,3)
         
         abil_offset = int(frame.Config.get(frame.rom_id, "Abilities"), 0)
@@ -575,8 +533,49 @@ class StatsTab(wx.Panel):
         
         abilities.SetSizerAndFit(abilities_sizer)
         
+        #----------Panel for items----------#
+        items = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        items_sizer = wx.GridBagSizer(3,3)
+        
+        items_offset = int(frame.Config.get(frame.rom_id, "Items"), 16)
+        number_of_items = int(frame.Config.get(frame.rom_id, "NumberofItems"), 16)
+        item_data_len = int(frame.Config.get(frame.rom_id, "ItemsDataLength"), 16)
+        
+        items_list = generate_list_of_names(items_offset, item_data_len, 
+                            "\xff", number_of_items, frame.open_rom)
+                            
+        ITEM1_txt = wx.StaticText(items, -1,"Item 1:")
+        items_sizer.Add(ITEM1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.ITEM1 = wx.ComboBox(items, -1, choices=items_list,
+                                style=wx.SUNKEN_BORDER, size=(160, 20))
+        items_sizer.Add(self.ITEM1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        ITEM2_txt = wx.StaticText(items, -1,"Item 2:")
+        items_sizer.Add(ITEM2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
+        self.ITEM2 = wx.ComboBox(items, -1, choices=items_list,
+                                style=wx.SUNKEN_BORDER, size=(160, 20))
+        items_sizer.Add(self.ITEM2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        items.SetSizerAndFit(items_sizer)
+        
+        #----------Set up a panel for Catch Rate and Base EXP----------#
+        catch_rate_base_exp = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        catch_rate_base_exp_sizer = wx.GridBagSizer(3,3)
+        
+        CATCHRATE_txt = wx.StaticText(catch_rate_base_exp, -1,"Catch Rate:")
+        catch_rate_base_exp_sizer.Add(CATCHRATE_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.CATCHRATE = wx.TextCtrl(catch_rate_base_exp, -1,style=wx.TE_CENTRE, size=(40,-1))
+        catch_rate_base_exp_sizer.Add(self.CATCHRATE,(0, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        BASEEXP_txt = wx.StaticText(catch_rate_base_exp, -1,"Base Exp:")
+        catch_rate_base_exp_sizer.Add(BASEEXP_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.BASEEXP = wx.TextCtrl(catch_rate_base_exp, -1,style=wx.TE_CENTRE, size=(40,-1))
+        catch_rate_base_exp_sizer.Add(self.BASEEXP,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        catch_rate_base_exp.SetSizerAndFit(catch_rate_base_exp_sizer)
+        
         #----------Panel for Run Rate and Color----------#
-        run_rate_color = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        run_rate_color = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         run_rate_color_sizer = wx.GridBagSizer(3,3)
 
         RUNRATE_txt = wx.StaticText(run_rate_color, -1,"Run Rate:")
@@ -594,32 +593,25 @@ class StatsTab(wx.Panel):
         run_rate_color_sizer.Add(self.COLOR, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         run_rate_color.SetSizerAndFit(run_rate_color_sizer)
+        
         #----------Add everything to the SIZER----------#
         boxa = wx.BoxSizer(wx.HORIZONTAL)
         boxb = wx.BoxSizer(wx.HORIZONTAL)
         boxc = wx.BoxSizer(wx.HORIZONTAL)
         
         boxa.Add(basic_stats, 0, wx.ALL|wx.EXPAND, 5)
-        boxb.Add(types, 0, wx.ALL|wx.EXPAND, 5)
-        boxc.Add(catch_rate_base_exp,  0, wx.ALL|wx.EXPAND, 5)
         boxa.Add(evs, 0, wx.ALL|wx.EXPAND, 5)
+        boxa.Add(assorted, 0, wx.ALL|wx.EXPAND, 5)
+        boxb.Add(types, 0, wx.ALL|wx.EXPAND, 5)
         boxb.Add(abilities, 0, wx.ALL|wx.EXPAND, 5)
         boxb.Add(items, 0, wx.ALL|wx.EXPAND, 5)
-        boxa.Add(assorted, 0, wx.ALL|wx.EXPAND, 5)
+        boxc.Add(catch_rate_base_exp,  0, wx.ALL|wx.EXPAND, 5)
         boxc.Add(run_rate_color, 0, wx.ALL|wx.EXPAND, 5)
         
         self.sizer.Add(boxa, (0,0), wx.DefaultSpan,  wx.ALL, 0)
         self.sizer.Add(boxb, (1,0), wx.DefaultSpan,  wx.ALL, 0)
         self.sizer.Add(boxc, (2,0), wx.DefaultSpan,  wx.ALL, 0)
-        
-        """self.sizer.Add(basic_stats, (0,0), wx.DefaultSpan,  wx.ALL, 2)
-        self.sizer.Add(types, (1,0), wx.DefaultSpan,  wx.ALL, 2)
-        self.sizer.Add(catch_rate_base_exp, (2,0), wx.DefaultSpan,  wx.ALL, 2)
-        self.sizer.Add(evs, (0,1), wx.DefaultSpan,  wx.ALL, 2)
-        self.sizer.Add(items, (1,1), wx.DefaultSpan,  wx.ALL, 2)
-        self.sizer.Add(assorted, (0,2), wx.DefaultSpan,  wx.ALL, 2)
-        self.sizer.Add(abilities, (1,2), wx.DefaultSpan,  wx.ALL, 2)
-        self.sizer.Add(run_rate_color, (2,2), wx.DefaultSpan,  wx.ALL, 2)"""
+
         #---------- ----------#
         self.load_stats_into_boxes()
     
@@ -767,7 +759,7 @@ class StatsTab(wx.Panel):
                 elif i == 5:
                     evs_bin = evs_bin+"00"
                 else:
-                    if len(value) > 1:
+                    if int(value, 0) > 3:
                         value = "3"
                     elif value == "":
                         value = "0"
@@ -944,29 +936,29 @@ class MovesTab(wx.Panel):
         v_lm_box_buttons = wx.BoxSizer(wx.VERTICAL)
         
         learned_moves_txt = wx.StaticText(learned_moves, -1, "Learned Moves:")
-        v_lm_box.Add(learned_moves_txt, 0, wx.EXPAND | wx.ALL, 5)
+        v_lm_box.Add(learned_moves_txt, 0, wx.EXPAND | wx.LEFT | wx.TOP, 2)
         
-        self.MOVESET = wx.ListCtrl(learned_moves, -1, style=wx.LC_REPORT, size=(200,200))
+        self.MOVESET = wx.ListCtrl(learned_moves, -1, style=wx.LC_REPORT, size=(230,350))
         self.MOVESET.InsertColumn(0, 'Attack', width=140)
-        self.MOVESET.InsertColumn(1, 'Level', width=50)
+        self.MOVESET.InsertColumn(1, 'Level', width=40)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnSelectMove,  self.MOVESET)
-        v_lm_box.Add(self.MOVESET, wx.EXPAND | wx.ALL, 5)
+        v_lm_box.Add(self.MOVESET, wx.EXPAND | wx.ALL, 2)
         
         editing_box = wx.BoxSizer(wx.HORIZONTAL)
 
         
         self.ATTACK = wx.ComboBox(learned_moves, -1, choices=self.MOVES_LIST,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
-        editing_box.Add(self.ATTACK, 0, wx.EXPAND | wx.ALL, 5)
+        editing_box.Add(self.ATTACK, 0, wx.EXPAND | wx.ALL, 2)
         
         self.LEVEL = wx.TextCtrl(learned_moves, -1,style=wx.TE_CENTRE, size=(40,-1))
-        editing_box.Add(self.LEVEL, 0, wx.EXPAND | wx.ALL, 5)
+        editing_box.Add(self.LEVEL, 0, wx.EXPAND | wx.ALL, 2)
         
         SET = wx.Button(learned_moves, 6, "Set")
         self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=6)
-        editing_box.Add(SET, 0, wx.EXPAND | wx.ALL, 5)
+        editing_box.Add(SET, 0, wx.EXPAND | wx.ALL, 2)
         
-        v_lm_box.Add(editing_box, 0, wx.EXPAND | wx.ALL, 5)
+        v_lm_box.Add(editing_box, 0, wx.EXPAND | wx.ALL, 2)
         
         
         self.LEARNED_OFFSET = wx.StaticText(learned_moves, -1, "0xXXXXXX")
@@ -1304,14 +1296,17 @@ class EggMoveTab(wx.Panel):
                 frame.open_rom.seek(pointer)
                 frame.open_rom.write(get_hex_from_string(NewEggOffset_pointer_form))
         
+        #Fill old table with FFs
+        if self.OFFSET != NewEggOffset:
+            frame.open_rom.seek(self.OFFSET)
+            for n in range(int(self.original_length/2)):
+                frame.open_rom.write("\xff")
+        
         NewEggOffset = int(NewEggOffset, 16)
         frame.open_rom.seek(NewEggOffset)
         frame.open_rom.write(self.string_to_be_written)
         
-        #Fill old table with FFs
-        frame.open_rom.seek(self.OFFSET)
-        for n in range(int(self.original_length/2)):
-            frame.open_rom.write("\xff")
+        
         
         
         
@@ -1454,7 +1449,7 @@ class EggMoveTab(wx.Panel):
                 move = hex(move)[2:].zfill(4)
                 move = move[2:]+move[:2]
                 string += move
-        string += "ffff"
+        string += "ffff0000"
         self.original_length = len(string)
                         
 #############################################################
