@@ -1,5 +1,5 @@
-﻿#!/usr/local/bin/python
-# coding: utf-8
+﻿# coding: utf-8
+#venv pyi-env-name
 from __future__ import division
 import wx, os, binascii, ConfigParser, sys
 from baseconv import *
@@ -11,6 +11,22 @@ OPEN = 1
 poke_num = 0
 poke_names = None
 MOVES_LIST = None
+
+description = """POK\xe9MON Gen III Hacking Suite was developed to enable better cross-
+platform POK\xe9MON  Rom Hacking by removing the need for the .NET
+framework.  It was also created in order to be more adaptable to more
+advanced hacking techniques that change some boundaries, like the number
+of POK\xe9MON. In the past, these changes rendered some very necessary
+tools useless and which made using these new limits difficult."""
+
+licence = """The POK\xe9MON Gen III Hacking Suite is free software; you can redistribute 
+it and/or modify it under the terms of the GNU General Public License as 
+published by the Free Software Foundation; either version 2 of the License, 
+or (at your option) any later version. See the GNU General Public License 
+for more details.
+
+This program has NO WARRENTY and the creator is not responsible for any 
+corruption/data loss it may cause."""
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -37,16 +53,30 @@ class MainWindow(wx.Frame):
         filemenu.Append(OPEN, "&Open"," Open a ROM.")
         filemenu.AppendSeparator()
         filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
-        filemenu.AppendSeparator()
-        filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
         
         self.Bind(wx.EVT_MENU, self.open_file, id=OPEN)
+        self.Bind(wx.EVT_MENU, self.ABOUT, id=wx.ID_ABOUT)
         
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
         self.Show(True)
+        
+    def ABOUT(self, *args):
+        
+        info = wx.AboutDialogInfo()
+        global description
+        global licence
+        info.SetName('POK\xe9MON Gen III Hacking Suite')
+        info.SetVersion('Alpha Demo 0.1')
+        info.SetDescription(description)
+        info.SetCopyright('(C) 2013 karatekid552')
+        #info.SetWebSite('')
+        info.SetLicence(licence)
+        #info.AddDocWriter('')
+
+        wx.AboutBox(info)
         
     def open_file(self, *args):
         open_dialog = wx.FileDialog(self, message="Open a rom...", 
@@ -234,7 +264,8 @@ class PokemonDataEditor(wx.Panel):
         global poke_num
         self.Pokes.SetSelection(poke_num)
         self.tabbed_area.moves.save()
-    
+        self.tabbed_area.egg_moves.save()
+        
     def save_new_poke_name(self):
         name = self.Poke_Name.GetValue()
         name = convert_ascii_and_poke(str(name), "to_ascii")
@@ -702,11 +733,11 @@ class StatsTab(wx.Panel):
             elif len(SpDEF) == 1:
                 SpDEF = "0"+SpDEF
                  
-            TYPE1 = hex(int(self.TYPE1.GetSelection(), 0))[2:]
+            TYPE1 = hex(int(self.TYPE1.GetSelection()))[2:]
             if len(TYPE1) == 1:
                 TYPE1 = "0"+TYPE1
                  
-            TYPE2 = hex(int(self.TYPE2.GetSelection(), 0))[2:]
+            TYPE2 = hex(int(self.TYPE2.GetSelection()))[2:]
             if len(TYPE2) == 1:
                 TYPE2 = "0"+TYPE2
             
@@ -728,7 +759,7 @@ class StatsTab(wx.Panel):
                 
             evs_list = [str(self.e_SPD.GetValue()), str(self.e_DEF.GetValue()),
                             str(self.e_ATK.GetValue()), str(self.e_HP.GetValue()),
-                            "0","0",str(self.e_SpDEF.GetValue()),str(self.e_SpATK.GetValue())]
+                            "0","0",str(self.e_SpATK.GetValue()),str(self.e_SpDEF.GetValue())]
             evs_bin = ""
             for i, value in enumerate(evs_list):
                 if i == 4:
@@ -740,19 +771,19 @@ class StatsTab(wx.Panel):
                         value = "3"
                     elif value == "":
                         value = "0"
-                    ev = bin(int(value), 0)[2:].zfill(2)
+                    ev = bin(int(value, 0))[2:].zfill(2)
                     evs_bin = evs_bin+ev
             evs_hex = hex(int(evs_bin, 2))[2:].zfill(4)
             
             
-            ITEM1 = hex(int(self.ITEM1.GetSelection(), 0))[2:]
+            ITEM1 = hex(int(self.ITEM1.GetSelection()))[2:]
             ITEM1_len = len(ITEM1)
             if ITEM1_len < 4:
                 for n in range(4-ITEM1_len):
                     ITEM1 = "0"+ITEM1
             ITEM1 = ITEM1[2:]+ITEM1[:2] #Flip the bytes around.
 
-            ITEM2 = hex(int(self.ITEM2.GetSelection(), 0))[2:]
+            ITEM2 = hex(int(self.ITEM2.GetSelection()))[2:]
             ITEM2_len = len(ITEM2)
             if ITEM2_len < 4:
                 for n in range(4-ITEM2_len):
@@ -783,23 +814,23 @@ class StatsTab(wx.Panel):
             elif len(FRIEND) == 1:
                 FRIEND = "0"+FRIEND
             
-            LEVEL = hex(int(self.LEVEL.GetSelection(), 0))[2:]
+            LEVEL = hex(int(self.LEVEL.GetSelection()))[2:]
             if len(LEVEL) == 1:
                 LEVEL = "0"+LEVEL          
                 
-            EGG1 = hex(int(self.EGG1.GetSelection(), 0)+1)[2:]
+            EGG1 = hex(int(self.EGG1.GetSelection())+1)[2:]
             if len(EGG1) == 1:
                 EGG1 = "0"+EGG1 
                 
-            EGG2 = hex(int(self.EGG2.GetSelection(), 0)+1)[2:]
+            EGG2 = hex(int(self.EGG2.GetSelection())+1)[2:]
             if len(EGG2) == 1:
                 EGG2 = "0"+EGG2 
             
-            ABILITY1 = hex(int(self.ABILITY1.GetSelection(), 0))[2:]
+            ABILITY1 = hex(int(self.ABILITY1.GetSelection()))[2:]
             if len(ABILITY1) == 1:
                 ABILITY1 = "0"+ABILITY1 
             
-            ABILITY2 = hex(int(self.ABILITY2.GetSelection(), 0))[2:]
+            ABILITY2 = hex(int(self.ABILITY2.GetSelection()))[2:]
             if len(ABILITY2) == 1:
                 ABILITY2 = "0"+ABILITY2 
                 
@@ -811,7 +842,7 @@ class StatsTab(wx.Panel):
             elif len(RUNRATE) == 1:
                 RUNRATE = "0"+RUNRATE
                 
-            COLOR = hex(int(self.COLOR.GetSelection(), 0))[2:]
+            COLOR = hex(int(self.COLOR.GetSelection()))[2:]
             if len(COLOR) == 1:
                 COLOR = "0"+COLOR
                 
@@ -1094,7 +1125,7 @@ class MovesTab(wx.Panel):
                     atk = atk-256
                 set = hex(atk)[2:].zfill(2)+hex(lvl)[2:].zfill(2)
                 string += set
-            string += "ffff"
+            string += "ffff5555"
         else:
             for attack, level in self.learned_moves:
                 lvl = hex(level)[2:]
@@ -1102,7 +1133,7 @@ class MovesTab(wx.Panel):
                 atk = atk[2:]+atk[:2]
                 set = atk+lvl
                 string += set
-            string += "ffffff"
+            string += "ffffff55"
         return string
     
     def load_everything(self):
@@ -1174,26 +1205,60 @@ class EggMoveTab(wx.Panel):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        names_buttons_vbox = wx.BoxSizer(wx.VERTICAL)
-        
         self.load_egg_moves()
+        
+        global poke_names
+        names_buttons_vbox = wx.BoxSizer(wx.VERTICAL)
+        self.POKE_NAME = wx.ComboBox(self, -1, choices=poke_names,
+                                style=wx.SUNKEN_BORDER, size=(100, -1))
+        names_buttons_vbox.Add(self.POKE_NAME, 0, wx.EXPAND | wx.ALL, 5)
+        
+        ADD_POKE =  wx.Button(self, 1, "Add Poke")
+        self.Bind(wx.EVT_BUTTON, self.OnAddPoke, id=1)
+        names_buttons_vbox.Add(ADD_POKE, 0, wx.EXPAND | wx.ALL, 5)
+
+        DELETE_POKE =  wx.Button(self, 2, "Remove Poke")
+        self.Bind(wx.EVT_BUTTON, self.OnDeletePoke, id=2)
+        names_buttons_vbox.Add(DELETE_POKE, 0, wx.EXPAND | wx.ALL, 5)
+
         
         poke_names_vbox = wx.BoxSizer(wx.VERTICAL)
         self.POKES = wx.ListCtrl(self, -1, style=wx.LC_REPORT, size=(200,400))
         self.POKES.InsertColumn(0, '#', width=50)
         self.POKES.InsertColumn(1, 'Name', width=140)
-        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnSelectPoke,  self.POKES)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelectPoke,  self.POKES)
         poke_names_vbox.Add(self.POKES, 0, wx.EXPAND | wx.ALL, 5)
         
         self.LoadPOKESList()
         
+        
         moves_vbox = wx.BoxSizer(wx.VERTICAL)
-        self.MOVES = wx.ListBox(self, -1, size=(100,400))
+        self.MOVES = wx.ListCtrl(self, -1, style=wx.LC_REPORT, size=(200,400))
+        self.MOVES.InsertColumn(0, '#', width=50)
+        self.MOVES.InsertColumn(1, 'Name', width=140)
         moves_vbox.Add(self.MOVES, 0, wx.EXPAND | wx.ALL, 5)
         
         moves_butons_vbox = wx.BoxSizer(wx.VERTICAL)
+        global MOVES_LIST
+        self.MOVE_NAME = wx.ComboBox(self, -1, choices=MOVES_LIST,
+                                style=wx.SUNKEN_BORDER, size=(100, -1))
+        moves_butons_vbox.Add(self.MOVE_NAME, 0, wx.EXPAND | wx.ALL, 5)
         
+        ADD_POKE =  wx.Button(self, 3, "Add Move")
+        self.Bind(wx.EVT_BUTTON, self.OnAddMove, id=3)
+        moves_butons_vbox.Add(ADD_POKE, 0, wx.EXPAND | wx.ALL, 5)
+
+        DELETE_POKE =  wx.Button(self, 4, "Remove Move")
+        self.Bind(wx.EVT_BUTTON, self.OnDeleteMove, id=4)
+        moves_butons_vbox.Add(DELETE_POKE, 0, wx.EXPAND | wx.ALL, 5)
         
+        MOVE_UP = wx.Button(self, 5, "Move Up")
+        self.Bind(wx.EVT_BUTTON, self.OnMoveUp, id=5)
+        moves_butons_vbox.Add(MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
+        
+        MOVE_DOWN = wx.Button(self, 6, "Move Down")
+        self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=6)
+        moves_butons_vbox.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
         
         sizer.Add(names_buttons_vbox, 0, wx.EXPAND | wx.ALL, 5)
         sizer.Add(poke_names_vbox, 0, wx.EXPAND | wx.ALL, 5)
@@ -1201,29 +1266,169 @@ class EggMoveTab(wx.Panel):
         sizer.Add(moves_butons_vbox, 0, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(sizer)
         
+    def save(self):
+        string = ""
+        global NewEggOffset
+        NewEggOffset = hex(self.OFFSET)[2:].zfill(6)
+        for poke, moveset in self.EGG_MOVES.iteritems():
+            number = int("0x4E20", 0)
+            pokemon = hex(poke+number)[2:].zfill(4)
+            pokemon = pokemon[2:]+pokemon[:2]
+            string += pokemon
+            for move in moveset:
+                move = hex(move)[2:].zfill(4)
+                move = move[2:]+move[:2]
+                string += move
+        string += "ffff0000"
+        self.string_to_be_written = get_hex_from_string(string)
+        length = len(string)
+        if length > self.original_length:
+            need = int(length/2)
+            self.repoint = EGG_MOVE_REPOINTER(parent=None, need=need)
+            self.repoint.Bind(wx.EVT_CLOSE, self.repoint_done)
+            self.repoint.Show()
+        else: self.save_part2()
+        
+    def repoint_done(self, *args):
+        self.repoint.Destroy()
+        global NewEggOffset
+        if self.OFFSET == NewEggOffset:
+            self.save()
+        else: self.save_part2()
+        
+    def save_part2(self, *args):
+        global NewEggOffset
+        NewEggOffset_pointer_form = make_pointer("08"+NewEggOffset)
+        if NewEggOffset != hex(self.OFFSET)[2:].zfill(6):
+            for pointer in self.POINTERS:
+                frame.open_rom.seek(pointer)
+                frame.open_rom.write(get_hex_from_string(NewEggOffset_pointer_form))
+        
+        NewEggOffset = int(NewEggOffset, 16)
+        frame.open_rom.seek(NewEggOffset)
+        frame.open_rom.write(self.string_to_be_written)
+        
+        #Fill old table with FFs
+        frame.open_rom.seek(self.OFFSET)
+        for n in range(int(self.original_length/2)):
+            frame.open_rom.write("\xff")
+        
+        
         
     def OnSelectPoke(self, *args):
         global MOVES_LIST
-        self.MOVES.Clear()
+        self.MOVES.DeleteAllItems()
         
         selection = self.POKES.GetFocusedItem()
         selection = self.POKES.GetItem(selection, 0)
         selection = int(selection.GetText())
+        
         for move in self.EGG_MOVES[selection]:
-            self.MOVES.Append(MOVES_LIST[move])
+            index = self.MOVES.InsertStringItem(sys.maxint, str(move))
+            self.MOVES.SetStringItem(index, 1, MOVES_LIST[move])
     
+    def OnAddPoke(self, *args):
+        sel = self.POKE_NAME.GetSelection()
+        if sel != -1:
+            sel += 1
+            if sel not in self.EGG_MOVES:
+                self.EGG_MOVES[sel] = []
+                self.LoadPOKESList()
+            
+    def OnDeletePoke(self, *args):
+        selection = self.POKES.GetFocusedItem()
+        index = selection
+        if selection != -1:
+            selection = self.POKES.GetItem(selection, 0)
+            selection = int(selection.GetText())
+            
+            del self.EGG_MOVES[selection]
+            self.LoadPOKESList()
+            self.POKES.Select(index-1)
+            self.POKES.Focus(index-1)
+            
+    def OnAddMove(self, *args):
+        selection = self.POKES.GetFocusedItem()
+        if selection != -1:
+            selection = self.POKES.GetItem(selection, 0)
+            selection = int(selection.GetText())
+            
+            sel = self.MOVE_NAME.GetSelection()
+            if sel != -1:
+                if sel not in self.EGG_MOVES[selection]:
+                    self.EGG_MOVES[selection].append(sel)
+            self.OnSelectPoke()
+            end = len(self.EGG_MOVES[selection])-1
+            self.MOVES.Select(end)
+            self.MOVES.Focus(end)
+        
+    def OnDeleteMove(self, *args):
+        selection = self.POKES.GetFocusedItem()
+        if selection != -1:
+            selection = self.POKES.GetItem(selection, 0)
+            selection = int(selection.GetText())
+            
+            move_to_delete = self.MOVES.GetFocusedItem()
+            index = move_to_delete
+            if move_to_delete != -1:
+                move_to_delete = self.MOVES.GetItem(move_to_delete, 0)
+                move_to_delete = int(move_to_delete.GetText())
+
+                self.EGG_MOVES[selection].remove(move_to_delete)
+            
+                self.OnSelectPoke()
+                self.MOVES.Select(index)
+                self.MOVES.Focus(index)
+                
+    def OnMoveUp(self, *args):
+        move = self.MOVES.GetFocusedItem()
+        if move != -1:
+            move = self.MOVES.GetItem(move, 0)
+            move = int(move.GetText())
+
+            selection = self.POKES.GetFocusedItem()
+            selection = self.POKES.GetItem(selection, 0)
+            selection = int(selection.GetText())
+            
+            index = self.EGG_MOVES[selection].index(move)
+            if index > 0:
+                self.EGG_MOVES[selection][index], self.EGG_MOVES[selection][index-1] = self.EGG_MOVES[selection][index-1], self.EGG_MOVES[selection][index]
+                self.OnSelectPoke()
+                self.MOVES.Select(index-1)
+                self.MOVES.Focus(index-1)
+                
+    def OnMoveDown(self, *args):
+        move = self.MOVES.GetFocusedItem()
+        if move != -1:
+            move = self.MOVES.GetItem(move, 0)
+            move = int(move.GetText())
+
+            selection = self.POKES.GetFocusedItem()
+            selection = self.POKES.GetItem(selection, 0)
+            selection = int(selection.GetText())
+            
+            index = self.EGG_MOVES[selection].index(move)
+            if index < len(self.EGG_MOVES[selection])-1:
+                self.EGG_MOVES[selection][index], self.EGG_MOVES[selection][index+1] = self.EGG_MOVES[selection][index+1], self.EGG_MOVES[selection][index]
+                self.OnSelectPoke()
+                self.MOVES.Select(index+1)
+                self.MOVES.Focus(index+1)
+        
     def LoadPOKESList(self):
         global poke_names
-        poke_names
+        
+        self.POKES.DeleteAllItems()
         for poke in self.EGG_MOVES:
             index = self.POKES.InsertStringItem(sys.maxint, str(poke))
             self.POKES.SetStringItem(index, 1, poke_names[poke-1])
         
-        
     def load_egg_moves(self):
         self.EGG_MOVES = {}
-        self.OFFSET = int(frame.Config.get(frame.rom_id, "EggMoves"), 0)
+        
         self.POINTERS = [int(frame.Config.get(frame.rom_id, "EggMovePointer1"), 0), int(frame.Config.get(frame.rom_id, "EggMovePointer2"), 0)]
+        frame.open_rom.seek(self.POINTERS[0])
+        self.OFFSET = read_pointer(frame.open_rom.read(4))
+        
         frame.open_rom.seek(self.OFFSET, 0)
         number = int("0x4E20", 0)
         while True:
@@ -1238,6 +1443,19 @@ class EggMoveTab(wx.Panel):
                 self.EGG_MOVES[poke] = []
             else:
                 self.EGG_MOVES[poke].append(read)
+                
+        string = ""
+        for poke, moveset in self.EGG_MOVES.iteritems():
+            number = int("0x4E20", 0)
+            pokemon = hex(poke+number)[2:].zfill(4)
+            pokemon = pokemon[2:]+pokemon[:2]
+            string += pokemon
+            for move in moveset:
+                move = hex(move)[2:].zfill(4)
+                move = move[2:]+move[:2]
+                string += move
+        string += "ffff"
+        self.original_length = len(string)
                         
 #############################################################
 
@@ -1245,7 +1463,7 @@ class MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.InitUI()
-        self.SetSize((250, 265))
+        self.SetSize((250, 350))
         self.SetTitle("Repoint")
         
         
@@ -1264,11 +1482,18 @@ class MOVE_REPOINTER(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnSearch, id=1)
         vbox.Add(SEARCH, 0, wx.EXPAND | wx.ALL, 5)
         
+        txt2 = wx.StaticText(pnl, -1, "Please choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.",style=wx.TE_CENTRE)
+        vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
+        
         self.OFFSETS = wx.ListBox(pnl, -1)
         vbox.Add(self.OFFSETS, 0, wx.EXPAND | wx.ALL, 5)
         
-        txt2 = wx.StaticText(pnl, -1, "Please choose an offset to repoint to.")
-        vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        manual_txt = wx.StaticText(pnl, -1, "Manual Offset: 0x",style=wx.TE_CENTRE)
+        hbox.Add(manual_txt, 0, wx.EXPAND | wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        self.MANUAL = wx.TextCtrl(pnl, -1,style=wx.TE_CENTRE, size=(100,-1))
+        hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
+        vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
         
         SUBMIT = wx.Button(pnl, 2, "Submit")
         self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
@@ -1278,14 +1503,22 @@ class MOVE_REPOINTER(wx.Dialog):
         
     def OnSubmit(self, *args):
         sel = self.OFFSETS.GetSelection()
-        if sel != -1:
+        offset = self.MANUAL.GetValue()
+        if offset != "":
+            if len(offset) > 6:
+                offset = offset[-6:]
+            new_offset = offset.zfill(6)
+            frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
+            frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
+            frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
+            self.OnClose()
+        elif sel != -1:
             new_offset = self.OFFSETS.GetString(sel)[2:]
-        frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
-        frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
-        frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
-        #frame.tabbed_area.PokeDataTab.tabbed_area.moves.OnAdd()
-        self.OnClose()
-        
+            frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
+            frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
+            frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
+            self.OnClose()
+            
     def OnSearch(self, *args):
         self.OFFSETS.Clear()
         try:
@@ -1315,7 +1548,82 @@ class MOVE_REPOINTER(wx.Dialog):
     def OnClose(self, *args):
         self.Destroy()
 
+class EGG_MOVE_REPOINTER(wx.Dialog):
+    def __init__(self, parent, need, *args, **kw):
+        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP )
+        
+        self.num = need
+        self.InitUI()
+        self.OnSearch()
+        self.SetSize((250, 300))
+        self.SetTitle("Repoint")
 
+        
+    def InitUI(self):
+
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        txt2 = wx.StaticText(pnl, -1, "Please choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.",style=wx.TE_CENTRE)
+        vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.OFFSETS = wx.ListBox(pnl, -1)
+        vbox.Add(self.OFFSETS, 0, wx.EXPAND | wx.ALL, 5)
+        
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        manual_txt = wx.StaticText(pnl, -1, "Manual Offset: 0x",style=wx.TE_CENTRE)
+        hbox.Add(manual_txt, 0, wx.EXPAND | wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        self.MANUAL = wx.TextCtrl(pnl, -1,style=wx.TE_CENTRE, size=(100,-1))
+        hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
+        vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
+        
+        SUBMIT = wx.Button(pnl, 2, "Submit")
+        self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
+        vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
+        
+        pnl.SetSizer(vbox)
+        
+    def OnSubmit(self, *args):
+        sel = self.OFFSETS.GetSelection()
+        offset = self.MANUAL.GetValue()
+        global NewEggOffset
+        if offset != "":
+            if len(offset) > 6:
+                offset = offset[-6:]
+            offset = offset.zfill(6)
+            NewEggOffset = offset
+        elif sel != -1:
+            new_offset = self.OFFSETS.GetString(sel)[2:]
+            NewEggOffset = new_offset
+            self.OnClose()
+        
+    def OnSearch(self, *args):
+        self.OFFSETS.Clear()
+        search = "\xff"*self.num
+        frame.open_rom.seek(0)
+        rom = frame.open_rom.read()
+        x = (0,True)
+        start = 7602176
+        for n in range(5):
+            if x[1] == None:
+                break
+            x = (0,True)
+            while x[0] != 1:
+                offset = rom.find(search, start)
+                if offset == -1:
+                    x = (1,None)
+                if offset%4 != 0:
+                    start = offset+1
+                    continue
+                self.OFFSETS.Append(hex(offset))
+                x = (1,True)
+                start = offset+len(search)
+                
+    def OnClose(self, *args):
+        self.Close()
+        
+        
 app = wx.App(False)
 frame = MainWindow(None, "POK\xe9MON Gen III Hacking Suite")
 app.MainLoop()
