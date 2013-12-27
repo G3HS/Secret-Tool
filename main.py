@@ -1160,8 +1160,8 @@ class MovesTab(wx.Panel):
         
         Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
         global poke_num
-        self.learned_moves_offset = poke_num*4+self.learned_moves_pointer
-        frame.open_rom.seek(self.learned_moves_offset, 0)
+        self.learned_moves_pointer = poke_num*4+self.learned_moves_pointer
+        frame.open_rom.seek(self.learned_moves_pointer, 0)
         self.learned_moves_offset = read_pointer(frame.open_rom.read(4))
         frame.open_rom.seek(self.learned_moves_offset, 0)
         learned_moves = []
