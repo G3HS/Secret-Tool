@@ -251,10 +251,14 @@ class PokemonDataEditor(wx.Panel):
         global poke_num
         poke_num = self.Pokes.GetSelection()
         self.Poke_Name.SetValue(self.poke_names[poke_num])
-        self.tabbed_area.Destroy()
+        
+        self.tabbed_area.reload_tab_data()
+        
+        
+        """self.tabbed_area.Destroy()
         self.tabbed_area = DataEditingTabs(self)
         self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
-        self.Layout()
+        self.Layout()"""
         
     def OnSave(self, event):
         self.tabbed_area.stats.save()
@@ -323,6 +327,10 @@ class DataEditingTabs(wx.Notebook):
         sel = self.GetSelection()
         event.Skip()
         
+    def reload_tab_data(self):
+        self.stats.reload_stuff()
+        self.moves.load_everything()
+
 class StatsTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
@@ -340,6 +348,17 @@ class StatsTab(wx.Panel):
         self.SetSizer(self.sizer)
         self.Layout()
         
+    def reload_stuff(self):
+        basestatsoffset = int(frame.Config.get(frame.rom_id, "pokebasestats"), 0)
+        basestatslength = int(frame.Config.get(frame.rom_id, "pokebasestatslength"), 0)
+        global poke_num
+        self.basestatsoffset = basestatslength*poke_num + basestatsoffset
+        frame.open_rom.seek(self.basestatsoffset, 0)
+        self.base_stats_dict = {}
+        self.basestats = frame.open_rom.read(basestatslength)
+        self.sort_base_stats()
+        self.load_stats_into_boxes()
+
     def generate_ui(self):
         #----------Set up a panel for the regular stats.----------#
         basic_stats = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
@@ -909,15 +928,9 @@ class MovesTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.sizer = wx.GridBagSizer(3,3)
-        self.NEW_LEARNED_OFFSET = None
-        self.NEW_NUMBER_OF_MOVES = None
-        self.original_amount_of_moves = 0
         self.generate_ui()
         self.SetSizer(self.sizer)
-        
-        #FLAGS
-        
-        
+
         self.Layout()
         
     def generate_ui(self):
@@ -1078,6 +1091,7 @@ class MovesTab(wx.Panel):
             except: return
             attack = self.ATTACK.GetSelection()
             if attack == -1: return
+            if level > 100: level = 100
             self.learned_moves[selection] = (attack, level)
             self.MOVESET.DeleteAllItems()
             for move, level in self.learned_moves:
@@ -1129,7 +1143,11 @@ class MovesTab(wx.Panel):
         return string
     
     def load_everything(self):
+        self.NEW_LEARNED_OFFSET = None
+        self.NEW_NUMBER_OF_MOVES = None
+        self.original_amount_of_moves = 0
         #Load learned move data:
+        self.MOVESET.DeleteAllItems()
         self.learned_moves = self.get_move_data()
         for move, level in self.learned_moves:
             index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
@@ -1305,10 +1323,6 @@ class EggMoveTab(wx.Panel):
         NewEggOffset = int(NewEggOffset, 16)
         frame.open_rom.seek(NewEggOffset)
         frame.open_rom.write(self.string_to_be_written)
-        
-        
-        
-        
         
     def OnSelectPoke(self, *args):
         global MOVES_LIST
