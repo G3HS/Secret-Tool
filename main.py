@@ -1,4 +1,4 @@
-﻿# coding: utf-8
+# -*- coding: latin-1 -*- 
 #venv pyi-env-name
 from __future__ import division
 import wx, os, binascii, ConfigParser, sys
@@ -12,14 +12,14 @@ poke_num = 0
 poke_names = None
 MOVES_LIST = None
 
-description = """POK\xe9MON Gen III Hacking Suite was developed to enable better cross-
-platform POK\xe9MON  Rom Hacking by removing the need for the .NET
+description = """POKéMON Gen III Hacking Suite was developed to enable better cross-
+platform POKéMON  Rom Hacking by removing the need for the .NET
 framework.  It was also created in order to be more adaptable to more
 advanced hacking techniques that change some boundaries, like the number
-of POK\xe9MON. In the past, these changes rendered some very necessary
+of POKéMON. In the past, these changes rendered some very necessary
 tools useless and which made using these new limits difficult."""
 
-licence = """The POK\xe9MON Gen III Hacking Suite is free software; you can redistribute 
+licence = """The POKéMON Gen III Hacking Suite is free software; you can redistribute 
 it and/or modify it under the terms of the GNU General Public License as 
 published by the Free Software Foundation; either version 2 of the License, 
 or (at your option) any later version. See the GNU General Public License 
@@ -68,7 +68,7 @@ class MainWindow(wx.Frame):
         info = wx.AboutDialogInfo()
         global description
         global licence
-        info.SetName('POK\xe9MON Gen III Hacking Suite')
+        info.SetName('POKéMON Gen III Hacking Suite')
         info.SetVersion('Alpha Demo 0.1')
         info.SetDescription(description)
         info.SetCopyright('(C) 2013 karatekid552')
@@ -176,7 +176,7 @@ class TabbedEditorArea(wx.Notebook):
                                              )
         
         self.PokeDataTab = PokemonDataEditor(self)
-        self.AddPage(self.PokeDataTab, "POK\xe9MON Data Editor")
+        self.AddPage(self.PokeDataTab, "POKéMON Data Editor")
         
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -308,7 +308,7 @@ class DataEditingTabs(wx.Notebook):
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
-        self.AddPage(self.dex, "POK\xe9Dex")
+        self.AddPage(self.dex, "POKéDex")
         self.AddPage(self.egg_moves, "Egg Moves")
         
         self.SetSizer(sizer)
@@ -562,11 +562,11 @@ class StatsTab(wx.Panel):
         
         items_list = generate_list_of_names(items_offset, item_data_len, 
                             "\xff", number_of_items, frame.open_rom)
-                            
+
         ITEM1_txt = wx.StaticText(items, -1,"Item 1:")
         items_sizer.Add(ITEM1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ITEM1 = wx.ComboBox(items, -1, choices=items_list,
-                                style=wx.SUNKEN_BORDER, size=(160, 20))
+                                 style=wx.SUNKEN_BORDER, size=(160, 20))
         items_sizer.Add(self.ITEM1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ITEM2_txt = wx.StaticText(items, -1,"Item 2:")
@@ -1634,5 +1634,5 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
         
         
 app = wx.App(False)
-frame = MainWindow(None, "POK\xe9MON Gen III Hacking Suite")
+frame = MainWindow(None, "POKéMON Gen III Hacking Suite")
 app.MainLoop()
