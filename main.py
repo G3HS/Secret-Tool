@@ -19,6 +19,8 @@ advanced hacking techniques that change some boundaries, like the number
 of POKéMON. In the past, these changes rendered some very necessary
 tools useless and which made using these new limits difficult."""
 
+description = description.decode('utf-8').encode('utf-8')
+
 licence = """The POKéMON Gen III Hacking Suite is free software; you can redistribute 
 it and/or modify it under the terms of the GNU General Public License as 
 published by the Free Software Foundation; either version 2 of the License, 
@@ -27,6 +29,8 @@ for more details.
 
 This program has NO WARRENTY and the creator is not responsible for any 
 corruption/data loss it may cause."""
+
+licence = licence.decode('utf-8').encode('utf-8')
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -68,7 +72,9 @@ class MainWindow(wx.Frame):
         info = wx.AboutDialogInfo()
         global description
         global licence
-        info.SetName('POKéMON Gen III Hacking Suite')
+        name = 'POKéMON Gen III Hacking Suite'
+        name = name.decode('utf-8').encode('utf-8')
+        info.SetName(name)
         info.SetVersion('Alpha Demo 0.1')
         info.SetDescription(description)
         info.SetCopyright('(C) 2013 karatekid552')
@@ -176,7 +182,9 @@ class TabbedEditorArea(wx.Notebook):
                                              )
         
         self.PokeDataTab = PokemonDataEditor(self)
-        self.AddPage(self.PokeDataTab, "POKéMON Data Editor")
+        name = "POKéMON Data Editor"
+        name = name.decode('utf-8').encode('utf-8')
+        self.AddPage(self.PokeDataTab, name)
         
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -308,7 +316,9 @@ class DataEditingTabs(wx.Notebook):
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
-        self.AddPage(self.dex, "POKéDex")
+        dex_name = "POKéDex"
+        dex_name = dex_name.decode('utf-8').encode('utf-8')
+        self.AddPage(self.dex, dex_name)
         self.AddPage(self.egg_moves, "Egg Moves")
         
         self.SetSizer(sizer)
@@ -942,7 +952,7 @@ class MovesTab(wx.Panel):
         global MOVES_LIST
         MOVES_LIST = self.MOVES_LIST
         #----Create a panel for Learned Moves----#
-        learned_moves = wx.Panel(self, -1, style=wx.RAISED_BORDER)
+        learned_moves = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         learned_moves_sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         v_lm_box = wx.BoxSizer(wx.VERTICAL)
@@ -967,7 +977,7 @@ class MovesTab(wx.Panel):
         self.LEVEL = wx.TextCtrl(learned_moves, -1,style=wx.TE_CENTRE, size=(40,-1))
         editing_box.Add(self.LEVEL, 0, wx.EXPAND | wx.ALL, 2)
         
-        SET = wx.Button(learned_moves, 6, "Set")
+        SET = wx.Button(learned_moves, 6, "Replace")
         self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=6)
         editing_box.Add(SET, 0, wx.EXPAND | wx.ALL, 2)
         
@@ -1634,5 +1644,7 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
         
         
 app = wx.App(False)
-frame = MainWindow(None, "POKéMON Gen III Hacking Suite")
+name = "POKéMON Gen III Hacking Suite"
+name = name.decode('utf-8').encode('utf-8')
+frame = MainWindow(None, name)
 app.MainLoop()
