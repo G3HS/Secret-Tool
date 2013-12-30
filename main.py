@@ -1164,6 +1164,8 @@ class MovesTab(wx.Panel):
             self.MOVESET.SetStringItem(index, 1, str(level))
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
         
+        self.getTMHMdata()
+        
     def get_move_data(self):
         self.learned_moves_pointer = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 0)
         learned_moves_length = int(frame.Config.get(frame.rom_id, "LearnedMovesLength"), 0)
@@ -1206,6 +1208,30 @@ class MovesTab(wx.Panel):
         self.original_amount_of_moves = len(learned_moves)
         return learned_moves
         
+    def getTMHMdata(self):
+        offset = int(frame.Config.get(frame.rom_id, "TMHMCompatibility"), 0)
+        length = int(frame.Config.get(frame.rom_id, "TMHMCompatibilityLength"), 0)
+        global poke_num
+        
+        offset += length+poke_num*length
+        frame.open_rom.seek(offset)
+        read = frame.open_rom.read(length)
+        self.TMCompatibility = ""
+        while True:
+            word = get_bytes_string_from_hex_string(read[:4])
+            
+            word = reverse_hex(word)
+            word = int(word, 16)
+            
+            binary = bin(word)[2:].zfill(32)
+            binary = binary[::-1]
+            
+            self.TMCompatibility += binary
+            
+            if len(read) == 4:
+                break
+            read = read[4:]
+            
 class EvoTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)

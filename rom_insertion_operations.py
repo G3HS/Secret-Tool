@@ -67,6 +67,14 @@ def make_pointer(string):
         offset += byte
     return offset
     
+def reverse_hex(string):
+    list_of_bytes = split_string_into_bytes(string)
+    list_of_bytes = reversed(list_of_bytes)
+    offset = ""
+    for byte in list_of_bytes:
+        offset += byte
+    return offset
+    
 def convert_ascii_and_poke(string, mode):
     #modes: "to_poke" and "to_ascii"
     chart = [("\\xB5",'[MALE]'),("\\xB6",'[FEMALE]'),("\\x34",'[Lv]'),("\\x53",'[PK]'),
