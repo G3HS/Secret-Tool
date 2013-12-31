@@ -17,8 +17,8 @@ def get_hex_from_string(string):
     """
     if len(string) % 2 != 0:
         string = "0"+string
-    return binascii.unhexlify(string)
-    
+    try: return binascii.unhexlify(string)
+    except: print "Error on string =",string
 def get_bytes_string_from_hex_string(string):
     """
     Take a UTF-8 string and convert it to a hex string.
@@ -137,9 +137,10 @@ def convert_ascii_and_poke(string, mode):
         string = "\\x"+re.sub("(.{2})", "\\1\\x", string, 0, re.DOTALL)[:-2]
         for k,v in chart:
             string = string.replace(k,v)
+        string = string.decode('iso-8859-1').encode('utf-8')
             
     else: return None
-    string = string.decode('iso-8859-1').encode('utf-8')
+    
     return string
     
     

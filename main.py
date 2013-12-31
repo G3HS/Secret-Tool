@@ -5,7 +5,7 @@ import wx, os, binascii, ConfigParser, sys
 from baseconv import *
 from module_locator import *
 from rom_insertion_operations import *
-
+from CheckListCtrl import *
 
 OPEN = 1
 poke_num = 0
@@ -527,13 +527,13 @@ class StatsTab(wx.Panel):
         TYPE1_txt = wx.StaticText(types, -1,"Type 1:")
         types_sizer.Add(TYPE1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.TYPE1 = wx.ComboBox(types, -1, choices=list_of_types,
-                                style=wx.SUNKEN_BORDER, size=(80, 20))
+                                style=wx.SUNKEN_BORDER, size=(80, -1))
         types_sizer.Add(self.TYPE1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         TYPE2_txt = wx.StaticText(types, -1,"Type 2:")
         types_sizer.Add(TYPE2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.TYPE2 = wx.ComboBox(types, -1, choices=list_of_types,
-                                style=wx.SUNKEN_BORDER, size=(80, 20))
+                                style=wx.SUNKEN_BORDER, size=(80, -1))
         types_sizer.Add(self.TYPE2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         types.SetSizerAndFit(types_sizer)
@@ -551,13 +551,13 @@ class StatsTab(wx.Panel):
         ABILITY1_txt = wx.StaticText(abilities, -1,"Ability 1:")
         abilities_sizer.Add(ABILITY1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ABILITY1 = wx.ComboBox(abilities, -1, choices=abilities_list,
-                                style=wx.SUNKEN_BORDER, size=(150, 20))
+                                style=wx.SUNKEN_BORDER, size=(150, -1))
         abilities_sizer.Add(self.ABILITY1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ABILITY2_txt = wx.StaticText(abilities, -1,"Ability 2:")
         abilities_sizer.Add(ABILITY2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ABILITY2 = wx.ComboBox(abilities, -1, choices=abilities_list,
-                                style=wx.SUNKEN_BORDER, size=(150, 20))
+                                style=wx.SUNKEN_BORDER, size=(150, -1))
         abilities_sizer.Add(self.ABILITY2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         abilities.SetSizerAndFit(abilities_sizer)
@@ -576,13 +576,13 @@ class StatsTab(wx.Panel):
         ITEM1_txt = wx.StaticText(items, -1,"Item 1:")
         items_sizer.Add(ITEM1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ITEM1 = wx.ComboBox(items, -1, choices=items_list,
-                                 style=wx.SUNKEN_BORDER, size=(160, 20))
+                                 style=wx.SUNKEN_BORDER, size=(160, -1))
         items_sizer.Add(self.ITEM1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ITEM2_txt = wx.StaticText(items, -1,"Item 2:")
         items_sizer.Add(ITEM2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ITEM2 = wx.ComboBox(items, -1, choices=items_list,
-                                style=wx.SUNKEN_BORDER, size=(160, 20))
+                                style=wx.SUNKEN_BORDER, size=(160, -1))
         items_sizer.Add(self.ITEM2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         items.SetSizerAndFit(items_sizer)
@@ -618,7 +618,7 @@ class StatsTab(wx.Panel):
         COLOR_txt = wx.StaticText(run_rate_color, -1,"Color:")
         run_rate_color_sizer.Add(COLOR_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.COLOR = wx.ComboBox(run_rate_color, -1, choices=colors_list,
-                                style=wx.SUNKEN_BORDER, size=(90, 20))
+                                style=wx.SUNKEN_BORDER, size=(90, -1))
         run_rate_color_sizer.Add(self.COLOR, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         run_rate_color.SetSizerAndFit(run_rate_color_sizer)
@@ -1010,12 +1010,35 @@ class MovesTab(wx.Panel):
         learned_moves_sizer.Add(v_lm_box, 0, wx.EXPAND | wx.ALL, 5)
         learned_moves_sizer.Add(v_lm_box_buttons, 0, wx.EXPAND | wx.ALL, 5)
         learned_moves.SetSizerAndFit(learned_moves_sizer)
+        #----TMsHMs----#
+        TMHMPanel = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        TMHMBIGBOX = wx.BoxSizer()
+        TMBox = wx.BoxSizer(wx.VERTICAL)
+        ButtonBox = wx.BoxSizer(wx.VERTICAL)
+        TMHMBIGBOX.Add(TMBox)
+        TMHMBIGBOX.Add(ButtonBox)
+        self.TMList = CheckListCtrl(TMHMPanel, size=(230,280))
+        self.TMList.InsertColumn(0, 'TM #', width=140)
+        self.TMList.InsertColumn(1, 'Move')
+        TMBox.Add(self.TMList, 0, wx.EXPAND | wx.ALL, 5)
         
+        self.HMList = CheckListCtrl(TMHMPanel, size=(230,120))
+        self.HMList.InsertColumn(0, 'HM #', width=140)
+        self.HMList.InsertColumn(1, 'Move')
+        TMBox.Add(self.HMList, 0, wx.EXPAND | wx.ALL, 5)
         
+        SELECTALL = wx.Button(TMHMPanel, 6, "Select All")
+        self.Bind(wx.EVT_BUTTON, self.OnSelectAllTMHMs, id=6)
+        ButtonBox.Add(SELECTALL, 0, wx.EXPAND | wx.ALL, 5)
         
+        CLEAR = wx.Button(TMHMPanel, 7, "Clear All")
+        self.Bind(wx.EVT_BUTTON, self.OnClearAllTMHMs, id=7)
+        ButtonBox.Add(CLEAR, 0, wx.EXPAND | wx.ALL, 5)
+        
+        TMHMPanel.SetSizerAndFit(TMHMBIGBOX)
         #----Add Everything to the Sizer----#
         self.sizer.Add(learned_moves, (0,0), wx.DefaultSpan, wx.ALL, 4)
-        
+        self.sizer.Add(TMHMPanel, (0,1), wx.DefaultSpan, wx.ALL, 4)
         self.load_everything()
         
     def save(self):
@@ -1031,7 +1054,36 @@ class MovesTab(wx.Panel):
         learned_moves = self.prepare_string_of_learned_moves()
         learned_moves = get_hex_from_string(learned_moves)
         frame.open_rom.write(learned_moves)
-    
+        
+        num = self.TMList.GetItemCount()
+        binary = ""
+        for i in range(num):
+            if self.TMList.IsChecked(i): binary += "1"
+            else: binary += "0"
+        num = self.HMList.GetItemCount()
+        for i in range(num):
+            if self.HMList.IsChecked(i): binary += "1"
+            else: binary += "0"
+        check = len(binary)%32
+        if check != 0:
+            for n in range(32-check): 
+                binary += "0"
+        hexTMHM = ""
+        while True:
+            word = binary[:32]
+            word = word[::-1]
+            word = int(word, 2)
+            word = hex(word).rstrip("L").lstrip("0x").zfill(8)
+            word = reverse_hex(word)
+            word = get_hex_from_string(word)
+            hexTMHM += word
+            
+            if len(binary) == 32:
+                break
+            binary = binary[32:]
+        frame.open_rom.seek(self.TMHMoffset)
+        frame.open_rom.write(hexTMHM)
+            
     def OnSelectMove(self, *args):
         sel = self.MOVESET.GetFocusedItem()
         
@@ -1119,7 +1171,7 @@ class MovesTab(wx.Panel):
         else:
             index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[attack])
         if level == "":
-            self.MOVESET.SetStringItem(index, 1, "1")
+            self.MOVESBULBASAURET.SetStringItem(index, 1, "1")
         else:
             if level > 100:
                 level = 100
@@ -1165,6 +1217,26 @@ class MovesTab(wx.Panel):
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
         
         self.getTMHMdata()
+        self.LoadTMNames()
+        global MOVES_LIST
+        NumberofTMs = int(frame.Config.get(frame.rom_id, "NumberofTMs"), 0)
+        self.TMList.DeleteAllItems()
+        for num, TM in enumerate(self.TMNumbers):
+            index = self.TMList.InsertStringItem(sys.maxint, "TM"+str(num+1))
+            self.TMList.SetStringItem(index, 1, MOVES_LIST[TM])
+            if self.TMHMCompatibility[num] == True:
+                self.TMList.CheckItem(index) 
+        self.HMList.DeleteAllItems()
+        for num, HM in enumerate(self.HMNumbers):
+            index = self.HMList.InsertStringItem(sys.maxint, "HM"+str(num+1))
+            self.HMList.SetStringItem(index, 1, MOVES_LIST[HM])
+            if self.TMHMCompatibility[num+NumberofTMs] == True:
+                self.HMList.CheckItem(index)
+        
+        self.TMList.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        self.TMList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        self.HMList.SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        self.HMList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         
     def get_move_data(self):
         self.learned_moves_pointer = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 0)
@@ -1208,15 +1280,17 @@ class MovesTab(wx.Panel):
         self.original_amount_of_moves = len(learned_moves)
         return learned_moves
         
+        
+        
     def getTMHMdata(self):
-        offset = int(frame.Config.get(frame.rom_id, "TMHMCompatibility"), 0)
+        self.TMHMoffset = int(frame.Config.get(frame.rom_id, "TMHMCompatibility"), 0)
         length = int(frame.Config.get(frame.rom_id, "TMHMCompatibilityLength"), 0)
         global poke_num
         
-        offset += length+poke_num*length
-        frame.open_rom.seek(offset)
+        self.TMHMoffset += length+poke_num*length
+        frame.open_rom.seek(self.TMHMoffset)
         read = frame.open_rom.read(length)
-        self.TMCompatibility = ""
+        TMHM = ""
         while True:
             word = get_bytes_string_from_hex_string(read[:4])
             
@@ -1226,12 +1300,59 @@ class MovesTab(wx.Panel):
             binary = bin(word)[2:].zfill(32)
             binary = binary[::-1]
             
-            self.TMCompatibility += binary
+            TMHM += binary
             
             if len(read) == 4:
                 break
             read = read[4:]
+        self.TMHMCompatibility = []
+        for c in TMHM:
+            if c == "0": self.TMHMCompatibility.append(False)
+            else: self.TMHMCompatibility.append(True)
             
+    def LoadTMNames(self):
+        TMList = int(frame.Config.get(frame.rom_id, "TMList"), 0)
+        TMListLength = int(frame.Config.get(frame.rom_id, "TMListEntryLength"), 0)
+        NumberofTMs = int(frame.Config.get(frame.rom_id, "NumberofTMs"), 0)
+        NumberofHMs = int(frame.Config.get(frame.rom_id, "NumberofHMs"), 0)
+
+        frame.open_rom.seek(TMList)
+        
+        self.TMNumbers = []
+        for n in range(NumberofTMs):
+            read = frame.open_rom.read(TMListLength)
+            read = get_bytes_string_from_hex_string(read)
+            read = read[2:]+read[:2]
+            read = int(read, 16)
+            
+            self.TMNumbers.append(read)
+        self.HMNumbers = []
+        for n in range(NumberofHMs):
+            read = frame.open_rom.read(TMListLength)
+            read = get_bytes_string_from_hex_string(read)
+            read = read[2:]+read[:2]
+            read = int(read, 16)
+            
+            self.HMNumbers.append(read)
+            
+    def OnSelectAllTMHMs(self, instance):
+        num = self.TMList.GetItemCount()
+        for n in range(num):
+            self.TMList.CheckItem(n) 
+        
+        num = self.HMList.GetItemCount()
+        for n in range(num):
+            self.HMList.CheckItem(n)
+    
+    def OnClearAllTMHMs(self, instance):
+        num = self.TMList.GetItemCount()
+        for n in range(num):
+            self.TMList.CheckItem(n, False) 
+        
+        num = self.HMList.GetItemCount()
+        for n in range(num):
+            self.HMList.CheckItem(n, False)
+    
 class EvoTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
@@ -1249,6 +1370,7 @@ class PokeDexTab(wx.Panel):
 class EggMoveTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.style = wx.RAISED_BORDER|wx.TAB_TRAVERSAL
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.load_egg_moves()
@@ -1507,6 +1629,7 @@ class EggMoveTab(wx.Panel):
 class MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle() | wx.RESIZE_BORDER )
         self.InitUI()
         self.SetSize((250, 350))
         self.SetTitle("Repoint")
@@ -1545,6 +1668,7 @@ class MOVE_REPOINTER(wx.Dialog):
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         
         pnl.SetSizer(vbox)
+        pnl.Fit()
         
     def OnSubmit(self, *args):
         sel = self.OFFSETS.GetSelection()
@@ -1596,12 +1720,11 @@ class MOVE_REPOINTER(wx.Dialog):
 class EGG_MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, need, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
-        self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP )
+        self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
         
         self.num = need
         self.InitUI()
         self.OnSearch()
-        self.SetSize((250, 300))
         self.SetTitle("Repoint")
 
         
@@ -1628,6 +1751,7 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         
         pnl.SetSizer(vbox)
+        pnl.Fit()
         
     def OnSubmit(self, *args):
         sel = self.OFFSETS.GetSelection()
