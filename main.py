@@ -13,6 +13,8 @@ OPEN = 1
 poke_num = 0
 poke_names = None
 MOVES_LIST = None
+ITEM_NAMES = None
+
 fallback = sys.stderr
 
 
@@ -288,12 +290,6 @@ class PokemonDataEditor(wx.Panel):
         
         self.tabbed_area.reload_tab_data()
         
-        
-        """self.tabbed_area.Destroy()
-        self.tabbed_area = DataEditingTabs(self)
-        self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
-        self.Layout()"""
-        
     def OnSave(self, event):
         self.tabbed_area.stats.save()
         self.save_new_poke_name()
@@ -366,7 +362,8 @@ class DataEditingTabs(wx.Notebook):
     def reload_tab_data(self):
         self.stats.reload_stuff()
         self.moves.load_everything()
-
+        self.evo.load_everything()
+        
 class StatsTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
@@ -598,7 +595,8 @@ class StatsTab(wx.Panel):
         
         items_list = generate_list_of_names(items_offset, item_data_len, 
                             "\xff", number_of_items, frame.open_rom)
-
+        global ITEM_NAMES
+        ITEM_NAMES = items_list
         ITEM1_txt = wx.StaticText(items, -1,"Item 1:")
         items_sizer.Add(ITEM1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
         self.ITEM1 = wx.ComboBox(items, -1, choices=items_list,
@@ -1203,7 +1201,7 @@ class MovesTab(wx.Panel):
         else:
             index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[attack])
         if level == "":
-            self.MOVESBULBASAURET.SetStringItem(index, 1, "1")
+            self.MOVESET.SetStringItem(index, 1, "1")
         else:
             if level > 100:
                 level = 100
@@ -1398,10 +1396,67 @@ class MovesTab(wx.Panel):
 class EvoTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
-        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.generate_UI()
+        
+        self.SetSizer(self.sizer)
 
-        self.SetSizer(sizer)
+    def generate_UI(self):
+        EVO = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        EVO_Sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        self.evo_list = wx.ListCtrl(EVO, -1, style=wx.LC_REPORT, size=(600,350))
+        self.evo_list.InsertColumn(0, 'Method', width=160)
+        self.evo_list.InsertColumn(1, 'Argument', width=160)
+        self.evo_list.InsertColumn(2, 'Evolves into...', width=140)
+        EVO_Sizer.Add(self.evo_list, 0, wx.EXPAND | wx.ALL, 5)
+        
+        EVO.SetSizer(EVO_Sizer)
+        self.sizer.Add(EVO, 0, wx.EXPAND | wx.ALL, 5)
+        self.load_everything()
+        
+    def load_everything(self):
+        EvolutionTable = int(frame.Config.get(frame.rom_id, "EvolutionTable"), 0)
+        EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
+        LengthOfOneEntry = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
+        
+        EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
+        
+        global poke_num
+        offset = EvolutionTable+(poke_num+1)*(LengthOfOneEntry*EvolutionsPerPoke)
+        frame.open_rom.seek(offset)
+        raw = frame.open_rom.read(LengthOfOneEntry*EvolutionsPerPoke)
+        hexValues = get_bytes_string_from_hex_string(raw)
+        self.evos = {}
+        list_of_entries = []
+        for n in range(int(len(hexValues)/(LengthOfOneEntry*2-1))):
+            split = hexValues[:LengthOfOneEntry*2]
+            list_of_entries.append(split)
+            hexValues = hexValues[LengthOfOneEntry*2:]
+        for num, entry in enumerate(list_of_entries):
+            method = int(entry[2:4]+entry[:2],16)
+            arg = int(entry[6:8]+entry[4:6],16)
+            poke = int(entry[10:12]+entry[8:10],16)
+            self.evos[num] = [method,arg,poke]
+        global ITEM_NAMES
+        global poke_names
+        self.evo_list.DeleteAllItems()
+        for num, opts in self.evos.iteritems():
+            index = self.evo_list.InsertStringItem(sys.maxint, EvolutionMethods[opts[0]])
+            if opts[0] == 4 or 8 <= opts[0] <=14:
+                need = "Level: "+str(opts[1])
+            elif opts[0] == 6 or opts[0] == 7:
+                need = "Item: "+ITEM_NAMES[opts[1]]
+            else:
+                need = "-"
+            self.evo_list.SetStringItem(index, 1, need)
+            if opts[0] != 0:
+                self.evo_list.SetStringItem(index, 2, poke_names[opts[2]-1])
+            else:
+                self.evo_list.SetStringItem(index, 2, "-")
 
+    
 class PokeDexTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
@@ -1529,12 +1584,13 @@ class EggMoveTab(wx.Panel):
         self.MOVES.DeleteAllItems()
         
         selection = self.POKES.GetFocusedItem()
-        selection = self.POKES.GetItem(selection, 0)
-        selection = int(selection.GetText())
-        
-        for move in self.EGG_MOVES[selection]:
-            index = self.MOVES.InsertStringItem(sys.maxint, str(move))
-            self.MOVES.SetStringItem(index, 1, MOVES_LIST[move])
+        if selection != -1:
+            selection = self.POKES.GetItem(selection, 0)
+            selection = int(selection.GetText())
+            
+            for move in self.EGG_MOVES[selection]:
+                index = self.MOVES.InsertStringItem(sys.maxint, str(move))
+                self.MOVES.SetStringItem(index, 1, MOVES_LIST[move])
     
     def OnAddPoke(self, *args):
         sel = self.POKE_NAME.GetSelection()
@@ -1547,14 +1603,19 @@ class EggMoveTab(wx.Panel):
     def OnDeletePoke(self, *args):
         selection = self.POKES.GetFocusedItem()
         index = selection
+        Current = str(self.POKES.GetItemCount())
         if selection != -1:
             selection = self.POKES.GetItem(selection, 0)
             selection = int(selection.GetText())
             
             del self.EGG_MOVES[selection]
             self.LoadPOKESList()
-            self.POKES.Select(index-1)
-            self.POKES.Focus(index-1)
+            if index == Current:
+                self.POKES.Select(index-1)
+                self.POKES.Focus(index-1)
+            else:
+                self.POKES.Focus(index)
+                self.POKES.Select(index)
             
     def OnAddMove(self, *args):
         selection = self.POKES.GetFocusedItem()
