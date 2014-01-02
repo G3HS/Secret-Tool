@@ -1,4 +1,4 @@
-# -*- coding: latin-1 -*- 
+﻿# -*- coding: utf-8 -*- 
 #venv pyi-env-name
 from __future__ import division
 import wx, os, binascii, ConfigParser, sys
@@ -7,21 +7,25 @@ from module_locator import *
 from rom_insertion_operations import *
 from CheckListCtrl import *
 
+from cStringIO import StringIO
+
 OPEN = 1
 poke_num = 0
 poke_names = None
 MOVES_LIST = None
+fallback = sys.stderr
 
-description = """POKéMON Gen III Hacking Suite was developed to enable better cross-
-platform POKéMON  Rom Hacking by removing the need for the .NET
+
+description = """POK\xe9MON Gen III Hacking Suite was developed to enable better cross-
+platform POK\xe9MON  Rom Hacking by removing the need for the .NET
 framework.  It was also created in order to be more adaptable to more
 advanced hacking techniques that change some boundaries, like the number
-of POKéMON. In the past, these changes rendered some very necessary
+of POK\xe9MON. In the past, these changes rendered some very necessary
 tools useless and which made using these new limits difficult."""
 
-description = description.decode('utf-8').encode('utf-8')
+description = encode_per_platform(description)
 
-licence = """The POKéMON Gen III Hacking Suite is free software; you can redistribute 
+licence = """The POK\xe9MON Gen III Hacking Suite is free software; you can redistribute 
 it and/or modify it under the terms of the GNU General Public License as 
 published by the Free Software Foundation; either version 2 of the License, 
 or (at your option) any later version. See the GNU General Public License 
@@ -30,7 +34,7 @@ for more details.
 This program has NO WARRENTY and the creator is not responsible for any 
 corruption/data loss it may cause."""
 
-licence = licence.decode('utf-8').encode('utf-8')
+licence = encode_per_platform(licence)
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -39,6 +43,9 @@ class MainWindow(wx.Frame):
         self.rom_id = None
         self.path = module_path()
         self.open_rom_ini = {}
+        
+        self.timer = None
+        sys.stderr = StringIO()
         
         self.panel = wx.Panel(self)
         self.tabbed_area = TabbedEditorArea(self.panel)
@@ -66,14 +73,33 @@ class MainWindow(wx.Frame):
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
         self.Show(True)
+        self.set_timer()
         
+    def on_timer(self, event):
+        self.set_timer()
+        read = sys.stderr.getvalue()
+        if read != "":
+            sys.stderr.close()
+            sys.stderr = StringIO()
+            ERROR = wx.MessageDialog(None, 
+                                "ERROR:\n\n"+read, 
+                                'Piped error from sys.stderr: PLEASE REPORT', 
+                                wx.OK | wx.ICON_ERROR)
+            ERROR.ShowModal()
+
+    def set_timer(self):
+        TIMER_ID = 100  # pick a number
+        self.timer = wx.Timer(self, TIMER_ID)  # message will be sent to the panel
+        self.timer.Start(1000)  # x1000 milliseconds
+        wx.EVT_TIMER(self, TIMER_ID, self.on_timer)  # call the on_timer function
+
     def ABOUT(self, *args):
         
         info = wx.AboutDialogInfo()
         global description
         global licence
-        name = 'POKéMON Gen III Hacking Suite'
-        name = name.decode('utf-8').encode('utf-8')
+        name = 'POK\xe9MON Gen III Hacking Suite'
+        name = encode_per_platform(name)
         info.SetName(name)
         info.SetVersion('Alpha Demo 0.1')
         info.SetDescription(description)
@@ -182,8 +208,8 @@ class TabbedEditorArea(wx.Notebook):
                                              )
         
         self.PokeDataTab = PokemonDataEditor(self)
-        name = "POKéMON Data Editor"
-        name = name.decode('utf-8').encode('utf-8')
+        name = "POK\xe9MON Data Editor"
+        name = encode_per_platform(name)
         self.AddPage(self.PokeDataTab, name)
         
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
@@ -316,8 +342,8 @@ class DataEditingTabs(wx.Notebook):
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
-        dex_name = "POKéDex"
-        dex_name = dex_name.decode('utf-8').encode('utf-8')
+        dex_name = "POK\xe9Dex"
+        dex_name = encode_per_platform(dex_name)
         self.AddPage(self.dex, dex_name)
         self.AddPage(self.egg_moves, "Egg Moves")
         
@@ -983,6 +1009,8 @@ class MovesTab(wx.Panel):
         
         v_lm_box.Add(editing_box, 0, wx.EXPAND | wx.ALL, 2)
         
+        self.FRACTION = wx.StaticText(learned_moves, -1, "XX/XX Moves")
+        v_lm_box_buttons.Add(self.FRACTION, 0, wx.EXPAND | wx.ALL, 5)
         
         self.LEARNED_OFFSET = wx.StaticText(learned_moves, -1, "0xXXXXXX")
         v_lm_box_buttons.Add(self.LEARNED_OFFSET, 0, wx.EXPAND | wx.ALL, 5)
@@ -1010,6 +1038,7 @@ class MovesTab(wx.Panel):
         learned_moves_sizer.Add(v_lm_box, 0, wx.EXPAND | wx.ALL, 5)
         learned_moves_sizer.Add(v_lm_box_buttons, 0, wx.EXPAND | wx.ALL, 5)
         learned_moves.SetSizerAndFit(learned_moves_sizer)
+        
         #----TMsHMs----#
         TMHMPanel = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         TMHMBIGBOX = wx.BoxSizer()
@@ -1022,7 +1051,7 @@ class MovesTab(wx.Panel):
         self.TMList.InsertColumn(1, 'Move')
         TMBox.Add(self.TMList, 0, wx.EXPAND | wx.ALL, 5)
         
-        self.HMList = CheckListCtrl(TMHMPanel, size=(230,120))
+        self.HMList = CheckListCtrl(TMHMPanel, size=(230,105))
         self.HMList.InsertColumn(0, 'HM #', width=140)
         self.HMList.InsertColumn(1, 'Move')
         TMBox.Add(self.HMList, 0, wx.EXPAND | wx.ALL, 5)
@@ -1085,6 +1114,7 @@ class MovesTab(wx.Panel):
         frame.open_rom.write(hexTMHM)
             
     def OnSelectMove(self, *args):
+        self.UPDATE_FRACTION()
         sel = self.MOVESET.GetFocusedItem()
         
         self.LEVEL.SetValue(str(self.learned_moves[sel][1]))
@@ -1095,6 +1125,7 @@ class MovesTab(wx.Panel):
         repoint.Show()
         
     def OnAdd(self, *args):
+        self.UPDATE_FRACTION()
         move_len = len(self.learned_moves)
         if self.NEW_NUMBER_OF_MOVES == None:
             if self.original_amount_of_moves != move_len:
@@ -1122,6 +1153,7 @@ class MovesTab(wx.Panel):
         if selection != -1:
             self.MOVESET.DeleteItem(selection)
             del self.learned_moves[selection]
+        self.UPDATE_FRACTION()
         
     def OnMoveUp(self, *args):
         selection = self.MOVESET.GetFocusedItem()
@@ -1179,6 +1211,16 @@ class MovesTab(wx.Panel):
         if level == "":
             level = 1
         self.learned_moves.append((attack, level))
+        self.UPDATE_FRACTION()
+    
+    def UPDATE_FRACTION(self):
+        Current = str(self.MOVESET.GetItemCount())
+        if self.NEW_NUMBER_OF_MOVES == None:
+            MAX = str(self.original_amount_of_moves)
+        else:
+            MAX = str(self.NEW_NUMBER_OF_MOVES)
+        
+        self.FRACTION.SetLabel(Current+"/"+MAX+" Moves")
         
     def prepare_string_of_learned_moves(self):
         Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
@@ -1215,6 +1257,8 @@ class MovesTab(wx.Panel):
             index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
             self.MOVESET.SetStringItem(index, 1, str(level))
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
+        
+        self.UPDATE_FRACTION()
         
         self.getTMHMdata()
         self.LoadTMNames()
@@ -1279,8 +1323,6 @@ class MovesTab(wx.Panel):
                         break
         self.original_amount_of_moves = len(learned_moves)
         return learned_moves
-        
-        
         
     def getTMHMdata(self):
         self.TMHMoffset = int(frame.Config.get(frame.rom_id, "TMHMCompatibility"), 0)
@@ -1791,10 +1833,18 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
                 
     def OnClose(self, *args):
         self.Close()
-        
-        
+
+
 app = wx.App(False)
-name = "POKéMON Gen III Hacking Suite"
-name = name.decode('utf-8').encode('utf-8')
+name = "POK\xe9MON Gen III Hacking Suite"
+name = encode_per_platform(name)
 frame = MainWindow(None, name)
+
+#def on_close(event):
+    #frame.timer.Stop()
+    #frame.open_rom.close()
+    #frame.Destroy()
+
+#wx.EVT_CLOSE(frame, on_close)
+
 app.MainLoop()
