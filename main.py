@@ -101,7 +101,7 @@ class MainWindow(wx.Frame):
         name = 'POK\xe9MON Gen III Hacking Suite'
         name = encode_per_platform(name)
         info.SetName(name)
-        info.SetVersion('Alpha Demo 0.1')
+        info.SetVersion('Alpha Demo 0.2')
         info.SetDescription(description)
         info.SetCopyright('(C) 2013 karatekid552')
         #info.SetWebSite('')
