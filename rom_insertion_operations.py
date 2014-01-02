@@ -126,15 +126,17 @@ def convert_ascii_and_poke(string, mode):
             char = string[0]
             current_place = 0
             if char == "[":
+                x = None
                 while x != "]":
                     current_place += 1
                     x = string[current_place]
-                char = string[num:current_place+1]
+                char = string[0:current_place+1]
             if len(string) > 1:
                 string = string[current_place+1:]
             else:
                 string = ""
-            new = chart[char]
+            try: new = chart[char]
+            except: new = ""
             new_string += new
         string = new_string
         string = re.sub("(\\\\x)", "", string, 0, re.DOTALL)

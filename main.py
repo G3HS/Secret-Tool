@@ -1003,8 +1003,8 @@ class MovesTab(wx.Panel):
         self.LEVEL = wx.TextCtrl(learned_moves, -1,style=wx.TE_CENTRE, size=(40,-1))
         editing_box.Add(self.LEVEL, 0, wx.EXPAND | wx.ALL, 2)
         
-        SET = wx.Button(learned_moves, 6, "Replace")
-        self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=6)
+        SET = wx.Button(learned_moves, 8, "Replace")
+        self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=8)
         editing_box.Add(SET, 0, wx.EXPAND | wx.ALL, 2)
         
         v_lm_box.Add(editing_box, 0, wx.EXPAND | wx.ALL, 2)
@@ -1129,7 +1129,7 @@ class MovesTab(wx.Panel):
         move_len = len(self.learned_moves)
         if self.NEW_NUMBER_OF_MOVES == None:
             if self.original_amount_of_moves != move_len:
-                if self.original_amount_of_moves < move_len:
+                if self.original_amount_of_moves > move_len:
                     self.AddNewMove()
             elif self.original_amount_of_moves == move_len:
                 ERROR = wx.MessageDialog(None, 
@@ -1672,8 +1672,10 @@ class MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.SetWindowStyle( self.GetWindowStyle() | wx.RESIZE_BORDER )
+        
+        self.num = None
+        
         self.InitUI()
-        self.SetSize((250, 350))
         self.SetTitle("Repoint")
         
         
@@ -1692,7 +1694,7 @@ class MOVE_REPOINTER(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnSearch, id=1)
         vbox.Add(SEARCH, 0, wx.EXPAND | wx.ALL, 5)
         
-        txt2 = wx.StaticText(pnl, -1, "Please choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.",style=wx.TE_CENTRE)
+        txt2 = wx.StaticText(pnl, -1, "Please choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.\nFor both, please provide the number of moves you\nexpect. It will not continue without it.",style=wx.TE_CENTRE)
         vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
         
         self.OFFSETS = wx.ListBox(pnl, -1)
@@ -1709,12 +1711,16 @@ class MOVE_REPOINTER(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         
-        pnl.SetSizer(vbox)
-        pnl.Fit()
+        pnl.SetSizerAndFit(vbox)
+        self.Fit()
+        self.SetMinSize(self.GetEffectiveMinSize())
         
     def OnSubmit(self, *args):
         sel = self.OFFSETS.GetSelection()
         offset = self.MANUAL.GetValue()
+        if self.num == None:
+            try: self.num = int(self.New_Move_Num.GetValue(), 0)
+            except: return
         if offset != "":
             if len(offset) > 6:
                 offset = offset[-6:]
@@ -1722,12 +1728,14 @@ class MOVE_REPOINTER(wx.Dialog):
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
+            frame.tabbed_area.PokeDataTab.tabbed_area.moves.UPDATE_FRACTION()
             self.OnClose()
         elif sel != -1:
             new_offset = self.OFFSETS.GetString(sel)[2:]
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
+            frame.tabbed_area.PokeDataTab.tabbed_area.moves.UPDATE_FRACTION()
             self.OnClose()
             
     def OnSearch(self, *args):
@@ -1792,8 +1800,9 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         
-        pnl.SetSizer(vbox)
-        pnl.Fit()
+        pnl.SetSizerAndFit(vbox)
+        self.Fit()
+        self.SetMinSize(self.GetEffectiveMinSize())
         
     def OnSubmit(self, *args):
         sel = self.OFFSETS.GetSelection()
