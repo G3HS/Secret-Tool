@@ -51,7 +51,6 @@ class MainWindow(wx.Frame):
         
         self.panel = wx.Panel(self)
         self.tabbed_area = TabbedEditorArea(self.panel)
-        
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 5)
         self.panel.SetSizer(self.sizer)
@@ -176,6 +175,7 @@ class MainWindow(wx.Frame):
                                 
                             for opt, value in tmp_ini.items():
                                 self.Config.set(self.rom_id, opt, value)
+                                
                             with open(ini, "w") as PokeRomsIni:
                                 self.Config.write(PokeRomsIni)
                             y = True
@@ -1406,15 +1406,112 @@ class EvoTab(wx.Panel):
         EVO = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         EVO_Sizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.evo_list = wx.ListCtrl(EVO, -1, style=wx.LC_REPORT, size=(600,350))
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        self.evo_list = wx.ListCtrl(EVO, -1, style=wx.LC_REPORT, size=(600,300))
         self.evo_list.InsertColumn(0, 'Method', width=160)
         self.evo_list.InsertColumn(1, 'Argument', width=160)
         self.evo_list.InsertColumn(2, 'Evolves into...', width=140)
-        EVO_Sizer.Add(self.evo_list, 0, wx.EXPAND | wx.ALL, 5)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnSelectEvo,  self.evo_list)
+        vbox.Add(self.evo_list, 0, wx.EXPAND | wx.ALL, 5)
         
+        editor_area = wx.BoxSizer(wx.HORIZONTAL)
+        editor_area_a = wx.BoxSizer(wx.VERTICAL)
+        editor_area_b = wx.BoxSizer(wx.VERTICAL)
+        editor_area_c = wx.BoxSizer(wx.VERTICAL)
+        editor_area.Add(editor_area_a, 0, wx.EXPAND | wx.ALL, 5)
+        editor_area.Add(editor_area_b, 0, wx.EXPAND | wx.ALL, 5)
+        editor_area.Add(editor_area_c, 0, wx.EXPAND | wx.ALL, 5)
+        
+        method_txt = wx.StaticText(EVO, -1, "Method:")
+        editor_area_a.Add(method_txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
+        self.method = wx.ComboBox(EVO, -1, choices=EvolutionMethods,
+                                            style=wx.SUNKEN_BORDER, size=(100, -1))
+        self.method.Bind(wx.EVT_COMBOBOX, self.change_method)
+        editor_area_a.Add(self.method, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.arg_txt = wx.StaticText(EVO, -1, "Argument:")
+        editor_area_b.Add(self.arg_txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.arg = wx.ComboBox(EVO, -1, choices=[],
+                                            style=wx.SUNKEN_BORDER, size=(100, -1))
+        editor_area_b.Add(self.arg, 0, wx.EXPAND | wx.ALL, 5)
+        
+        poke_txt = wx.StaticText(EVO, -1, "Evolves Into:")
+        editor_area_c.Add(poke_txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        global poke_names
+        self.poke = wx.ComboBox(EVO, -1, choices=poke_names,
+                                               style=wx.SUNKEN_BORDER, size=(100, -1))
+        editor_area_c.Add(self.poke, 0, wx.EXPAND | wx.ALL, 5)
+        
+        buttons = wx.BoxSizer(wx.VERTICAL)
+        
+        ChangeNumberofEvos = wx.Button(EVO, 0, "Change Number of\nEvolutions per 'MON")
+        self.Bind(wx.EVT_BUTTON, self.OnChangeNumberofEvos, id=0)
+        buttons.Add(ChangeNumberofEvos, 0, wx.EXPAND | wx.ALL, 5)
+        
+        AddEvo = wx.Button(EVO, 1, "Add Evolution")
+        self.Bind(wx.EVT_BUTTON, self.OnAddEvo, id=1)
+        buttons.Add(AddEvo, 0, wx.EXPAND | wx.ALL, 5)
+        
+        RemoveEvo = wx.Button(EVO, 2, "Delete Evolution")
+        self.Bind(wx.EVT_BUTTON, self.OnRemoveEvo, id=2)
+        buttons.Add(RemoveEvo, 0, wx.EXPAND | wx.ALL, 5)
+        
+        
+        vbox.Add(editor_area, 0, wx.EXPAND | wx.ALL, 5)
+        
+        EVO_Sizer.Add(vbox, 0, wx.EXPAND | wx.ALL, 5)
+        EVO_Sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 5)
         EVO.SetSizer(EVO_Sizer)
         self.sizer.Add(EVO, 0, wx.EXPAND | wx.ALL, 5)
         self.load_everything()
+        
+    def OnChangeNumberofEvos(self, *args):
+        NumberofEvosChanger()
+        
+    def OnAddEvo(self, *args):
+        pass
+    
+    def OnRemoveEvo(self, *args):
+        pass
+        
+    def OnSelectEvo(self, instance):
+        sel = self.evo_list.GetFocusedItem()
+        
+        self.method.SetSelection(self.evos[sel][0])
+        type = self.change_method(self.method)
+        if type == 4 or 8 <= type <=14:
+            self.arg.SetSelection(self.evos[sel][1]-1)
+        elif type == 6 or type == 7:
+            self.arg.SetSelection(self.evos[sel][1])
+        else:
+            self.arg.SetSelection(0)
+        self.poke.SetSelection(self.evos[sel][2]-1)
+        
+    def change_method(self, instance):
+        method = instance.GetSelection()
+        if method == 4 or 8 <= method <=14: #Level type
+            nums = []
+            for n in range(101):
+                if n != 0:
+                    nums.append(str(n))
+            self.arg.Clear()
+            self.arg.AppendItems(nums) 
+            self.arg_txt.SetLabel("Level:")
+        elif method == 6 or method == 7: #Item type
+            global ITEM_NAMES
+            self.arg.Clear()
+            self.arg.AppendItems(ITEM_NAMES) 
+            self.arg_txt.SetLabel("Item:")
+        else: #None type
+            self.arg.Clear()
+            self.arg.AppendItems(["-None needed-"]) 
+            self.arg_txt.SetLabel("Argument:")
+        return method
         
     def load_everything(self):
         EvolutionTable = int(frame.Config.get(frame.rom_id, "EvolutionTable"), 0)
@@ -1430,7 +1527,7 @@ class EvoTab(wx.Panel):
         hexValues = get_bytes_string_from_hex_string(raw)
         self.evos = {}
         list_of_entries = []
-        for n in range(int(len(hexValues)/(LengthOfOneEntry*2-1))):
+        for n in range(EvolutionsPerPoke):
             split = hexValues[:LengthOfOneEntry*2]
             list_of_entries.append(split)
             hexValues = hexValues[LengthOfOneEntry*2:]
@@ -1904,17 +2001,235 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
     def OnClose(self, *args):
         self.Close()
 
+class NumberofEvosChanger(wx.Dialog):
+    def __init__(self, parent=None, *args, **kw):
+        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
+        
 
+        self.InitUI()
+        self.SetTitle("Change Number of Evolutions per 'MON")
+        self.ShowModal()
+        
+    def InitUI(self):
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        txt = wx.StaticText(pnl, -1, "This is the first ever tool to change the number of\nevolutions a 'MON can have. Due to ASM limitations,\nthe number of new evolutions has to be a power of 2\nor just 5. Anything else requires custom ASM that\nwould require a repoint of a lot of things. So, let's get\nstarted!\n\n\nPlease pick a new number of evolutions:",style=wx.TE_CENTRE)
+        vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.choices = ["4","5","8","16","32","64","128"]
+        
+        self.NewNumberChoices = wx.ComboBox(pnl, -1, choices=self.choices,
+                                                    style=wx.SUNKEN_BORDER, size=(100, -1))
+        vbox.Add(self.NewNumberChoices, 0, wx.EXPAND | wx.ALL, 5)
+        
+        txt2 = wx.StaticText(pnl, -1, "Now, you can either search for a free space offset or\n specify a manual offset for the new table.\nNOTE: Manual offsets are not checked\nfor free space content.",style=wx.TE_CENTRE)
+        vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.OFFSETS = wx.ListBox(pnl, -1)
+        vbox.Add(self.OFFSETS, 0, wx.EXPAND | wx.ALL, 5)
+        
+        SEARCH = wx.Button(pnl, 1, "Search")
+        self.Bind(wx.EVT_BUTTON, self.OnSearch, id=1)
+        vbox.Add(SEARCH, 0, wx.EXPAND | wx.ALL, 5)
+        
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        manual_txt = wx.StaticText(pnl, -1, "Manual Offset: 0x",style=wx.TE_CENTRE)
+        hbox.Add(manual_txt, 0, wx.EXPAND | wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        self.MANUAL = wx.TextCtrl(pnl, -1,style=wx.TE_CENTRE, size=(100,-1))
+        hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
+        vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
+        
+        SUBMIT = wx.Button(pnl, 2, "Submit")
+        self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
+        vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
+        
+        pnl.SetSizerAndFit(vbox)
+        self.Fit()
+        self.SetMinSize(self.GetEffectiveMinSize())
+    
+    def OnSubmit(self, *args):
+        sel = self.OFFSETS.GetSelection()
+        _offset_ = self.MANUAL.GetValue()
+        
+        new_number = self.NewNumberChoices.GetSelection()
+        new_number = int(self.choices[new_number])
+        
+        EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
+        
+        if new_number == EvolutionsPerPoke: return
+        if _offset_ != "":
+            if len(_offset_) > 6:
+                _offset_ = _offset_[-7:]
+        elif sel != -1:
+            _offset_ = self.OFFSETS.GetString(sel)[2:]
+        else: return
+
+        ##copy table
+        LengthOfOneEntry = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
+        EvolutionTable = int(frame.Config.get(frame.rom_id, "EvolutionTable"), 0)
+        numberofpokes = int(frame.Config.get(frame.rom_id, "numberofpokes"), 0)
+        
+        readlength = EvolutionsPerPoke*LengthOfOneEntry*numberofpokes
+        
+        frame.open_rom.seek(EvolutionTable)
+        entiretable = frame.open_rom.read(readlength)
+
+        table = []
+        
+        if new_number < EvolutionsPerPoke:
+            while entiretable != "":
+                split = entiretable[:LengthOfOneEntry*EvolutionsPerPoke]
+                split = split[:new_number*LengthOfOneEntry]
+                table.append(split)
+                entiretable = entiretable[LengthOfOneEntry*EvolutionsPerPoke:]
+        else:
+            while entiretable != "":
+                split = entiretable[:LengthOfOneEntry*EvolutionsPerPoke]
+                split += "\x00"*(LengthOfOneEntry)*(new_number-EvolutionsPerPoke)
+                table.append(split)
+                entiretable = entiretable[LengthOfOneEntry*EvolutionsPerPoke:]
+        
+        int_offset = _offset_[-6:]
+        int_offset = int(int_offset, 16)
+        frame.open_rom.seek(int_offset)
+        for entry in table:
+            frame.open_rom.write(entry)
+        
+        
+        ##write new pointers.
+        EvolutionTablePointers = []
+        list_pointers = frame.Config.get(frame.rom_id, "EvolutionTablePointers").split(",")
+        
+        for offset in list_pointers:
+            EvolutionTablePointers.append(int(offset, 0))
+        
+        if len(_offset_) == 6:
+            _offset_ = "08"+_offset_
+        elif len(_offset_) == 7:
+            _offset_ = _offset_.zfill(8)
+        else:
+            _offset_ = _offset_.zfill(6)
+            _offset_ = "08"+_offset_
+        
+        pointer = make_pointer(_offset_)
+        
+        pointer = get_hex_from_string(pointer)
+        
+        for offset in EvolutionTablePointers:
+            frame.open_rom.seek(offset)
+            frame.open_rom.write(pointer)
+            
+            
+        ##Ammend the ini
+        
+        frame.Config.set(frame.rom_id, "EvolutionTable", "0x"+_offset_[2:])
+        frame.Config.set(frame.rom_id, "EvolutionsPerPoke", str(new_number))
+        
+        ini = os.path.join(frame.path,"PokeRoms.ini")
+        
+        with open(ini, "w") as PokeRomsIni:
+            frame.Config.write(PokeRomsIni)
+        
+        ##fill table with FF
+        frame.open_rom.seek(EvolutionTable)
+        for n in range(readlength):
+            frame.open_rom.write("\xFF")
+            
+        
+        ##Adjust the rom for the new ini
+        
+        change1 = [] #-> lsl r0, r6, #0x1 (70 00)
+        tmp = frame.Config.get(frame.rom_id, "OffsetsToChangeTolslr0r60x1").split(",")
+        for offset in tmp:
+            change1.append(int(offset, 0))
+        if new_number == 4: write = "3000"
+        elif new_number == 8: write = "7000"
+        elif new_number == 16: write = "B000"
+        elif new_number == 32: write = "F000"
+        elif new_number == 64: write = "3001"
+        elif new_number == 128: write = "7001"
+        else: write = "F019"
+        
+        change1write = binascii.unhexlify(write)
+        
+        for offset in change1:
+            frame.open_rom.seek(offset, 0)
+            frame.open_rom.write(change1write)
+            
+        change2 = [] #04 -> 07
+        tmp = frame.Config.get(frame.rom_id, "OffsetsToChangeToNewMinus1").split(",")
+        for offset in tmp:
+            change2.append(int(offset, 0))
+
+        change2write = get_hex_from_string(str(hex(new_number-1)[2:]))
+        
+        for offset in change2:
+            frame.open_rom.seek(offset, 0)
+            frame.open_rom.write(change2write)
+        
+        change3 = []  #-> mov r6, #0x8 (08 26)
+        tmp = frame.Config.get(frame.rom_id, "OffsetToChangeTomovr60x8").split(",")
+        for offset in tmp:
+            change3.append(int(offset, 0))
+
+        change3write = get_hex_from_string(str(hex(new_number)[2:])+"26")
+        
+        for offset in change3:
+            frame.open_rom.seek(offset, 0)
+            frame.open_rom.write(change3write)
+            
+        ##Tell the user it worked, close, and reload data.
+        self.OnClose()
+        DONE = wx.MessageDialog(None, 
+                                "Done! Reloading 'MON Data.", 
+                                'Table has been moved and evolutions have been changed.:)', 
+                                wx.OK)
+        DONE.ShowModal()
+        frame.tabbed_area.PokeDataTab.tabbed_area.reload_tab_data()
+        
+
+        
+    def OnSearch(self, *args):
+        #EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
+        LengthOfOneEntry = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
+        numberofpokes = int(frame.Config.get(frame.rom_id, "numberofpokes"), 0)
+        
+        NewEvolutionsPerPoke = self.NewNumberChoices.GetSelection()
+        if NewEvolutionsPerPoke == -1:
+            return
+        NewEvolutionsPerPoke = int(self.choices[NewEvolutionsPerPoke])
+        
+        length = LengthOfOneEntry*NewEvolutionsPerPoke*numberofpokes
+        
+        self.OFFSETS.Clear()
+        search = "\xff"*length
+        frame.open_rom.seek(0)
+        rom = frame.open_rom.read()
+        x = (0,True)
+        start = 7602176
+        for n in range(5):
+            if x[1] == None:
+                break
+            x = (0,True)
+            while x[0] != 1:
+                offset = rom.find(search, start)
+                if offset == -1:
+                    x = (1,None)
+                if offset%4 != 0:
+                    start = offset+1
+                    continue
+                self.OFFSETS.Append(hex(offset))
+                x = (1,True)
+                start = offset+len(search)
+                
+    def OnClose(self, *args):
+        self.Close()
+        
 app = wx.App(False)
 name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)
 frame = MainWindow(None, name)
-
-#def on_close(event):
-    #frame.timer.Stop()
-    #frame.open_rom.close()
-    #frame.Destroy()
-
-#wx.EVT_CLOSE(frame, on_close)
 
 app.MainLoop()

@@ -27,6 +27,7 @@ def get_hex_from_string(string):
         string = "0"+string
     try: return binascii.unhexlify(string)
     except: print "Error on string =",string
+    
 def get_bytes_string_from_hex_string(string):
     """
     Take a UTF-8 string and convert it to a hex string.
