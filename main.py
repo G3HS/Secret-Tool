@@ -299,6 +299,7 @@ class PokemonDataEditor(wx.Panel):
         self.Pokes.SetSelection(poke_num)
         self.tabbed_area.moves.save()
         self.tabbed_area.egg_moves.save()
+        self.tabbed_area.evo.save()
         
     def save_new_poke_name(self):
         name = self.Poke_Name.GetValue()
@@ -1447,6 +1448,10 @@ class EvoTab(wx.Panel):
                                                style=wx.SUNKEN_BORDER, size=(100, -1))
         editor_area_c.Add(self.poke, 0, wx.EXPAND | wx.ALL, 5)
         
+        ReplaceEvo = wx.Button(EVO, 3, "Replace Evolution")
+        self.Bind(wx.EVT_BUTTON, self.OnReplaceEvo, id=3)
+        editor_area.Add(ReplaceEvo, 0, wx.EXPAND | wx.ALL, 5)
+        
         buttons = wx.BoxSizer(wx.VERTICAL)
         
         ChangeNumberofEvos = wx.Button(EVO, 0, "Change Number of\nEvolutions per 'MON")
@@ -1461,6 +1466,13 @@ class EvoTab(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnRemoveEvo, id=2)
         buttons.Add(RemoveEvo, 0, wx.EXPAND | wx.ALL, 5)
         
+        MoveUp = wx.Button(EVO, 4, "Move Up")
+        self.Bind(wx.EVT_BUTTON, self.OnMoveUp, id=4)
+        buttons.Add(MoveUp, 0, wx.EXPAND | wx.ALL, 5)
+        
+        MoveDown = wx.Button(EVO, 5, "Move Down")
+        self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=5)
+        buttons.Add(MoveDown, 0, wx.EXPAND | wx.ALL, 5)
         
         vbox.Add(editor_area, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -1474,10 +1486,87 @@ class EvoTab(wx.Panel):
         NumberofEvosChanger()
         
     def OnAddEvo(self, *args):
-        pass
+        sel = self.evo_list.GetFocusedItem()
+        if sel != -1:
+            method = self.method.GetSelection()
+            if method == -1:
+                method = 0
+            arg = self.arg.GetSelection()
+            if method == 4 or 8 <= method <=14:
+                arg += 1
+            elif arg == -1:
+                arg = 0
+            poke = self.poke.GetSelection()
+            if poke == -1:
+                poke = 1
+            else:
+                poke += 1
+            
+            location = None
+            for num, evo in enumerate(self.evos):
+                if evo[0] == 0:
+                    location = num
+                    break
+            if location == None:
+                ERROR = wx.MessageDialog(None, 
+                                    "Please increase the number of evolutions or delete an\nevolution before trying to add a new one.", 
+                                    'Error', 
+                                    wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
+                
+            self.evos[location] = [method,arg,poke]
+            self.load_evos_into_list()
+            
+            self.evo_list.Select(location)
+            self.evo_list.Focus(location)
     
     def OnRemoveEvo(self, *args):
-        pass
+        sel = self.evo_list.GetFocusedItem()
+        if sel != -1:
+            self.evos[sel] = [0,0,0]
+            self.load_evos_into_list()
+            self.evo_list.Select(sel)
+            self.evo_list.Focus(sel)
+                
+    def OnMoveUp(self, *args):
+        sel = self.evo_list.GetFocusedItem()
+        if sel != -1 and sel != 0:
+            self.evos[sel], self.evos[sel-1] = self.evos[sel-1], self.evos[sel]
+            self.load_evos_into_list()
+            self.evo_list.Select(sel-1)
+            self.evo_list.Focus(sel-1)
+            
+    def OnMoveDown(self, *args):
+        sel = self.evo_list.GetFocusedItem()
+        max = len(self.evos)-1
+        if sel != -1 and sel != max:
+            self.evos[sel], self.evos[sel+1] = self.evos[sel+1], self.evos[sel]
+            self.load_evos_into_list()
+            self.evo_list.Select(sel+1)
+            self.evo_list.Focus(sel+1)
+            
+    def OnReplaceEvo(self, *args):
+        sel = self.evo_list.GetFocusedItem()
+        if sel != -1:
+            method = self.method.GetSelection()
+            if method == -1:
+                method = 0
+            arg = self.arg.GetSelection()
+            if method == 4 or 8 <= method <=14:
+                arg += 1
+            elif arg == -1:
+                arg = 0
+            poke = self.poke.GetSelection()
+            if poke == -1:
+                poke = 1
+            else:
+                poke += 1
+                
+            self.evos[sel] = [method,arg,poke]
+            self.load_evos_into_list()
+            self.evo_list.Select(sel)
+            self.evo_list.Focus(sel)
         
     def OnSelectEvo(self, instance):
         sel = self.evo_list.GetFocusedItem()
@@ -1521,11 +1610,11 @@ class EvoTab(wx.Panel):
         EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
         
         global poke_num
-        offset = EvolutionTable+(poke_num+1)*(LengthOfOneEntry*EvolutionsPerPoke)
-        frame.open_rom.seek(offset)
+        self.offset = EvolutionTable+(poke_num+1)*(LengthOfOneEntry*EvolutionsPerPoke)
+        frame.open_rom.seek(self.offset, 0)
         raw = frame.open_rom.read(LengthOfOneEntry*EvolutionsPerPoke)
         hexValues = get_bytes_string_from_hex_string(raw)
-        self.evos = {}
+        self.evos = []
         list_of_entries = []
         for n in range(EvolutionsPerPoke):
             split = hexValues[:LengthOfOneEntry*2]
@@ -1535,11 +1624,15 @@ class EvoTab(wx.Panel):
             method = int(entry[2:4]+entry[:2],16)
             arg = int(entry[6:8]+entry[4:6],16)
             poke = int(entry[10:12]+entry[8:10],16)
-            self.evos[num] = [method,arg,poke]
+            self.evos.append([method,arg,poke])
+            self.load_evos_into_list()
+            
+    def load_evos_into_list(self):
+        EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
         global ITEM_NAMES
         global poke_names
         self.evo_list.DeleteAllItems()
-        for num, opts in self.evos.iteritems():
+        for opts in self.evos:
             index = self.evo_list.InsertStringItem(sys.maxint, EvolutionMethods[opts[0]])
             if opts[0] == 4 or 8 <= opts[0] <=14:
                 need = "Level: "+str(opts[1])
@@ -1553,7 +1646,23 @@ class EvoTab(wx.Panel):
             else:
                 self.evo_list.SetStringItem(index, 2, "-")
 
-    
+    def save(self):
+        hex_string = ""
+        LengthOfOneEntry = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
+        
+        for evo in self.evos:
+            tmp = ""
+            for arg in evo:
+                x = hex(arg)[2:].zfill(4)
+                x = reverse_hex(x)
+                tmp += x
+            while len(tmp) < LengthOfOneEntry*2:
+                tmp += "00"
+            hex_string += tmp
+        write_string = get_hex_from_string(hex_string)
+        frame.open_rom.seek(self.offset, 0)
+        frame.open_rom.write(write_string)
+        
 class PokeDexTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
@@ -1824,6 +1933,9 @@ class EggMoveTab(wx.Panel):
         string += "ffff0000"
         self.original_length = len(string)
                         
+                        
+#############################################################
+##---------------------------------Extra Dialogues---------------------------------##
 #############################################################
 
 class MOVE_REPOINTER(wx.Dialog):
@@ -2188,8 +2300,6 @@ class NumberofEvosChanger(wx.Dialog):
                                 wx.OK)
         DONE.ShowModal()
         frame.tabbed_area.PokeDataTab.tabbed_area.reload_tab_data()
-        
-
         
     def OnSearch(self, *args):
         #EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
