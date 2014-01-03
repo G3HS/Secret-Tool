@@ -1398,7 +1398,7 @@ class EvoTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
+        self.arg_type = None
         self.generate_UI()
         
         self.SetSizer(self.sizer)
@@ -1584,23 +1584,30 @@ class EvoTab(wx.Panel):
     def change_method(self, instance):
         method = instance.GetSelection()
         if method == 4 or 8 <= method <=14: #Level type
-            nums = []
-            for n in range(101):
-                if n != 0:
-                    nums.append(str(n))
-            self.arg.Clear()
-            self.arg.AppendItems(nums) 
-            self.arg_txt.SetLabel("Level:")
+            if self.arg_type != "Level":
+                nums = []
+                for n in range(101):
+                    if n != 0:
+                        nums.append(str(n))
+                self.arg.Clear()
+                self.arg.AppendItems(nums) 
+                self.arg_txt.SetLabel("Level:")
+                self.arg_type = "Level"
+            
         elif method == 6 or method == 7: #Item type
-            global ITEM_NAMES
-            self.arg.Clear()
-            self.arg.AppendItems(ITEM_NAMES) 
-            self.arg_txt.SetLabel("Item:")
+            if self.arg_type != "Item":
+                global ITEM_NAMES
+                self.arg.Clear()
+                self.arg.AppendItems(ITEM_NAMES) 
+                self.arg_txt.SetLabel("Item:")
+                self.arg_type = "Item"
         else: #None type
             self.arg.Clear()
             self.arg.AppendItems(["-None needed-"]) 
             self.arg_txt.SetLabel("Argument:")
+            self.arg_type = None
         return method
+        
         
     def load_everything(self):
         EvolutionTable = int(frame.Config.get(frame.rom_id, "EvolutionTable"), 0)
@@ -1666,9 +1673,106 @@ class EvoTab(wx.Panel):
 class PokeDexTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.SetSizer(sizer)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.GenerateUI()
+        
+        self.SetSizer(self.sizer)
+        
+    def GenerateUI(self):
+        DEX = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        MAIN = wx.BoxSizer(wx.HORIZONTAL)
+        DEX.SetSizer(MAIN)
+        
+        DEX_Sizer = wx.BoxSizer(wx.VERTICAL)
+        MAIN.Add(DEX_Sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        Type_txt = wx.StaticText(DEX, -1,"Type:")
+        DEX_Sizer.Add(Type_txt, 0, wx.ALL, 5)
+        self.Type = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_CENTRE, size=(100, -1))
+        DEX_Sizer.Add(self.Type, 0, wx.ALL, 5)
+        
+        Entry1_txt = wx.StaticText(DEX, -1,"Dex Entry Part 1:")
+        DEX_Sizer.Add(Entry1_txt, 0, wx.ALL, 5)
+        self.Entry1 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
+        DEX_Sizer.Add(self.Entry1, 0, wx.ALL, 5)
+        
+        Entry2_txt = wx.StaticText(DEX, -1,"Dex Entry Part 2:")
+        DEX_Sizer.Add(Entry2_txt, 0, wx.ALL, 5)
+        self.Entry2 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
+        DEX_Sizer.Add(self.Entry2, 0, wx.ALL, 5)
+        
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        MAIN.Add(vbox, 0, wx.EXPAND | wx.ALL, 5)
+        
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 5)
+        
+        HWbox = wx.BoxSizer(wx.VERTICAL)
+        hbox.Add(HWbox, 0, wx.EXPAND | wx.ALL, 5)
+        
+        Height_txt = wx.StaticText(DEX, -1,"Height:")
+        HWbox.Add(Height_txt, 0, wx.ALL, 5)
+        self.Height = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_CENTRE, size=(50, -1))
+        self.Height.Bind(wx.EVT_TEXT, self.ChangeHeight)
+        HWbox.Add(self.Height, 0, wx.EXPAND | wx.ALL, 5)
+        
+        Weight_txt = wx.StaticText(DEX, -1,"Weight:")
+        HWbox.Add(Weight_txt, 0, wx.ALL, 5)
+        self.Weight = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_CENTRE, size=(50, -1))
+        self.Weight.Bind(wx.EVT_TEXT, self.ChangeWeight)
+        HWbox.Add(self.Weight, 0, wx.EXPAND | wx.ALL, 5)
+        
+        HWbox2 = wx.BoxSizer(wx.VERTICAL)
+        hbox.Add(HWbox2, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.Meters = wx.StaticText(DEX, -1,"Meters: XXXX")
+        HWbox2.Add(self.Meters, 0, wx.ALL, 7)
+        
+        self.Feet = wx.StaticText(DEX, -1,"Feet: XXXX")
+        HWbox2.Add(self.Feet, 0, wx.ALL, 7)
+        
+        self.kg = wx.StaticText(DEX, -1,"Kilograms: XXXX")
+        HWbox2.Add(self.kg, 0, wx.ALL, 7)
+        
+        self.ilbs = wx.StaticText(DEX, -1,"Pounds: XXXX")
+        HWbox2.Add(self.ilbs, 0, wx.ALL, 7)
+        
+        self.sizer.Add(DEX, 0, wx.EXPAND | wx.ALL, 5)
+    
+    def ChangeHeight(self, instance):
+        try: height = int(self.Height.GetValue(),0)
+        except:
+            limit = self.Height.GetValue()[:-1]
+            curr = self.Height.GetValue()
+            if curr != "0x" and curr != "":
+                self.Height.SetValue(limit)
+            return
+        meters = height/10
+        feet = meters*3.28084
+        
+        meters = ("Meters: {0:.1f}".format(meters))
+        feet = ("Feet: {0:.1f}".format(feet))
+        
+        self.Meters.SetLabel(meters)
+        self.Feet.SetLabel(feet)
+        
+    def ChangeWeight(self, instance):
+        try: weight = int(self.Weight.GetValue(),0)
+        except:
+            limit = self.Weight.GetValue()[:-1]
+            curr = self.Weight.GetValue()
+            if curr != "0x" and curr != "":
+                self.Weight.SetValue(limit)
+            return
+        kg = weight/10
+        pounds = kg*2.20462
+        
+        kg = ("Kilograms: {0:.1f}".format(kg))
+        pounds = ("Pounds: {0:.1f}".format(pounds))
+        
+        self.kg.SetLabel(kg)
+        self.ilbs.SetLabel(pounds)
         
 class EggMoveTab(wx.Panel):
     def __init__(self, parent):
