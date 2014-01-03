@@ -148,8 +148,10 @@ def convert_ascii_and_poke(string, mode):
         string = "\\x"+re.sub("(.{2})", "\\1\\x", string, 0, re.DOTALL)[:-2]
         for k,v in chart:
             string = string.replace(k,v)
-        string = string.decode('iso-8859-1').encode('utf-8')
-            
+        p = platform.system()
+        if p == "Windows": string = string.decode('utf-8').encode('Latin-1')
+        else: string = string.decode('iso-8859z-1').encode('utf-8')
+        
     else: return None
     
     return string
