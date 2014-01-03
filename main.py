@@ -1621,7 +1621,7 @@ class EvoTab(wx.Panel):
             list_of_entries.append(split)
             hexValues = hexValues[LengthOfOneEntry*2:]
         for num, entry in enumerate(list_of_entries):
-            method = int(entry[2:4]+entry[:2],16)
+            method = int(entry[:2],16)
             arg = int(entry[6:8]+entry[4:6],16)
             poke = int(entry[10:12]+entry[8:10],16)
             self.evos.append([method,arg,poke])
