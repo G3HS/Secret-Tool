@@ -2157,6 +2157,9 @@ class NumberofEvosChanger(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         
+        txt3 = wx.StaticText(pnl, -1, "\n\nA huge credit goes to DoesntKnowHowToPlay, who\ndiscovered how this can be done and kept notes\nabout it. Drop him a thank you if you really like it!",style=wx.TE_CENTRE)
+        vbox.Add(txt3, 0, wx.EXPAND | wx.ALL, 5)
+        
         pnl.SetSizerAndFit(vbox)
         self.Fit()
         self.SetMinSize(self.GetEffectiveMinSize())
