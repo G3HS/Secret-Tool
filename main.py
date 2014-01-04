@@ -1073,7 +1073,8 @@ class MovesTab(wx.Panel):
         ##Write new table
         learned_offset = self.learned_moves_offset
         if self.NEW_LEARNED_OFFSET != None:
-            pointer = "08"+self.NEW_LEARNED_OFFSET
+            int_offset = int(self.NEW_LEARNED_OFFSET,16)+int("8000000",16)
+            offset = hex(int_offset)[2:].zfill(8)
             pointer = make_pointer(pointer)
             pointer = get_hex_from_string(pointer)
             frame.open_rom.seek(self.learned_moves_pointer)
@@ -1128,7 +1129,6 @@ class MovesTab(wx.Panel):
         frame.open_rom.seek(self.TMHMoffset)
         frame.open_rom.write(hexTMHM)
         
-            
     def OnSelectMove(self, *args):
         self.UPDATE_FRACTION()
         sel = self.MOVESET.GetFocusedItem()
@@ -1940,7 +1940,10 @@ class EggMoveTab(wx.Panel):
         
     def save_part2(self, *args):
         global NewEggOffset
-        NewEggOffset_pointer_form = make_pointer("08"+NewEggOffset)
+        offset = int(NewEggOffset,16)+int("8000000",16)
+        offset = hex(offset)[2:].zfill(8)
+        
+        NewEggOffset_pointer_form = make_pointer(offset)
         if NewEggOffset != hex(self.OFFSET)[2:].zfill(6):
             for pointer in self.POINTERS:
                 frame.open_rom.seek(pointer)
@@ -2119,7 +2122,6 @@ class MOVE_REPOINTER(wx.Dialog):
         self.InitUI()
         self.SetTitle("Repoint")
         
-        
     def InitUI(self):
 
         pnl = wx.Panel(self)
@@ -2164,7 +2166,12 @@ class MOVE_REPOINTER(wx.Dialog):
             except: return
         if offset != "":
             if len(offset) > 6:
-                offset = offset[-6:]
+                check = offset[-7:-6]
+                if check == "1" or check == "9":
+                    check = "1"
+                else:
+                    check = ""
+                offset = check+offset[-6:].zfill(6)
             new_offset = offset.zfill(6)
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
@@ -2218,7 +2225,6 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
         self.OnSearch()
         self.SetTitle("Repoint")
 
-        
     def InitUI(self):
 
         pnl = wx.Panel(self)
@@ -2251,8 +2257,12 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
         global NewEggOffset
         if offset != "":
             if len(offset) > 6:
-                offset = offset[-6:]
-            offset = offset.zfill(6)
+                check = offset[-7:-6]
+                if check == "1" or check == "9":
+                    check = "1"
+                else:
+                    check = ""
+                offset = check+offset[-6:].zfill(6)
             NewEggOffset = offset
         elif sel != -1:
             new_offset = self.OFFSETS.GetString(sel)[2:]
@@ -2345,9 +2355,15 @@ class NumberofEvosChanger(wx.Dialog):
         EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
         
         if new_number == EvolutionsPerPoke: return
+        
         if _offset_ != "":
             if len(_offset_) > 6:
-                _offset_ = _offset_[-7:]
+                check = _offset_[-7:-6]
+                if check == "1" or check == "9":
+                    check = "1"
+                else:
+                    check = ""
+                _offset_ = check+_offset_[-6:].zfill(6)
         elif sel != -1:
             _offset_ = self.OFFSETS.GetString(sel)[2:]
         else: return
@@ -2391,13 +2407,8 @@ class NumberofEvosChanger(wx.Dialog):
         for offset in list_pointers:
             EvolutionTablePointers.append(int(offset, 0))
         
-        if len(_offset_) == 6:
-            _offset_ = "08"+_offset_
-        elif len(_offset_) == 7:
-            _offset_ = _offset_.zfill(8)
-        else:
-            _offset_ = _offset_.zfill(6)
-            _offset_ = "08"+_offset_
+        _offset_ = int(_offset_,16)+int("8000000",16)
+        _offset_ = hex(_offset_)[2:].zfill(8)
         
         pointer = make_pointer(_offset_)
         
@@ -2410,7 +2421,10 @@ class NumberofEvosChanger(wx.Dialog):
             
         ##Ammend the ini
         
-        frame.Config.set(frame.rom_id, "EvolutionTable", "0x"+_offset_[2:])
+        _offset_ = int(_offset_,16)-int("8000000",16)
+        _offset_ = hex(_offset_)[2:]
+        
+        frame.Config.set(frame.rom_id, "EvolutionTable", "0x"+_offset_)
         frame.Config.set(frame.rom_id, "EvolutionsPerPoke", str(new_number))
         
         ini = os.path.join(frame.path,"PokeRoms.ini")
@@ -2473,8 +2487,8 @@ class NumberofEvosChanger(wx.Dialog):
         ##Tell the user it worked, close, and reload data.
         self.OnClose()
         DONE = wx.MessageDialog(None, 
-                                "Done! Reloading 'MON Data.", 
-                                'Table has been moved and evolutions have been changed.:)', 
+                                "Done!", 
+                                "Table has been moved, ini has been ammended,\nand evolutions have been changed.:)\n\n\nReloading 'MON Data.", 
                                 wx.OK)
         DONE.ShowModal()
         frame.tabbed_area.PokeDataTab.tabbed_area.reload_tab_data()
