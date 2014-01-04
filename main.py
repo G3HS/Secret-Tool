@@ -1070,6 +1070,7 @@ class MovesTab(wx.Panel):
         self.load_everything()
         
     def save(self):
+        ##Write new table
         learned_offset = self.learned_moves_offset
         if self.NEW_LEARNED_OFFSET != None:
             pointer = "08"+self.NEW_LEARNED_OFFSET
@@ -1083,6 +1084,16 @@ class MovesTab(wx.Panel):
         learned_moves = get_hex_from_string(learned_moves)
         frame.open_rom.write(learned_moves)
         
+        learnedmoveslength = int(frame.Config.get(frame.rom_id, "learnedmoveslength"), 0)
+        ##Fill old table with free space
+        if self.NEW_LEARNED_OFFSET != None:
+            fill = self.original_amount_of_moves*learnedmoveslength
+            original_offset = self.learned_moves_offset
+            frame.open_rom.seek(original_offset)
+            for n in range(fill):
+                frame.open_rom.write("\xff")
+        
+        ##Write TM & HM Data
         num = self.TMList.GetItemCount()
         binary = ""
         for i in range(num):
@@ -1111,6 +1122,7 @@ class MovesTab(wx.Panel):
             binary = binary[32:]
         frame.open_rom.seek(self.TMHMoffset)
         frame.open_rom.write(hexTMHM)
+        
             
     def OnSelectMove(self, *args):
         self.UPDATE_FRACTION()
