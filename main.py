@@ -1085,6 +1085,7 @@ class MovesTab(wx.Panel):
         frame.open_rom.write(learned_moves)
         
         learnedmoveslength = int(frame.Config.get(frame.rom_id, "learnedmoveslength"), 0)
+        
         ##Fill old table with free space
         if self.NEW_LEARNED_OFFSET != None:
             fill = self.original_amount_of_moves*learnedmoveslength
@@ -1092,6 +1093,10 @@ class MovesTab(wx.Panel):
             frame.open_rom.seek(original_offset)
             for n in range(fill):
                 frame.open_rom.write("\xff")
+            check = frame.open_rom.read(4)
+            if check == "\xff\xff\xfe\xfe" or check == "\xff\xff\xff\xfe":
+                frame.open_rom.seek(-4, 1)
+                frame.open_rom.write("\xff\xff\xff\xff")
         
         ##Write TM & HM Data
         num = self.TMList.GetItemCount()
@@ -1246,7 +1251,7 @@ class MovesTab(wx.Panel):
                     atk = atk-256
                 set = hex(atk)[2:].zfill(2)+hex(lvl)[2:].zfill(2)
                 string += set
-            string += "ffff5555"
+            string += "fffffefe"
         else:
             for attack, level in self.learned_moves:
                 lvl = hex(level)[2:]
@@ -1254,7 +1259,7 @@ class MovesTab(wx.Panel):
                 atk = atk[2:]+atk[:2]
                 set = atk+lvl
                 string += set
-            string += "ffffff55"
+            string += "fffffffe"
         return string
     
     def load_everything(self):
