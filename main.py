@@ -1608,7 +1608,6 @@ class EvoTab(wx.Panel):
             self.arg_type = None
         return method
         
-        
     def load_everything(self):
         EvolutionTable = int(frame.Config.get(frame.rom_id, "EvolutionTable"), 0)
         EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
@@ -1702,6 +1701,8 @@ class PokeDexTab(wx.Panel):
         self.Entry2 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
         DEX_Sizer.Add(self.Entry2, 0, wx.ALL, 5)
         
+        ##This is the Height and Weight Section
+        
         vbox = wx.BoxSizer(wx.VERTICAL)
         MAIN.Add(vbox, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -1738,7 +1739,56 @@ class PokeDexTab(wx.Panel):
         self.ilbs = wx.StaticText(DEX, -1,"Pounds: XXXX")
         HWbox2.Add(self.ilbs, 0, wx.ALL, 7)
         
+        ##Pokemon Scale
+        PScaleBox = wx.BoxSizer(wx.HORIZONTAL)
+        vbox.Add(PScaleBox, 0, wx.ALL, 5)
+        PScaleBoxLeft = wx.BoxSizer(wx.VERTICAL)
+        PScaleBox.Add(PScaleBoxLeft, 0, wx.ALL, 5)
+        
+        Pscale_txt = wx.StaticText(DEX, -1,encode_per_platform("POK\xe9MON Scale:"))
+        PScaleBoxLeft.Add(Pscale_txt, 0, wx.ALL, 5)
+        self.Pscale = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_CENTRE, size=(50, -1))
+        self.Pscale.Bind(wx.EVT_TEXT, self.ChangePscale)
+        PScaleBoxLeft.Add(self.Pscale, 0, wx.ALL, 5)
+        
+        Poffset_txt = wx.StaticText(DEX, -1,encode_per_platform("POK\xe9MON Offset:"))
+        PScaleBoxLeft.Add(Poffset_txt, 0, wx.ALL, 5)
+        self.Poffset = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_CENTRE, size=(50, -1))
+        self.Poffset.Bind(wx.EVT_TEXT, self.ChangePoffset)
+        PScaleBoxLeft.Add(self.Poffset, 0, wx.ALL, 5)
+        
+        ##Trainer Scale
+        TScaleBox = wx.BoxSizer(wx.HORIZONTAL)
+        vbox.Add(TScaleBox, 0, wx.ALL, 5)
+        TScaleBoxLeft = wx.BoxSizer(wx.VERTICAL)
+        TScaleBox.Add(TScaleBoxLeft, 0, wx.ALL, 5)
+        
+        Tscale_txt = wx.StaticText(DEX, -1, "Trainer Scale:")
+        TScaleBoxLeft.Add(Tscale_txt, 0, wx.ALL, 5)
+        self.Tscale = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_CENTRE, size=(50, -1))
+        self.Tscale.Bind(wx.EVT_TEXT, self.ChangeTscale)
+        TScaleBoxLeft.Add(self.Tscale, 0, wx.ALL, 5)
+        
+        Toffset_txt = wx.StaticText(DEX, -1,"Trainer Offset:")
+        TScaleBoxLeft.Add(Toffset_txt, 0, wx.ALL, 5)
+        self.Toffset = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_CENTRE, size=(50, -1))
+        self.Toffset.Bind(wx.EVT_TEXT, self.ChangeToffset)
+        TScaleBoxLeft.Add(self.Toffset, 0, wx.ALL, 5)
+        
         self.sizer.Add(DEX, 0, wx.EXPAND | wx.ALL, 5)
+    
+    
+    def ChangePscale(self, instance):
+        pass
+    
+    def ChangePoffset(self, instance):
+        pass
+    
+    def ChangeTscale(self, instance):
+        pass
+    
+    def ChangeToffset(self, instance):
+        pass
     
     def ChangeHeight(self, instance):
         try: height = int(self.Height.GetValue(),0)
@@ -2357,7 +2407,7 @@ class NumberofEvosChanger(wx.Dialog):
             frame.open_rom.write("\xFF")
             
         
-        ##Adjust the rom for the new ini
+        ##Adjust the rom for the new table
         
         change1 = [] #-> lsl r0, r6, #0x1 (70 00)
         tmp = frame.Config.get(frame.rom_id, "OffsetsToChangeTolslr0r60x1").split(",")
@@ -2387,17 +2437,21 @@ class NumberofEvosChanger(wx.Dialog):
         for offset in change2:
             frame.open_rom.seek(offset, 0)
             frame.open_rom.write(change2write)
+            
+        TheShedinjaFix = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
         
-        change3 = []  #-> mov r6, #0x8 (08 26)
-        tmp = frame.Config.get(frame.rom_id, "OffsetToChangeTomovr60x8").split(",")
-        for offset in tmp:
-            change3.append(int(offset, 0))
+        if new_number == 4: write = "0000"
+        elif new_number == 8: write = "4000"
+        elif new_number == 16: write = "8000"
+        elif new_number == 32: write = "C000"
+        elif new_number == 64: write = "0001"
+        elif new_number == 128: write = "4001"
+        else: write = "5044"
+        
+        TheShedinjaFixWrite = binascii.unhexlify(write)
 
-        change3write = get_hex_from_string(str(hex(new_number)[2:])+"26")
-        
-        for offset in change3:
-            frame.open_rom.seek(offset, 0)
-            frame.open_rom.write(change3write)
+        frame.open_rom.seek(TheShedinjaFix, 0)
+        frame.open_rom.write(TheShedinjaFixWrite)
             
         ##Tell the user it worked, close, and reload data.
         self.OnClose()
