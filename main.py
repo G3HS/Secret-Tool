@@ -2526,7 +2526,9 @@ class MOVE_REPOINTER(wx.Dialog):
             offset = hex(int_offset)[2:].zfill(8)
             pointer = make_pointer(offset)
             pointer = get_hex_from_string(pointer)
-            frame.open_rom.seek(learned_moves_pointer)
+            global poke_num
+            offset_of_pointer = learned_moves_pointer+poke_num*4
+            frame.open_rom.seek(offset_of_pointer)
             frame.open_rom.write(pointer)
             
             frame.open_rom.seek(int(new_offset,16))
