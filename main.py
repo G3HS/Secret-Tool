@@ -1836,7 +1836,13 @@ class PokeDexTab(wx.Panel):
         DexType = frame.Config.get(frame.rom_id, "DexType")
 
         global poke_num
-        pokedex = pokedex+(poke_num+1)*LengthofPokedexEntry
+        if poke_num > 250:
+            NumOfPokesBetweenCelebiAndTreeko = int(frame.Config.get(frame.rom_id, "NumOfPokesBetweenCelebiAndTreeko"), 0)
+            dex_num = poke_num-NumOfPokesBetweenCelebiAndTreeko
+            if dex_num < 251:
+                return
+            else: pokedex = pokedex+(dex_num+1)*LengthofPokedexEntry
+        else: pokedex = pokedex+(poke_num+1)*LengthofPokedexEntry
         frame.open_rom.seek(pokedex)
         
         Type = self.Type.GetValue()
@@ -1877,10 +1883,16 @@ class PokeDexTab(wx.Panel):
                         need_overwrite = True
                         break
         else: need_overwrite = False
-
-        frame.open_rom.seek(self.entry1_offset)
-        frame.open_rom.write(entry1+"\xff\xff\xfe")
         
+        frame.open_rom.seek(self.entry1_offset)
+        frame.open_rom.write(entry1+"\xff\xff")
+        
+        frame.open_rom.seek(0,1)
+        check = frame.open_rom.read(2)
+        if check == "\xff":
+            frame.open_rom.seek(-1,1)
+            frame.open_rom.write("\xfe")
+
         frame.open_rom.seek(pokedex+16)
         pointer = self.entry1_offset+0x8000000
         pointer = hex(pointer)[2:]
@@ -1907,6 +1919,7 @@ class PokeDexTab(wx.Panel):
                     break
         
         if self.OriginalEntry2Len != None:
+        
             entry1 = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
        
             if self.OriginalEntry2Len < len(entry2):
@@ -1927,7 +1940,13 @@ class PokeDexTab(wx.Panel):
             else: need_overwrite = False
 
             frame.open_rom.seek(self.entry2_offset)
-            frame.open_rom.write(entry1+"\xff\xff\xfe")
+            frame.open_rom.write(entry1+"\xff\xff")
+            
+            frame.open_rom.seek(0,1)
+            check = frame.open_rom.read(1)
+            if check == "\xff":
+                frame.open_rom.seek(-1,1)
+                frame.open_rom.write("\xfe")
             
             frame.open_rom.seek(pokedex+20)
             pointer = self.entry2_offset+0x8000000
@@ -1936,23 +1955,23 @@ class PokeDexTab(wx.Panel):
             pointer = get_hex_from_string(pointer)
             frame.open_rom.write(pointer)
             
-        if need_overwrite == True:
-            frame.open_rom.seek(org_offset)
-            while True:
-                read = frame.open_rom.read(1)
-                if read != "\xff":
-                    frame.open_rom.seek(-1,1)
-                    frame.open_rom.write("\xff")
-                    frame.open_rom.seek(1,1)
-                else:
-                    read2 = frame.open_rom.read(1)
-                    if read2 == "\xff":
-                        read3 = frame.open_rom.read(1)
-                        if read3 == "\xfe":
-                            frame.open_rom.seek(-1,1)
-                            frame.open_rom.write("\xff")
-                            frame.open_rom.seek(1,1)
-                    break
+            if need_overwrite == True:
+                frame.open_rom.seek(org_offset)
+                while True:
+                    read = frame.open_rom.read(1)
+                    if read != "\xff":
+                        frame.open_rom.seek(-1,1)
+                        frame.open_rom.write("\xff")
+                        frame.open_rom.seek(1,1)
+                    else:
+                        read2 = frame.open_rom.read(1)
+                        if read2 == "\xff":
+                            read3 = frame.open_rom.read(1)
+                            if read3 == "\xfe":
+                                frame.open_rom.seek(-1,1)
+                                frame.open_rom.write("\xff")
+                                frame.open_rom.seek(1,1)
+                        break
         
         frame.open_rom.seek(pokedex+26)
         
@@ -1962,19 +1981,19 @@ class PokeDexTab(wx.Panel):
         Pscale = Pscale[2:4]+Pscale[:2]
         frame.open_rom.write(get_hex_from_string(Pscale))
         
-        try: Poffset = int(self.Pscale.GetValue(),0)
+        try: Poffset = int(self.Poffset.GetValue(),0)
         except: Poffset = 0
         Poffset = deal_with_16bit_signed_hex(Poffset, method="backward")
         Poffset = Poffset[2:4]+Poffset[:2]
         frame.open_rom.write(get_hex_from_string(Poffset))
         
-        try: Tscale = int(self.Pscale.GetValue(),0)
+        try: Tscale = int(self.Tscale.GetValue(),0)
         except: Tscale = 256
         Tscale = hex(Tscale)[2:].zfill(4)
         Tscale = Tscale[2:4]+Tscale[:2]
         frame.open_rom.write(get_hex_from_string(Tscale))
         
-        try: Toffset = int(self.Pscale.GetValue(),0)
+        try: Toffset = int(self.Toffset.GetValue(),0)
         except: Toffset = 0
         Toffset = deal_with_16bit_signed_hex(Toffset, method="backward")
         Toffset = Toffset[2:4]+Toffset[:2]
@@ -1986,7 +2005,22 @@ class PokeDexTab(wx.Panel):
         DexType = frame.Config.get(frame.rom_id, "DexType")
 
         global poke_num
-        pokedex = pokedex+(poke_num+1)*LengthofPokedexEntry
+        if poke_num > 250:
+            NumOfPokesBetweenCelebiAndTreeko = int(frame.Config.get(frame.rom_id, "NumOfPokesBetweenCelebiAndTreeko"), 0)
+            dex_num = poke_num-NumOfPokesBetweenCelebiAndTreeko
+            if dex_num < 251:
+                self.Height.SetValue("")
+                self.Weight.SetValue("")
+                self.Entry1.SetValue("")
+                self.Entry2.SetValue("")
+                self.Pscale.SetValue("")
+                self.Poffset.SetValue("")
+                self.Tscale.SetValue("")
+                self.Toffset.SetValue("")
+                self.Type.SetValue("")
+                return
+            else: pokedex = pokedex+(dex_num+1)*LengthofPokedexEntry
+        else: pokedex = pokedex+(poke_num+1)*LengthofPokedexEntry
         frame.open_rom.seek(pokedex)
         type = frame.open_rom.read(12)
         type = type.split("\xff")[0]
@@ -2658,7 +2692,7 @@ class NumberofEvosChanger(wx.Dialog):
         txt = wx.StaticText(pnl, -1, "This is the first ever tool to change the number of\nevolutions a 'MON can have. Due to ASM limitations,\nthe number of new evolutions has to be a power of 2\nor just 5. Anything else requires custom ASM that\nwould require a repoint of a lot of things. So, let's get\nstarted!\n\n\nPlease pick a new number of evolutions:",style=wx.TE_CENTRE)
         vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
         
-        self.choices = ["4","5","8","16","32","64","128"]
+        self.choices = ["4","5","8","16","32"]
         
         self.NewNumberChoices = wx.ComboBox(pnl, -1, choices=self.choices,
                                                     style=wx.SUNKEN_BORDER, size=(100, -1))
@@ -2795,8 +2829,6 @@ class NumberofEvosChanger(wx.Dialog):
         elif new_number == 8: write = "7000"
         elif new_number == 16: write = "B000"
         elif new_number == 32: write = "F000"
-        elif new_number == 64: write = "3001"
-        elif new_number == 128: write = "7001"
         else: write = "F019"
         
         change1write = binascii.unhexlify(write)
@@ -2822,20 +2854,34 @@ class NumberofEvosChanger(wx.Dialog):
         elif new_number == 8: write = "4000"
         elif new_number == 16: write = "8000"
         elif new_number == 32: write = "C000"
-        elif new_number == 64: write = "0001"
-        elif new_number == 128: write = "4001"
         else: write = "5044"
         
         TheShedinjaFixWrite = binascii.unhexlify(write)
 
         frame.open_rom.seek(TheShedinjaFix, 0)
         frame.open_rom.write(TheShedinjaFixWrite)
+        
+        change3 = [] 
+        tmp = frame.Config.get(frame.rom_id, "ChangeToNewNumberTimes8").split(",")
+        for offset in tmp:
+            change3.append(int(offset, 0))
+
+        change3write = get_hex_from_string(str(hex(new_number*8)[2:]))
+        
+        for offset in change3:
+            frame.open_rom.seek(offset, 0)
+            frame.open_rom.write(change3write)
+        
+        change4 = int(frame.Config.get(frame.rom_id, "ChangeToNewNumber"), 0)
+        change4write = get_hex_from_string(str(hex(new_number)[2:]))
+        frame.open_rom.seek(change4, 0)
+        frame.open_rom.write(change4write)
             
         ##Tell the user it worked, close, and reload data.
         self.OnClose()
         DONE = wx.MessageDialog(None, 
-                                "Done!", 
                                 "Table has been moved, ini has been ammended,\nand evolutions have been changed.:)\n\n\nReloading 'MON Data.", 
+                                "Done!",
                                 wx.OK)
         DONE.ShowModal()
         frame.tabbed_area.PokeDataTab.tabbed_area.reload_tab_data()
