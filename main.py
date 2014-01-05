@@ -364,6 +364,7 @@ class DataEditingTabs(wx.Notebook):
         self.stats.reload_stuff()
         self.moves.load_everything()
         self.evo.load_everything()
+        self.dex.LoadEverything()
         
 class StatsTab(wx.Panel):
     def __init__(self, parent):
@@ -1756,9 +1757,12 @@ class PokeDexTab(wx.Panel):
         self.ilbs = wx.StaticText(DEX, -1,"Pounds: XXXX")
         HWbox2.Add(self.ilbs, 0, wx.ALL, 7)
         
+        SizeCmpLbl = wx.StaticText(DEX, -1,"Size Comparison:")
+        vbox.Add(SizeCmpLbl, 0, wx.TOP|wx.LEFT, 8)
+        
         ##Pokemon Scale
         PScaleBox = wx.BoxSizer(wx.HORIZONTAL)
-        vbox.Add(PScaleBox, 0, wx.ALL, 5)
+        vbox.Add(PScaleBox, 0, wx.LEFT, 5)
         PScaleBoxLeft = wx.BoxSizer(wx.VERTICAL)
         PScaleBox.Add(PScaleBoxLeft, 0, wx.ALL, 5)
         
@@ -1774,9 +1778,18 @@ class PokeDexTab(wx.Panel):
         self.Poffset.Bind(wx.EVT_TEXT, self.ChangePoffset)
         PScaleBoxLeft.Add(self.Poffset, 0, wx.ALL, 5)
         
+        PScaleBoxRight = wx.BoxSizer(wx.VERTICAL)
+        PScaleBox.Add(PScaleBoxRight, 0, wx.ALL, 5)
+        
+        self.PScale_x = wx.StaticText(DEX, -1,"0.000x---")
+        PScaleBoxRight.Add(self.PScale_x, 0, wx.TOP, 15)
+        
+        self.PScale_px = wx.StaticText(DEX, -1,"64px")
+        PScaleBoxRight.Add(self.PScale_px, 0, wx.TOP, 5)
+
         ##Trainer Scale
         TScaleBox = wx.BoxSizer(wx.HORIZONTAL)
-        vbox.Add(TScaleBox, 0, wx.ALL, 5)
+        vbox.Add(TScaleBox, 0, wx.LEFT, 5)
         TScaleBoxLeft = wx.BoxSizer(wx.VERTICAL)
         TScaleBox.Add(TScaleBoxLeft, 0, wx.ALL, 5)
         
@@ -1794,18 +1807,169 @@ class PokeDexTab(wx.Panel):
         
         self.sizer.Add(DEX, 0, wx.EXPAND | wx.ALL, 5)
     
-    
+        TScaleBoxRight = wx.BoxSizer(wx.VERTICAL)
+        TScaleBox.Add(TScaleBoxRight, 0, wx.ALL, 5)
+        
+        self.TScale_x = wx.StaticText(DEX, -1,"0.000x---")
+        TScaleBoxRight.Add(self.TScale_x, 0, wx.TOP, 15)
+        
+        self.TScale_px = wx.StaticText(DEX, -1,"64px")
+        TScaleBoxRight.Add(self.TScale_px, 0, wx.TOP, 5)
+        
+        self.LoadEverything()
+        
+    def LoadEverything(self):
+        pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
+        LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
+        DexType = frame.Config.get(frame.rom_id, "DexType")
+
+        global poke_num
+        pokedex = pokedex+(poke_num+1)*LengthofPokedexEntry
+        frame.open_rom.seek(pokedex)
+        type = frame.open_rom.read(12)
+        type = type.split("\xff")[0]
+        type = convert_ascii_and_poke(type, "to_poke")
+        self.Type.SetValue(type)
+        
+        height = get_bytes_string_from_hex_string(frame.open_rom.read(2))
+        height = int(height[2:4]+height[:2],16)
+        self.Height.SetValue(str(height))
+        
+        weight = get_bytes_string_from_hex_string(frame.open_rom.read(2))
+        weight = int(weight[2:4]+weight[:2], 16)
+        self.Weight.SetValue(str(weight))
+        
+        entry1 = read_pointer(frame.open_rom.read(4))
+        frame.open_rom.seek(entry1)
+        entry1 = ""
+        while True:
+            read = frame.open_rom.read(1)
+            if read == "\xff": 
+                check = frame.open_rom.read(1)
+                if check == "\xff": break
+                else: read += check
+            entry1 += read
+        entry1 = convert_ascii_and_poke(entry1, "to_poke")
+        self.Entry1.SetValue(entry1)
+        
+        frame.open_rom.seek(pokedex+20)
+        if DexType != "FRLG":
+            entry2 = read_pointer(frame.open_rom.read(4))
+            frame.open_rom.seek(entry2)
+            entry2 = ""
+            while True:
+                read = frame.open_rom.read(1)
+                if read == "\xff": 
+                    check = frame.open_rom.read(1)
+                    if check == "\xff": break
+                    else: read += check
+                entry2 += read
+            entry2 = convert_ascii_and_poke(entry2, "to_poke")
+            self.Entry2.SetValue(entry2)
+        else: self.Entry2.SetValue("-Unused in FRLG-")
+        
+        frame.open_rom.seek(pokedex+26)
+        Pscale = get_bytes_string_from_hex_string(frame.open_rom.read(2))
+        Pscale = int(Pscale[2:4]+Pscale[:2],16)
+        self.Pscale.SetValue(str(Pscale))
+        
+        #128 = -127
+        #127 = 127
+        #0 = 0
+        Poffset = get_bytes_string_from_hex_string(frame.open_rom.read(2))
+        Poffset = int(Poffset[2:4]+Poffset[:2],16)
+        Poffset = deal_with_16bit_signed_hex(Poffset)
+        self.Poffset.SetValue(str(Poffset))
+        
+        Tscale = get_bytes_string_from_hex_string(frame.open_rom.read(2))
+        Tscale = int(Tscale[2:4]+Tscale[:2],16)
+        self.Tscale.SetValue(str(Tscale))
+        
+        Toffset = get_bytes_string_from_hex_string(frame.open_rom.read(2))
+        Toffset = int(Toffset[2:4]+Toffset[:2],16)
+        Toffset = deal_with_16bit_signed_hex(Toffset)
+        self.Toffset.SetValue(str(Toffset))
+        
     def ChangePscale(self, instance):
-        pass
-    
+        try: value = int(self.Pscale.GetValue(),0)
+        except:
+            limit = self.Pscale.GetValue()[:-1]
+            curr = self.Pscale.GetValue()
+            if curr != "0x" and curr != "":
+                self.Pscale.SetValue(limit)
+            return
+            
+        if value < 256:
+            value = 256
+            self.Pscale.SetValue("256")
+        if value > 1536:
+            value = 1536
+            self.Pscale.SetValue("1536")
+            
+        size = int(64*(256/value))
+        self.PScale_px.SetLabel(str(size)+"px")
+        
+        scale = 256/value
+        scale = ("{0:.3f}x".format(scale))
+        self.PScale_x.SetLabel(scale)
+        
     def ChangePoffset(self, instance):
-        pass
-    
+        try: value = int(self.Poffset.GetValue(),0)
+        except:
+            limit = self.Poffset.GetValue()[:-1]
+            curr = self.Poffset.GetValue()
+            if curr != "0x" and curr != "" and curr != "-" and curr != "-0x-":
+                self.Poffset.SetValue(limit)
+            return
+            
+        if value > 99:
+            value = 99
+            self.Poffset.SetValue("99")
+        if value < -99:
+            value = -99
+            self.Poffset.SetValue("-99")
+            
+        
     def ChangeTscale(self, instance):
-        pass
+        try: value = int(self.Tscale.GetValue(),0)
+        except:
+            limit = self.Tscale.GetValue()[:-1]
+            curr = self.Tscale.GetValue()
+            if curr != "0x" and curr != "":
+                self.Tscale.SetValue(limit)
+            return
+            
+        if value < 256:
+            value = 256
+            self.Tscale.SetValue("256")
+        if value > 1536:
+            value = 1536
+            self.Tscale.SetValue("1536")
+            
+            
+        size = int(64*(256/value))
+        self.TScale_px.SetLabel(str(size)+"px")
+        
+        scale = 256/value
+        scale = ("{0:.3f}x".format(scale))
+        self.TScale_x.SetLabel(scale)
+        
     
     def ChangeToffset(self, instance):
-        pass
+        try: value = int(self.Toffset.GetValue(),0)
+        except:
+            limit = self.Toffset.GetValue()[:-1]
+            curr = self.Toffset.GetValue()
+            if curr != "0x" and curr != "" and curr != "-" and curr != "-0x":
+                self.Toffset.SetValue(limit)
+            return
+            
+        if value > 99:
+            value = 99
+            self.Toffset.SetValue("99")
+        if value < -99:
+            value = -99
+            self.Toffset.SetValue("-99")
     
     def ChangeHeight(self, instance):
         try: height = int(self.Height.GetValue(),0)

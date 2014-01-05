@@ -13,6 +13,15 @@ def encode_per_platform(string):
     else: out = string.decode('utf-8').encode('utf-8')
     return out
 
+def deal_with_16bit_signed_hex(hex_value):
+    binary = bin(hex_value)[2:].zfill(16)
+    if binary[0] == "1":
+        x = int(binary, 2)
+        output = x-0x10000
+    else: 
+        output = int(binary, 2)
+    return output
+
 def get_decimal_offset_from_hex_string(string):
     offset = HEXADECIMAL(string)
     offset.base = DECIMAL
@@ -57,7 +66,7 @@ def generate_list_of_names(offset, datalength, terminating_character, num_of_nam
     return list_of_names    
 
 def read_pointer(string):
-    #take a pointer in XXYYZZ08 format and return int offset.
+    #take a pointer in utf-8 reversed format (fresh rom read) and return int offset.
     bytes = get_bytes_string_from_hex_string(string)
     list_of_bytes = split_string_into_bytes(bytes)
     list_of_bytes = reversed(list_of_bytes)
