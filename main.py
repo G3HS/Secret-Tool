@@ -1904,11 +1904,7 @@ class PokeDexTab(wx.Panel):
                             frame.open_rom.seek(-1,1)
                             frame.open_rom.write("\xff")
                             frame.open_rom.seek(1,1)
-                        break
-                    else:
-                        frame.open_rom.seek(-1,1)
-                        frame.open_rom.write("\xff")
-                        frame.open_rom.seek(1,1)
+                    break
         
         if self.OriginalEntry2Len != None:
             entry1 = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
@@ -1940,27 +1936,23 @@ class PokeDexTab(wx.Panel):
             pointer = get_hex_from_string(pointer)
             frame.open_rom.write(pointer)
             
-            if need_overwrite == True:
-                frame.open_rom.seek(org_offset)
-                while True:
-                    read = frame.open_rom.read(1)
-                    if read != "\xff":
-                        frame.open_rom.seek(-1,1)
-                        frame.open_rom.write("\xff")
-                        frame.open_rom.seek(1,1)
-                    else:
-                        read2 = frame.open_rom.read(1)
-                        if read2 == "\xff":
-                            read3 = frame.open_rom.read(1)
-                            if read3 == "\xfe":
-                                frame.open_rom.seek(-1,1)
-                                frame.open_rom.write("\xff")
-                                frame.open_rom.seek(1,1)
-                            break
-                        else:
+        if need_overwrite == True:
+            frame.open_rom.seek(org_offset)
+            while True:
+                read = frame.open_rom.read(1)
+                if read != "\xff":
+                    frame.open_rom.seek(-1,1)
+                    frame.open_rom.write("\xff")
+                    frame.open_rom.seek(1,1)
+                else:
+                    read2 = frame.open_rom.read(1)
+                    if read2 == "\xff":
+                        read3 = frame.open_rom.read(1)
+                        if read3 == "\xfe":
                             frame.open_rom.seek(-1,1)
                             frame.open_rom.write("\xff")
                             frame.open_rom.seek(1,1)
+                    break
         
         frame.open_rom.seek(pokedex+26)
         
@@ -2014,10 +2006,7 @@ class PokeDexTab(wx.Panel):
         entry1 = ""
         while True:
             read = frame.open_rom.read(1)
-            if read == "\xff": 
-                check = frame.open_rom.read(1)
-                if check == "\xff": break
-                else: read += check
+            if read == "\xff": break
             entry1 += read
         self.OriginalEntry1Len = len(entry1)
         entry1 = convert_ascii_and_poke(entry1, "to_poke")
@@ -2030,10 +2019,7 @@ class PokeDexTab(wx.Panel):
             entry2 = ""
             while True:
                 read = frame.open_rom.read(1)
-                if read == "\xff": 
-                    check = frame.open_rom.read(1)
-                    if check == "\xff": break
-                    else: read += check
+                if read == "\xff": break
                 entry2 += read
             self.OriginalEntry2Len = len(entry2)
             entry2 = convert_ascii_and_poke(entry2, "to_poke")
