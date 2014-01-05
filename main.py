@@ -1692,6 +1692,9 @@ class PokeDexTab(wx.Panel):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         
+        self.OriginalEntry1Len = None
+        self.OriginalEntry2Len = None
+        
         self.GenerateUI()
         
         self.SetSizer(self.sizer)
@@ -1712,11 +1715,13 @@ class PokeDexTab(wx.Panel):
         Entry1_txt = wx.StaticText(DEX, -1,"Dex Entry Part 1:")
         DEX_Sizer.Add(Entry1_txt, 0, wx.ALL, 5)
         self.Entry1 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
+        self.Entry1.Bind(wx.EVT_TEXT, self.ChangeEntry1)
         DEX_Sizer.Add(self.Entry1, 0, wx.ALL, 5)
         
         Entry2_txt = wx.StaticText(DEX, -1,"Dex Entry Part 2:")
         DEX_Sizer.Add(Entry2_txt, 0, wx.ALL, 5)
         self.Entry2 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
+        self.Entry2.Bind(wx.EVT_TEXT, self.ChangeEntry2)
         DEX_Sizer.Add(self.Entry2, 0, wx.ALL, 5)
         
         ##This is the Height and Weight Section
@@ -1818,6 +1823,19 @@ class PokeDexTab(wx.Panel):
         
         self.LoadEverything()
         
+    def ChangeEntry1(self, instance):
+        x = convert_ascii_and_poke(self.Entry1.GetValue(), "to_ascii")
+        if self.OriginalEntry1Len-1 < len(x):
+            print "Greater"
+
+    
+    def ChangeEntry2(self, instance):
+        if self.OriginalEntry2Len == None:
+            return
+        x = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
+        if self.OriginalEntry2Len-1 < len(x):
+            print "Greater"
+            
     def LoadEverything(self):
         pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
         LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
@@ -1849,6 +1867,7 @@ class PokeDexTab(wx.Panel):
                 if check == "\xff": break
                 else: read += check
             entry1 += read
+        self.OriginalEntry1Len = len(entry1)
         entry1 = convert_ascii_and_poke(entry1, "to_poke")
         self.Entry1.SetValue(entry1)
         
@@ -1864,6 +1883,7 @@ class PokeDexTab(wx.Panel):
                     if check == "\xff": break
                     else: read += check
                 entry2 += read
+            self.OriginalEntry2Len = len(entry2)
             entry2 = convert_ascii_and_poke(entry2, "to_poke")
             self.Entry2.SetValue(entry2)
         else: self.Entry2.SetValue("-Unused in FRLG-")
