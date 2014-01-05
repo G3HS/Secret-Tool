@@ -10,17 +10,29 @@ import platform
 def encode_per_platform(string):
     p = platform.system()
     if p == "Windows": out = string #.decode('Latin-1').encode('utf-8')
-    else: out = string.decode('utf-8').encode('utf-8')
+    else: out = string.decode('Latin-1').encode('utf-8')
     return out
 
-def deal_with_16bit_signed_hex(hex_value):
-    binary = bin(hex_value)[2:].zfill(16)
-    if binary[0] == "1":
-        x = int(binary, 2)
-        output = x-0x10000
-    else: 
-        output = int(binary, 2)
-    return output
+def deal_with_16bit_signed_hex(hex_value, method="forward"):
+    #This function, will take a hex value and check if it is signed and then
+    #return its int value.
+    #If the given value is already and int, it will convert it back and
+    #return a signed hex value.
+    if method == "forward":
+        binary = bin(hex_value)[2:].zfill(16)
+        if binary[0] == "1":
+            x = int(binary, 2)
+            output = x-0x10000
+        else: 
+            output = int(binary, 2)
+        return output
+    elif method == "backward":
+        if hex_value < 0:
+            output = hex_value+0x10000 
+            output = hex(output)[2:].zfill(4)
+        else: output = hex(hex_value)[2:].zfill(4)
+        return output
+    else: return None
 
 def get_decimal_offset_from_hex_string(string):
     offset = HEXADECIMAL(string)
@@ -159,7 +171,7 @@ def convert_ascii_and_poke(string, mode):
             string = string.replace(k,v)
         p = platform.system()
         if p == "Windows": string = string.decode('utf-8').encode('Latin-1')
-        else: string = string.decode('iso-8859z-1').encode('utf-8')
+        else: string = string.decode('Latin-1').encode('Latin-1')
         
     else: return None
     

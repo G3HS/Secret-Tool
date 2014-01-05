@@ -14,6 +14,7 @@ poke_num = 0
 poke_names = None
 MOVES_LIST = None
 ITEM_NAMES = None
+returned_offset = None
 
 fallback = sys.stderr
 
@@ -91,7 +92,7 @@ class MainWindow(wx.Frame):
     def set_timer(self):
         TIMER_ID = 100  # pick a number
         self.timer = wx.Timer(self, TIMER_ID)  # message will be sent to the panel
-        self.timer.Start(1000)  # x1000 milliseconds
+        self.timer.Start(500)  # x500 milliseconds
         wx.EVT_TIMER(self, TIMER_ID, self.on_timer)  # call the on_timer function
 
     def ABOUT(self, *args):
@@ -117,69 +118,84 @@ class MainWindow(wx.Frame):
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
+            self.work_with_ini()
             
-            #Here we are going to check if the game has been opened before.
-            #If yes, load it's custom ini. If no, create its ini.
-            self.Config = ConfigParser.ConfigParser()
-            ini = os.path.join(self.path,"PokeRoms.ini")
-            self.Config.read(ini)
-            if str(self.Config.get("ALL", "JustUseStandardIni")) == "True":
-                game_code_offset = get_decimal_offset_from_hex_string("AC")
-                self.open_rom.seek(game_code_offset, 0)
-                self.rom_id = self.open_rom.read(4)
+    def work_with_ini(self):
+        #Here we are going to check if the game has been opened before.
+        #If yes, load it's custom ini. If no, create its ini.
+        self.Config = ConfigParser.ConfigParser()
+        ini = os.path.join(self.path,"PokeRoms.ini")
+        self.Config.read(ini)
+        if str(self.Config.get("ALL", "JustUseStandardIni")) == "True":
+            game_code_offset =  int("AC",16)
+            self.open_rom.seek(game_code_offset)
+            self.rom_id = self.open_rom.read(4)
+        
+        else:
+            rom_id_offset = int(self.Config.get("ALL", "OffsetThatContainsSecondRomID"),0)
             
-            else:
-                rom_id_offset_hex = str(self.Config.get("ALL", "OffsetThatContainsSecondRomID"))
-                rom_id_offset = get_decimal_offset_from_hex_string(rom_id_offset_hex)
-                
-                self.open_rom.seek(rom_id_offset) #Seek to last 2 bytes in rom
-                self.rom_id = self.open_rom.read(2)
-                self.rom_id = str(binascii.hexlify(self.rom_id)) 
+            self.open_rom.seek(rom_id_offset) #Seek to last 2 bytes in rom
+            self.rom_id = self.open_rom.read(2)
+            self.rom_id = str(binascii.hexlify(self.rom_id)) 
 
-                all_possible_rom_ids = self.Config.sections()
-                
-                if self.rom_id != "ffff":
-                    if self.rom_id not in all_possible_rom_ids:
-                        wx.MessageBox(
-                        "At rom offset %s there is an unknown rom id. Please see documentation." %rom_id_offset_hex, 
+            all_possible_rom_ids = self.Config.sections()
+            
+            if self.rom_id != "ffff":
+                if self.rom_id not in all_possible_rom_ids:
+                    ERROR = wx.MessageDialog(None,
+                        "At rom offset %s there is an unknown rom id. This "\
+                        "means that your rom has a number at the offset of the "\
+                        "rom id that is not in the ini. Would you like to "\
+                        "overwrite this number with a new one? Please note that "\
+                        "this could result in data loss, if, for example, there "\
+                        "was an image at that location causing this issue. If "\
+                        "no, this program will close." % hex(rom_id_offset), 
                         'Error', 
-                        wx.OK | wx.ICON_INFORMATION)
+                        wx.YES_NO | wx.ICON_ERROR)
                     
-                else:
-                    game_code_offset = get_decimal_offset_from_hex_string("AC")
-                    self.open_rom.seek(game_code_offset, 0)
-                    game_code = self.open_rom.read(4)
-                    self.open_rom.seek(rom_id_offset)
-                    x = "0000"
-                    y = None
-                    while y == None:
-                        if x in all_possible_rom_ids:
-                            x = str(int(x) + 1)
-                            if len(x) != 4:
-                                n = 4 - len(x)
-                                for n in range(n):
-                                    x = "0"+x
-                            continue
-                        else:
-                            self.rom_id = x
+                    if ERROR.ShowModal() == wx.ID_YES:
+                        self.open_rom.seek(rom_id_offset)
+                        self.open_rom.write("\xff\xff")
+                        self.work_with_ini()
+                    else:
+                        ERROR.Destroy()
+                        self.Destroy()
+                
+            else:
+                game_code_offset = int("AC",16)
+                self.open_rom.seek(game_code_offset)
+                game_code = self.open_rom.read(4)
+                self.open_rom.seek(rom_id_offset)
+                x = "0000"
+                y = None
+                while y == None:
+                    if x in all_possible_rom_ids:
+                        x = str(int(x) + 1)
+                        if len(x) != 4:
+                            n = 4 - len(x)
+                            for n in range(n):
+                                x = "0"+x
+                        continue
+                    else:
+                        self.rom_id = x
+                        
+                        #Write new rom_id to rom.
+                        byte_rom_id = get_hex_from_string(self.rom_id)
+                        self.open_rom.write(byte_rom_id)
+                        
+                        self.Config.add_section(self.rom_id)
+                        options = self.Config.options(game_code)
+                        tmp_ini = {}
+                        for opt in options:
+                            tmp_ini[opt] = self.Config.get(game_code, opt)
                             
-                            #Write new rom_id to rom.
-                            byte_rom_id = get_hex_from_string(self.rom_id)
-                            self.open_rom.write(byte_rom_id)
+                        for opt, value in tmp_ini.items():
+                            self.Config.set(self.rom_id, opt, value)
                             
-                            self.Config.add_section(self.rom_id)
-                            options = self.Config.options(game_code)
-                            tmp_ini = {}
-                            for opt in options:
-                                tmp_ini[opt] = self.Config.get(game_code, opt)
-                                
-                            for opt, value in tmp_ini.items():
-                                self.Config.set(self.rom_id, opt, value)
-                                
-                            with open(ini, "w") as PokeRomsIni:
-                                self.Config.write(PokeRomsIni)
-                            y = True
-            self.reload_all_tabs()
+                        with open(ini, "w") as PokeRomsIni:
+                            self.Config.write(PokeRomsIni)
+                        y = True
+        self.reload_all_tabs()
             
     def reload_all_tabs(self):
         self.panel.Destroy()
@@ -300,6 +316,7 @@ class PokemonDataEditor(wx.Panel):
         self.tabbed_area.moves.save()
         self.tabbed_area.egg_moves.save()
         self.tabbed_area.evo.save()
+        self.tabbed_area.dex.save()
         
     def save_new_poke_name(self):
         name = self.Poke_Name.GetValue()
@@ -1074,12 +1091,6 @@ class MovesTab(wx.Panel):
         ##Write new table
         learned_offset = self.learned_moves_offset
         if self.NEW_LEARNED_OFFSET != None:
-            int_offset = int(self.NEW_LEARNED_OFFSET,16)+int("8000000",16)
-            offset = hex(int_offset)[2:].zfill(8)
-            pointer = make_pointer(pointer)
-            pointer = get_hex_from_string(pointer)
-            frame.open_rom.seek(self.learned_moves_pointer)
-            frame.open_rom.write(pointer)
             learned_offset = int(self.NEW_LEARNED_OFFSET, 16)
         frame.open_rom.seek(learned_offset)
         learned_moves = self.prepare_string_of_learned_moves()
@@ -1252,7 +1263,6 @@ class MovesTab(wx.Panel):
                     atk = atk-256
                 set = hex(atk)[2:].zfill(2)+hex(lvl)[2:].zfill(2)
                 string += set
-            string += "fffffefe"
         else:
             for attack, level in self.learned_moves:
                 lvl = hex(level)[2:]
@@ -1260,7 +1270,6 @@ class MovesTab(wx.Panel):
                 atk = atk[2:]+atk[:2]
                 set = atk+lvl
                 string += set
-            string += "fffffffe"
         return string
     
     def load_everything(self):
@@ -1715,13 +1724,11 @@ class PokeDexTab(wx.Panel):
         Entry1_txt = wx.StaticText(DEX, -1,"Dex Entry Part 1:")
         DEX_Sizer.Add(Entry1_txt, 0, wx.ALL, 5)
         self.Entry1 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
-        self.Entry1.Bind(wx.EVT_TEXT, self.ChangeEntry1)
         DEX_Sizer.Add(self.Entry1, 0, wx.ALL, 5)
         
         Entry2_txt = wx.StaticText(DEX, -1,"Dex Entry Part 2:")
         DEX_Sizer.Add(Entry2_txt, 0, wx.ALL, 5)
         self.Entry2 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
-        self.Entry2.Bind(wx.EVT_TEXT, self.ChangeEntry2)
         DEX_Sizer.Add(self.Entry2, 0, wx.ALL, 5)
         
         ##This is the Height and Weight Section
@@ -1823,19 +1830,164 @@ class PokeDexTab(wx.Panel):
         
         self.LoadEverything()
         
-    def ChangeEntry1(self, instance):
-        x = convert_ascii_and_poke(self.Entry1.GetValue(), "to_ascii")
-        if self.OriginalEntry1Len-1 < len(x):
-            print "Greater"
+    def save(self):
+        pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
+        LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
+        DexType = frame.Config.get(frame.rom_id, "DexType")
 
-    
-    def ChangeEntry2(self, instance):
-        if self.OriginalEntry2Len == None:
-            return
-        x = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
-        if self.OriginalEntry2Len-1 < len(x):
-            print "Greater"
+        global poke_num
+        pokedex = pokedex+(poke_num+1)*LengthofPokedexEntry
+        frame.open_rom.seek(pokedex)
+        
+        Type = self.Type.GetValue()
+        Type = convert_ascii_and_poke(Type, "to_ascii")
+        Type = Type[:11]+"\xff"
+        frame.open_rom.write(Type)
+        
+        frame.open_rom.seek(pokedex+12)
+        
+        try: height = int(self.Height.GetValue(),0)
+        except: height = 1
+        height = hex(height)[2:].zfill(4)
+        height = height[2:4]+height[:2]
+        frame.open_rom.write(get_hex_from_string(height))
+        
+        try: weight = int(self.Weight.GetValue(),0)
+        except: weight = 1
+        weight = hex(weight)[2:].zfill(4)
+        weight = weight[2:4]+weight[:2]
+        frame.open_rom.write(get_hex_from_string(weight))
+        
+        entry1 = convert_ascii_and_poke(self.Entry1.GetValue(), "to_ascii")
+       
+        if self.OriginalEntry1Len < len(entry1):
+            repointer = POKEDEXEntryRepointer(parent=None, 
+                                              need=len(entry1)+3,
+                                              repoint_what="'Dex Entry 1")
+            global returned_offset
+            while True:
+                if repointer.ShowModal() == wx.ID_OK:
+                    
+                    if returned_offset == self.entry1_offset: continue
+                    elif returned_offset == None: continue
+                    else:
+                        org_offset = self.entry1_offset
+                        self.entry1_offset = int(returned_offset, 16)
+                        
+                        need_overwrite = True
+                        break
+        else: need_overwrite = False
+
+        frame.open_rom.seek(self.entry1_offset)
+        frame.open_rom.write(entry1+"\xff\xff\xfe")
+        
+        frame.open_rom.seek(pokedex+16)
+        pointer = self.entry1_offset+0x8000000
+        pointer = hex(pointer)[2:]
+        pointer = make_pointer(pointer)
+        pointer = get_hex_from_string(pointer)
+        frame.open_rom.write(pointer)
+        
+        if need_overwrite == True:
+            frame.open_rom.seek(org_offset)
+            while True:
+                read = frame.open_rom.read(1)
+                if read != "\xff":
+                    frame.open_rom.seek(-1,1)
+                    frame.open_rom.write("\xff")
+                    frame.open_rom.seek(1,1)
+                else:
+                    read2 = frame.open_rom.read(1)
+                    if read2 == "\xff":
+                        read3 = frame.open_rom.read(1)
+                        if read3 == "\xfe":
+                            frame.open_rom.seek(-1,1)
+                            frame.open_rom.write("\xff")
+                            frame.open_rom.seek(1,1)
+                        break
+                    else:
+                        frame.open_rom.seek(-1,1)
+                        frame.open_rom.write("\xff")
+                        frame.open_rom.seek(1,1)
+        
+        if self.OriginalEntry2Len != None:
+            entry1 = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
+       
+            if self.OriginalEntry2Len < len(entry2):
+                repointer = POKEDEXEntryRepointer(parent=None, 
+                                                  need=len(entry2)+3,
+                                                  repoint_what="'Dex Entry 2")
+                while True:
+                    if repointer.ShowModal() == wx.ID_OK:
+                        
+                        if returned_offset == self.entry2_offset: continue
+                        elif returned_offset == None: continue
+                        else:
+                            org_offset = self.entry2_offset
+                            self.entry2_offset =  int(returned_offset, 16)
+                            
+                            need_overwrite = True
+                            break
+            else: need_overwrite = False
+
+            frame.open_rom.seek(self.entry2_offset)
+            frame.open_rom.write(entry1+"\xff\xff\xfe")
             
+            frame.open_rom.seek(pokedex+20)
+            pointer = self.entry2_offset+0x8000000
+            pointer = hex(pointer)[2:]
+            pointer = make_pointer(pointer)
+            pointer = get_hex_from_string(pointer)
+            frame.open_rom.write(pointer)
+            
+            if need_overwrite == True:
+                frame.open_rom.seek(org_offset)
+                while True:
+                    read = frame.open_rom.read(1)
+                    if read != "\xff":
+                        frame.open_rom.seek(-1,1)
+                        frame.open_rom.write("\xff")
+                        frame.open_rom.seek(1,1)
+                    else:
+                        read2 = frame.open_rom.read(1)
+                        if read2 == "\xff":
+                            read3 = frame.open_rom.read(1)
+                            if read3 == "\xfe":
+                                frame.open_rom.seek(-1,1)
+                                frame.open_rom.write("\xff")
+                                frame.open_rom.seek(1,1)
+                            break
+                        else:
+                            frame.open_rom.seek(-1,1)
+                            frame.open_rom.write("\xff")
+                            frame.open_rom.seek(1,1)
+        
+        frame.open_rom.seek(pokedex+26)
+        
+        try: Pscale = int(self.Pscale.GetValue(),0)
+        except: Pscale = 256
+        Pscale = hex(Pscale)[2:].zfill(4)
+        Pscale = Pscale[2:4]+Pscale[:2]
+        frame.open_rom.write(get_hex_from_string(Pscale))
+        
+        try: Poffset = int(self.Pscale.GetValue(),0)
+        except: Poffset = 0
+        Poffset = deal_with_16bit_signed_hex(Poffset, method="backward")
+        Poffset = Poffset[2:4]+Poffset[:2]
+        frame.open_rom.write(get_hex_from_string(Poffset))
+        
+        try: Tscale = int(self.Pscale.GetValue(),0)
+        except: Tscale = 256
+        Tscale = hex(Tscale)[2:].zfill(4)
+        Tscale = Tscale[2:4]+Tscale[:2]
+        frame.open_rom.write(get_hex_from_string(Tscale))
+        
+        try: Toffset = int(self.Pscale.GetValue(),0)
+        except: Toffset = 0
+        Toffset = deal_with_16bit_signed_hex(Toffset, method="backward")
+        Toffset = Toffset[2:4]+Toffset[:2]
+        frame.open_rom.write(get_hex_from_string(Toffset))
+        
     def LoadEverything(self):
         pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
         LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
@@ -1857,8 +2009,8 @@ class PokeDexTab(wx.Panel):
         weight = int(weight[2:4]+weight[:2], 16)
         self.Weight.SetValue(str(weight))
         
-        entry1 = read_pointer(frame.open_rom.read(4))
-        frame.open_rom.seek(entry1)
+        self.entry1_offset = read_pointer(frame.open_rom.read(4))
+        frame.open_rom.seek(self.entry1_offset)
         entry1 = ""
         while True:
             read = frame.open_rom.read(1)
@@ -1873,8 +2025,8 @@ class PokeDexTab(wx.Panel):
         
         frame.open_rom.seek(pokedex+20)
         if DexType != "FRLG":
-            entry2 = read_pointer(frame.open_rom.read(4))
-            frame.open_rom.seek(entry2)
+            self.entry2_offset = read_pointer(frame.open_rom.read(4))
+            frame.open_rom.seek(self.entry2_offset)
             entry2 = ""
             while True:
                 read = frame.open_rom.read(1)
@@ -1919,9 +2071,9 @@ class PokeDexTab(wx.Panel):
                 self.Pscale.SetValue(limit)
             return
             
-        if value < 256:
-            value = 256
-            self.Pscale.SetValue("256")
+        if value < 0:
+            value = 1
+            self.Pscale.SetValue("1")
         if value > 1536:
             value = 1536
             self.Pscale.SetValue("1536")
@@ -1959,9 +2111,9 @@ class PokeDexTab(wx.Panel):
                 self.Tscale.SetValue(limit)
             return
             
-        if value < 256:
-            value = 256
-            self.Tscale.SetValue("256")
+        if value < 0:
+            value = 1
+            self.Tscale.SetValue("1")
         if value > 1536:
             value = 1536
             self.Tscale.SetValue("1536")
@@ -2345,6 +2497,7 @@ class MOVE_REPOINTER(wx.Dialog):
     def OnSubmit(self, *args):
         sel = self.OFFSETS.GetSelection()
         offset = self.MANUAL.GetValue()
+        new_offset = None
         if self.num == None:
             try: self.num = int(self.New_Move_Num.GetValue(), 0)
             except: return
@@ -2361,13 +2514,35 @@ class MOVE_REPOINTER(wx.Dialog):
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.UPDATE_FRACTION()
-            self.OnClose()
         elif sel != -1:
             new_offset = self.OFFSETS.GetString(sel)[2:]
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_LEARNED_OFFSET = new_offset
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.LEARNED_OFFSET.SetLabel("0x"+new_offset)
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.NEW_NUMBER_OF_MOVES = self.num
             frame.tabbed_area.PokeDataTab.tabbed_area.moves.UPDATE_FRACTION()
+        if new_offset != None:
+            learned_moves_pointer = int(frame.Config.get(frame.rom_id, "LearnedMoves"), 0)
+            int_offset = int(new_offset,16)+int("8000000",16)
+            offset = hex(int_offset)[2:].zfill(8)
+            pointer = make_pointer(offset)
+            pointer = get_hex_from_string(pointer)
+            frame.open_rom.seek(learned_moves_pointer)
+            frame.open_rom.write(pointer)
+            
+            frame.open_rom.seek(int(new_offset,16))
+            Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
+            if Jambo51HackCheck == "False":
+                learnedmoveslength = int(frame.Config.get(frame.rom_id, "learnedmoveslength"), 0)
+                amount_of_bytes = self.num*learnedmoveslength
+                for n in range(amount_of_bytes):
+                    frame.open_rom.write("\x00")
+                frame.open_rom.write("\xff\xff\xfe\xfe")
+            else:
+                amount_of_bytes = self.num*3
+                for n in range(amount_of_bytes):
+                    frame.open_rom.write("\x00")
+                frame.open_rom.write("\xff\xff\xff\xfe")
+            
             self.OnClose()
             
     def OnSearch(self, *args):
@@ -2580,7 +2755,7 @@ class NumberofEvosChanger(wx.Dialog):
         int_offset = _offset_[-6:]
         int_offset = int(int_offset, 16)
         frame.open_rom.seek(int_offset)
-        for entry in table:
+        for eCreateButtonSizerntry in table:
             frame.open_rom.write(entry)
         
         
@@ -2713,6 +2888,95 @@ class NumberofEvosChanger(wx.Dialog):
     def OnClose(self, *args):
         self.Close()
         
+        
+class POKEDEXEntryRepointer(wx.Dialog):
+    def __init__(self, parent=None, need=None, repoint_what=None, *args, **kw):
+        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
+        
+        self.num = need
+        self.repoint = repoint_what
+
+        self.InitUI()
+        self.OnSearch()
+        self.SetTitle("Repoint 'Dex Entry")
+        
+        
+    def InitUI(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        txt = wx.StaticText(self, -1, self.repoint+" needs to be repointed.\n\n",style=wx.TE_CENTRE)
+        vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        txt2 = wx.StaticText(self, -1, "Please choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.",style=wx.TE_CENTRE)
+        vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.OFFSETS = wx.ListBox(self, -1)
+        self.OFFSETS.Bind(wx.EVT_LISTBOX, self.GetOffset)
+        vbox.Add(self.OFFSETS, 0, wx.EXPAND | wx.ALL, 5)
+        
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        manual_txt = wx.StaticText(self, -1, "Manual Offset: 0x",style=wx.TE_CENTRE)
+        hbox.Add(manual_txt, 0, wx.EXPAND | wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        self.MANUAL = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
+        self.MANUAL.Bind(wx.EVT_TEXT, self.GetOffset)
+        hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
+        vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
+        
+        OK = self.CreateButtonSizer(wx.OK)
+        vbox.Add(OK, 0, wx.EXPAND | wx.ALL, 5)
+        
+        txt3 = wx.StaticText(self, -1, "______________________________",style=wx.TE_CENTRE)
+        vbox.Add(txt3, 0, wx.EXPAND | wx.ALL, 15)
+        
+        self.SetSizerAndFit(vbox)
+        self.Fit()
+        self.SetMinSize(self.GetEffectiveMinSize())
+        
+    def GetOffset(self, *args):
+        global returned_offset
+        sel = self.OFFSETS.GetSelection()
+        _offset_ = self.MANUAL.GetValue()
+        
+        if _offset_ != "":
+            if len(_offset_) > 6:
+                check = _offset_[-7:-6]
+                if check == "1" or check == "9":
+                    check = "1"
+                else:
+                    check = ""
+                _offset_ = check+_offset_[-6:].zfill(6)
+        elif sel != -1:
+            _offset_ = self.OFFSETS.GetString(sel)[2:]
+        else: return
+        
+        try: int(_offset_, 16)
+        except: return
+        
+        returned_offset = _offset_
+
+    def OnSearch(self, *args):
+        self.OFFSETS.Clear()
+        search = "\xff"*self.num
+        frame.open_rom.seek(0)
+        rom = frame.open_rom.read()
+        x = (0,True)
+        start = 7602176
+        for n in range(5):
+            if x[1] == None:
+                break
+            x = (0,True)
+            while x[0] != 1:
+                offset = rom.find(search, start)
+                if offset == -1:
+                    x = (1,None)
+                if offset%4 != 0:
+                    start = offset+1
+                    continue
+                self.OFFSETS.Append(hex(offset))
+                x = (1,True)
+                start = offset+len(search)
+                
 app = wx.App(False)
 name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)
