@@ -2755,7 +2755,7 @@ class NumberofEvosChanger(wx.Dialog):
         int_offset = _offset_[-6:]
         int_offset = int(int_offset, 16)
         frame.open_rom.seek(int_offset)
-        for eCreateButtonSizerntry in table:
+        for entry in table:
             frame.open_rom.write(entry)
         
         
