@@ -1835,14 +1835,13 @@ class PokeDexTab(wx.Panel):
         LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
         DexType = frame.Config.get(frame.rom_id, "DexType")
 
+        self.GetNationalDexOrder()
+        
         global poke_num
-        if poke_num > 250:
-            NumOfPokesBetweenCelebiAndTreeko = int(frame.Config.get(frame.rom_id, "NumOfPokesBetweenCelebiAndTreeko"), 0)
-            dex_num = poke_num-NumOfPokesBetweenCelebiAndTreeko
-            if dex_num < 251:
-                return
-            else: pokedex = pokedex+(dex_num+1)*LengthofPokedexEntry
-        else: pokedex = pokedex+(poke_num+1)*LengthofPokedexEntry
+        index = self.NatDexList[poke_num]
+        if index == 0:
+            return
+        else: pokedex = pokedex+(index)*LengthofPokedexEntry
         frame.open_rom.seek(pokedex)
         
         Type = self.Type.GetValue()
@@ -2004,23 +2003,22 @@ class PokeDexTab(wx.Panel):
         LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
         DexType = frame.Config.get(frame.rom_id, "DexType")
 
+        self.GetNationalDexOrder()
+        
         global poke_num
-        if poke_num > 250:
-            NumOfPokesBetweenCelebiAndTreeko = int(frame.Config.get(frame.rom_id, "NumOfPokesBetweenCelebiAndTreeko"), 0)
-            dex_num = poke_num-NumOfPokesBetweenCelebiAndTreeko
-            if dex_num < 251:
-                self.Height.SetValue("")
-                self.Weight.SetValue("")
-                self.Entry1.SetValue("")
-                self.Entry2.SetValue("")
-                self.Pscale.SetValue("")
-                self.Poffset.SetValue("")
-                self.Tscale.SetValue("")
-                self.Toffset.SetValue("")
-                self.Type.SetValue("")
-                return
-            else: pokedex = pokedex+(dex_num+1)*LengthofPokedexEntry
-        else: pokedex = pokedex+(poke_num+1)*LengthofPokedexEntry
+        index = self.NatDexList[poke_num]
+        if index == 0:
+            self.Height.SetValue("")
+            self.Weight.SetValue("")
+            self.Entry1.SetValue("")
+            self.Entry2.SetValue("")
+            self.Pscale.SetValue("")
+            self.Poffset.SetValue("")
+            self.Tscale.SetValue("")
+            self.Toffset.SetValue("")
+            self.Type.SetValue("")
+            return
+        else: pokedex = pokedex+(index)*LengthofPokedexEntry
         frame.open_rom.seek(pokedex)
         type = frame.open_rom.read(12)
         type = type.split("\xff")[0]
@@ -2082,6 +2080,33 @@ class PokeDexTab(wx.Panel):
         Toffset = deal_with_16bit_signed_hex(Toffset)
         self.Toffset.SetValue(str(Toffset))
         
+    def GetNationalDexOrder(self):
+        NationalDexOrderprt1 = int(frame.Config.get(frame.rom_id, "NationalDexOrderprt1"), 0)
+        NationalDexOrderprt2 = int(frame.Config.get(frame.rom_id, "nationaldexorderprt2"), 0)
+        NumberofNatDexEntries1 = int(frame.Config.get(frame.rom_id, "NumberofNatDexEntries1"), 0)
+        NumberofNatDexEntries2 = int(frame.Config.get(frame.rom_id, "NumberofNatDexEntries2"), 0)
+        numofpokesbetweencelebiandtreeko = int(frame.Config.get(frame.rom_id, "numofpokesbetweencelebiandtreeko"), 0)
+        self.NatDexList = []
+        frame.open_rom.seek(NationalDexOrderprt1)
+        for n in range(NumberofNatDexEntries1):
+            tmp = frame.open_rom.read(2)
+            tmp = tmp[1]+tmp[0]
+            tmp = get_bytes_string_from_hex_string(tmp)
+            tmp = int(tmp, 16)
+            self.NatDexList.append(tmp)
+        frame.open_rom.seek(NationalDexOrderprt2)
+        
+        for n in range(numofpokesbetweencelebiandtreeko):
+            self.NatDexList.append(0)
+        
+        for n in range(NumberofNatDexEntries2):
+            tmp = frame.open_rom.read(2)
+            tmp = tmp[1]+tmp[0]
+            tmp = get_bytes_string_from_hex_string(tmp)
+            tmp = int(tmp, 16)
+            self.NatDexList.append(tmp)
+
+    
     def ChangePscale(self, instance):
         try: value = int(self.Pscale.GetValue(),0)
         except:
@@ -2871,13 +2896,11 @@ class NumberofEvosChanger(wx.Dialog):
         for offset in change3:
             frame.open_rom.seek(offset, 0)
             frame.open_rom.write(change3write)
-        
-        change4 = int(frame.Config.get(frame.rom_id, "ChangeToNewNumber"), 0)
-        change4write = get_hex_from_string(str(hex(new_number)[2:]))
-        frame.open_rom.seek(change4, 0)
-        frame.open_rom.write(change4write)
             
         ##Tell the user it worked, close, and reload data.
+        frame.open_rom.seek(8)
+        frame.open_rom.write("\x69\x9A")
+        
         self.OnClose()
         DONE = wx.MessageDialog(None, 
                                 "Table has been moved, ini has been ammended,\nand evolutions have been changed.:)\n\n\nReloading 'MON Data.", 
@@ -2922,7 +2945,6 @@ class NumberofEvosChanger(wx.Dialog):
     def OnClose(self, *args):
         self.Close()
         
-        
 class POKEDEXEntryRepointer(wx.Dialog):
     def __init__(self, parent=None, need=None, repoint_what=None, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
@@ -2934,7 +2956,6 @@ class POKEDEXEntryRepointer(wx.Dialog):
         self.InitUI()
         self.OnSearch()
         self.SetTitle("Repoint 'Dex Entry")
-        
         
     def InitUI(self):
         vbox = wx.BoxSizer(wx.VERTICAL)
