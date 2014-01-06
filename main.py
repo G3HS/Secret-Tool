@@ -310,6 +310,8 @@ class PokemonDataEditor(wx.Panel):
         self.tabbed_area.stats.save()
         self.save_new_poke_name()
         self.poke_names = self.get_pokemon_names()
+        global poke_names
+        poke_names = self.poke_names
         self.Pokes.SetItems(self.poke_names)
         global poke_num
         self.Pokes.SetSelection(poke_num)
@@ -2106,7 +2108,6 @@ class PokeDexTab(wx.Panel):
             tmp = int(tmp, 16)
             self.NatDexList.append(tmp)
 
-    
     def ChangePscale(self, instance):
         try: value = int(self.Pscale.GetValue(),0)
         except:
@@ -2146,7 +2147,6 @@ class PokeDexTab(wx.Panel):
             value = -99
             self.Poffset.SetValue("-99")
             
-        
     def ChangeTscale(self, instance):
         try: value = int(self.Tscale.GetValue(),0)
         except:
@@ -2171,7 +2171,6 @@ class PokeDexTab(wx.Panel):
         scale = ("{0:.3f}x".format(scale))
         self.TScale_x.SetLabel(scale)
         
-    
     def ChangeToffset(self, instance):
         try: value = int(self.Toffset.GetValue(),0)
         except:
@@ -2874,13 +2873,21 @@ class NumberofEvosChanger(wx.Dialog):
             frame.open_rom.write(change2write)
             
         TheShedinjaFix = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
+        code = frame.Config.get(frame.rom_id, "gamecode")
         
-        if new_number == 4: write = "0000"
-        elif new_number == 8: write = "4000"
-        elif new_number == 16: write = "8000"
-        elif new_number == 32: write = "C000"
-        else: write = "5044"
-        
+        if code != "AXVE" and code != "AXPE":
+            if new_number == 4: write = "0000"
+            elif new_number == 8: write = "4000"
+            elif new_number == 16: write = "8000"
+            elif new_number == 32: write = "C000"
+            else: write = "5044"
+        else:
+            if new_number == 4: write = "B90089460000"
+            elif new_number == 8: write = "F90089460000"
+            elif new_number == 16: write = "390189460000"
+            elif new_number == 32: write = "790189460000"
+            else: write = "B9008946C819"
+            
         TheShedinjaFixWrite = binascii.unhexlify(write)
 
         frame.open_rom.seek(TheShedinjaFix, 0)
