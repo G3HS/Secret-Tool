@@ -353,11 +353,13 @@ class DataEditingTabs(wx.Notebook):
         self.moves = MovesTab(self)
         self.evo = EvoTab(self)
         self.dex = PokeDexTab(self)
+        self.tutor = MoveTutorTab(self)
         self.egg_moves = EggMoveTab(self)
         
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
+        self.AddPage(self.tutor, "Move Tutor")
         dex_name = "POK\xe9Dex"
         dex_name = encode_per_platform(dex_name)
         self.AddPage(self.dex, dex_name)
@@ -384,6 +386,7 @@ class DataEditingTabs(wx.Notebook):
         self.moves.load_everything()
         self.evo.load_everything()
         self.dex.LoadEverything()
+        self.tutor.load_everything()
         
 class StatsTab(wx.Panel):
     def __init__(self, parent):
@@ -1974,7 +1977,8 @@ class PokeDexTab(wx.Panel):
                                 frame.open_rom.seek(1,1)
                         break
         
-        frame.open_rom.seek(pokedex+26)
+        if DexType != "E": frame.open_rom.seek(pokedex+26)
+        else: frame.open_rom.seek(pokedex+22)
         
         try: Pscale = int(self.Pscale.GetValue(),0)
         except: Pscale = 256
@@ -2021,6 +2025,7 @@ class PokeDexTab(wx.Panel):
             self.Type.SetValue("")
             return
         else: pokedex = pokedex+(index)*LengthofPokedexEntry
+
         frame.open_rom.seek(pokedex)
         type = frame.open_rom.read(12)
         type = type.split("\xff")[0]
@@ -2047,7 +2052,7 @@ class PokeDexTab(wx.Panel):
         self.Entry1.SetValue(entry1)
         
         frame.open_rom.seek(pokedex+20)
-        if DexType != "FRLG":
+        if DexType != "FRLG" and DexType != "E":
             self.entry2_offset = read_pointer(frame.open_rom.read(4))
             frame.open_rom.seek(self.entry2_offset)
             entry2 = ""
@@ -2058,9 +2063,10 @@ class PokeDexTab(wx.Panel):
             self.OriginalEntry2Len = len(entry2)
             entry2 = convert_ascii_and_poke(entry2, "to_poke")
             self.Entry2.SetValue(entry2)
-        else: self.Entry2.SetValue("-Unused in FRLG-")
+        else: self.Entry2.SetValue("-Unused in FR, LG, and E-")
         
-        frame.open_rom.seek(pokedex+26)
+        if DexType != "E": frame.open_rom.seek(pokedex+26)
+        else: frame.open_rom.seek(pokedex+22)
         Pscale = get_bytes_string_from_hex_string(frame.open_rom.read(2))
         Pscale = int(Pscale[2:4]+Pscale[:2],16)
         self.Pscale.SetValue(str(Pscale))
@@ -2221,6 +2227,102 @@ class PokeDexTab(wx.Panel):
         self.kg.SetLabel(kg)
         self.ilbs.SetLabel(pounds)
         
+class MoveTutorTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.gamecode = frame.Config.get(frame.rom_id, "gamecode")
+        if self.gamecode[:3] == "AXV" or self.gamecode[:3] == "AXP": return
+        self.GenerateUI()
+        
+        self.SetSizer(self.sizer)
+        
+    def GenerateUI(self):
+        TUTOR = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        MAIN = wx.BoxSizer(wx.HORIZONTAL)
+        TUTOR.SetSizer(MAIN)
+        
+        TutorComp = wx.Panel(TUTOR, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        TutorCompSizer = wx.BoxSizer(wx.HORIZONTAL)
+        TutorComp.SetSizer(TutorCompSizer)
+        MAIN.Add(TutorComp, 0, wx.EXPAND | wx.ALL, 5)
+        
+        CompBox = wx.BoxSizer(wx.VERTICAL)
+        ButtonBox = wx.BoxSizer(wx.VERTICAL)
+        TutorCompSizer.Add(CompBox)
+        TutorCompSizer.Add(ButtonBox)
+        self.CompList = CheckListCtrl(TutorComp, size=(150,280))
+        self.CompList.InsertColumn(0, 'Move', width=140)
+        CompBox.Add(self.CompList, 0, wx.EXPAND | wx.ALL, 5)
+        
+        SELECTALL = wx.Button(TutorComp, 0, "Select All")
+        self.Bind(wx.EVT_BUTTON, self.OnSelectAllComp, id=0)
+        ButtonBox.Add(SELECTALL, 0, wx.EXPAND | wx.ALL, 5)
+        
+        CLEAR = wx.Button(TutorComp, 1, "Clear All")
+        self.Bind(wx.EVT_BUTTON, self.OnClearAllComp, id=1)
+        ButtonBox.Add(CLEAR, 0, wx.EXPAND | wx.ALL, 5)
+        
+        #----Add Everything to the Sizer----#
+        self.sizer.Add(TUTOR, 0, wx.EXPAND | wx.ALL, 5)
+        self.load_everything()
+        
+    def load_everything(self):
+        if self.gamecode[:3] == "AXV" or self.gamecode[:3] == "AXP": return
+        global MOVES_LIST
+        self.get_comp_data()
+        self.CompList.DeleteAllItems()
+        for num, move in enumerate(self.attacks):
+            index = self.CompList.InsertStringItem(sys.maxint, MOVES_LIST[move])
+            if self.COMP[num] == True:
+                self.CompList.CheckItem(index) 
+        
+    def get_comp_data(self):
+        self.MoveTutorComp = int(frame.Config.get(frame.rom_id, "MoveTutorComp"), 0)
+        length = int(frame.Config.get(frame.rom_id, "MoveTutorCompLen"), 0)
+        global poke_num
+        
+        self.MoveTutorComp += length+poke_num*length
+        frame.open_rom.seek(self.MoveTutorComp)
+        read = frame.open_rom.read(length)
+        self.COMP = []
+        word = [get_bytes_string_from_hex_string(read)]
+        if self.gamecode[:3] == "BPE":
+            tmp = word[0][:length]
+            tmp2 = word[0][length:]
+            word = [tmp, tmp2]
+        for set in word:
+            swap = int(set[2:]+set[:2],16)
+            binary = bin(swap)[2:].zfill(16)
+            binary = binary[::-1]
+            print binary
+            for c in binary:
+                if c == "0": self.COMP.append(False)
+                else: self.COMP.append(True)
+        
+        MoveTutorAttacks = int(frame.Config.get(frame.rom_id, "MoveTutorAttacks"), 0)
+        MTAttacksLen = int(frame.Config.get(frame.rom_id, "MTAttacksLen"), 0)
+        MTAttacksNum = int(frame.Config.get(frame.rom_id, "MTAttacksNum"), 0)
+        
+        self.attacks = []
+        frame.open_rom.seek(MoveTutorAttacks)
+        for n in range(MTAttacksNum):
+            read = frame.open_rom.read(MTAttacksLen)
+            read = read[1]+read[0]
+            read = get_bytes_string_from_hex_string(read)
+            read = int(read, 16)
+            self.attacks.append(read)
+        
+    def OnSelectAllComp(self, instance):
+        num = self.CompList.GetItemCount()
+        for n in range(num):
+            self.CompList.CheckItem(n) 
+    
+    def OnClearAllComp(self, instance):
+        num = self.CompList.GetItemCount()
+        for n in range(num):
+            self.CompList.CheckItem(n, False) 
+            
 class EggMoveTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)

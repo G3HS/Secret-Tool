@@ -174,7 +174,6 @@ def convert_ascii_and_poke(string, mode):
         else: string = string.decode('Latin-1').encode('Latin-1')
         
     else: return None
-    
     return string
     
     
