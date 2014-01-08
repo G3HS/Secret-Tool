@@ -9,6 +9,8 @@ from CheckListCtrl import *
 
 from cStringIO import StringIO
 
+version = 'Alpha Demo 0.5'
+
 OPEN = 1
 poke_num = 0
 poke_names = None
@@ -103,7 +105,8 @@ class MainWindow(wx.Frame):
         name = 'POK\xe9MON Gen III Hacking Suite'
         name = encode_per_platform(name)
         info.SetName(name)
-        info.SetVersion('Alpha Demo 0.2')
+        global version
+        info.SetVersion(version)
         info.SetDescription(description)
         info.SetCopyright('(C) 2013 karatekid552')
         #info.SetWebSite('')
@@ -113,8 +116,12 @@ class MainWindow(wx.Frame):
         wx.AboutBox(info)
         
     def open_file(self, *args):
+        
+        if self.open_rom:
+            directory = os.path.dirname(self.open_rom.name)
+        else: directory = os.getcwd()
         open_dialog = wx.FileDialog(self, message="Open a rom...", 
-                                                        defaultDir=os.getcwd(), style=wx.OPEN)
+                                                        defaultDir=directory, style=wx.OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
@@ -196,21 +203,17 @@ class MainWindow(wx.Frame):
                             self.Config.write(PokeRomsIni)
                         y = True
         self.reload_all_tabs()
+        frame.SetTitle("Gen III Hacking Suite"+" ~ "+self.Config.get(self.rom_id, "name")+" ~ "+self.open_rom.name)
             
     def reload_all_tabs(self):
-        self.panel.Destroy()
-        self.panel = wx.Panel(self)
+        self.tabbed_area.Destroy()
         
-        self.tabbed_area = TabbedEditorArea(self.panel)
+        self.tabbed_area = TabbedEditorArea(self.panel) 
         
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 5)
-        self.panel.SetSizer(self.sizer)
+        self.panel.Layout()
         self.Layout()
-        size = self.GetSize()
-        self.SetSize((size[0]+1, size[1]+1))
-        self.SetSize(size)
-
+        self.Show(True)
 
 #############################################################
 #This class is what holds all of the main tabs.
@@ -318,6 +321,7 @@ class PokemonDataEditor(wx.Panel):
         self.tabbed_area.moves.save()
         self.tabbed_area.egg_moves.save()
         self.tabbed_area.evo.save()
+        self.tabbed_area.tutor.save()
         self.tabbed_area.dex.save()
         
     def save_new_poke_name(self):
@@ -1040,7 +1044,7 @@ class MovesTab(wx.Panel):
         REPOINT = wx.Button(learned_moves, 1, "Repoint")
         self.Bind(wx.EVT_BUTTON, self.OnRepoint, id=1)
         v_lm_box_buttons.Add(REPOINT, 0, wx.EXPAND | wx.ALL, 5)
-        
+
         ADD = wx.Button(learned_moves, 2, "Add")
         self.Bind(wx.EVT_BUTTON, self.OnAdd, id=2)
         v_lm_box_buttons.Add(ADD, 0, wx.EXPAND | wx.ALL, 5)
@@ -2251,7 +2255,11 @@ class MoveTutorTab(wx.Panel):
         ButtonBox = wx.BoxSizer(wx.VERTICAL)
         TutorCompSizer.Add(CompBox)
         TutorCompSizer.Add(ButtonBox)
-        self.CompList = CheckListCtrl(TutorComp, size=(150,280))
+        
+        CompTxt = wx.StaticText(TutorComp, -1,"Move Tutor Compatibility:")
+        CompBox.Add(CompTxt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.CompList = CheckListCtrl(TutorComp, size=(170,350))
         self.CompList.InsertColumn(0, 'Move', width=140)
         CompBox.Add(self.CompList, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2263,8 +2271,84 @@ class MoveTutorTab(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnClearAllComp, id=1)
         ButtonBox.Add(CLEAR, 0, wx.EXPAND | wx.ALL, 5)
         
+        TutorMoves = wx.Panel(TUTOR, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        TutorMovesSizer = wx.BoxSizer(wx.HORIZONTAL)
+        TutorMoves.SetSizer(TutorMovesSizer)
+        MAIN.Add(TutorMoves, 0, wx.EXPAND | wx.ALL, 5)
+        
+        MovesVBox = wx.BoxSizer(wx.VERTICAL)
+        TutorMovesSizer.Add(MovesVBox, 0, wx.EXPAND | wx.ALL, 5)
+        
+        MovesTxt = wx.StaticText(TutorMoves, -1,"Move Tutor Editor:")
+        MovesVBox.Add(MovesTxt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.moves = wx.ListBox(TutorMoves, -1,size=(100,350))
+        self.Bind(wx.EVT_LISTBOX_DCLICK, self.OnSelectMove,  self.moves)
+        MovesVBox.Add(self.moves, 0, wx.EXPAND | wx.ALL, 5)
+        
+        TutorMovesButtons = wx.BoxSizer(wx.VERTICAL)
+        TutorMovesSizer.Add(TutorMovesButtons, 0, wx.EXPAND | wx.ALL, 5)
+        global MOVES_LIST
+        self.ATTACK = wx.ComboBox(TutorMoves, -1, choices=MOVES_LIST,
+                                style=wx.SUNKEN_BORDER, size=(100, -1))
+        TutorMovesButtons.Add(self.ATTACK, 0, wx.EXPAND | wx.ALL, 2)
+        
+        SET = wx.Button(TutorMoves, 8, "Replace")
+        self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=8)
+        TutorMovesButtons.Add(SET, 0, wx.EXPAND | wx.ALL, 2)
+        
+        DELETE = wx.Button(TutorMoves, 3, "Delete")
+        self.Bind(wx.EVT_BUTTON, self.OnDelete, id=3)
+        TutorMovesButtons.Add(DELETE, 0, wx.EXPAND | wx.ALL, 5)
+        
+        MOVE_UP = wx.Button(TutorMoves, 4, "Move Up")
+        self.Bind(wx.EVT_BUTTON, self.OnMoveUp, id=4)
+        TutorMovesButtons.Add(MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
+        
+        MOVE_DOWN = wx.Button(TutorMoves, 5, "Move Down")
+        self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=5)
+        TutorMovesButtons.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
+        
         #----Add Everything to the Sizer----#
         self.sizer.Add(TUTOR, 0, wx.EXPAND | wx.ALL, 5)
+        self.load_everything()
+        
+    def save(self):
+        num = self.CompList.GetItemCount()
+        binary = ""
+        for i in range(num):
+            if self.CompList.IsChecked(i): binary += "1"
+            else: binary += "0"
+        check = len(binary)%16
+        if check != 0:
+            for n in range(16-check): 
+                binary += "0"
+        hexCOMP = ""
+        while True:
+            word = binary[:16]
+            word = word[::-1]
+            word = int(word, 2)
+            word = hex(word).rstrip("L").lstrip("0x").zfill(8)
+            word = reverse_hex(word)
+            word = get_hex_from_string(word)
+            hexCOMP += word
+            
+            if len(binary) == 16:
+                break
+            binary = binary[16:]
+        frame.open_rom.seek(self.MoveTutorComp)
+        frame.open_rom.write(hexCOMP)
+        
+        attacks = ""
+        for move in self.attacks:
+            move = hex(move).rstrip("L").lstrip("0x").zfill(4)
+            move = move[2:]+move[:2]
+            attacks += move
+        attacks = get_hex_from_string(attacks)
+        
+        frame.open_rom.seek(self.MoveTutorAttacks)
+        frame.open_rom.write(attacks)
+        
         self.load_everything()
         
     def load_everything(self):
@@ -2276,6 +2360,13 @@ class MoveTutorTab(wx.Panel):
             index = self.CompList.InsertStringItem(sys.maxint, MOVES_LIST[move])
             if self.COMP[num] == True:
                 self.CompList.CheckItem(index) 
+        self.load_list_box()
+        
+    def load_list_box(self):
+        global MOVES_LIST
+        self.moves.Clear()
+        for move in self.attacks:
+            self.moves.Append(MOVES_LIST[move])
         
     def get_comp_data(self):
         self.MoveTutorComp = int(frame.Config.get(frame.rom_id, "MoveTutorComp"), 0)
@@ -2295,23 +2386,56 @@ class MoveTutorTab(wx.Panel):
             swap = int(set[2:]+set[:2],16)
             binary = bin(swap)[2:].zfill(16)
             binary = binary[::-1]
-            print binary
             for c in binary:
                 if c == "0": self.COMP.append(False)
                 else: self.COMP.append(True)
         
-        MoveTutorAttacks = int(frame.Config.get(frame.rom_id, "MoveTutorAttacks"), 0)
+        self.MoveTutorAttacks = int(frame.Config.get(frame.rom_id, "MoveTutorAttacks"), 0)
         MTAttacksLen = int(frame.Config.get(frame.rom_id, "MTAttacksLen"), 0)
         MTAttacksNum = int(frame.Config.get(frame.rom_id, "MTAttacksNum"), 0)
         
         self.attacks = []
-        frame.open_rom.seek(MoveTutorAttacks)
+        frame.open_rom.seek(self.MoveTutorAttacks)
         for n in range(MTAttacksNum):
             read = frame.open_rom.read(MTAttacksLen)
             read = read[1]+read[0]
             read = get_bytes_string_from_hex_string(read)
             read = int(read, 16)
             self.attacks.append(read)
+        
+    def OnDelete(self, *args):
+        selection = self.moves.GetSelection()
+        if selection != -1:
+            self.attacks[selection] = 0
+            self.load_list_box()
+            
+    def OnMoveUp(self, *args):
+        selection = self.moves.GetSelection()
+        if selection != -1 and selection != 0:
+            self.attacks[selection], self.attacks[selection-1] = self.attacks[selection-1], self.attacks[selection]
+            self.load_list_box()
+            self.moves.Select(selection-1)
+            
+    def OnMoveDown(self, *args):
+        selection = self.moves.GetSelection()
+        length = len(self.attacks)-1
+        if selection != -1 and selection != length:
+            self.attacks[selection], self.attacks[selection+1] = self.attacks[selection+1], self.attacks[selection]
+            self.load_list_box()
+            self.moves.Select(selection+1)
+            
+    def OnChangeMove(self, *args):
+        selection = self.moves.GetSelection()
+        if selection != -1:
+            attack = self.ATTACK.GetSelection()
+            if attack == -1: return
+            self.attacks[selection] = attack
+            self.load_list_box()
+            self.moves.Select(selection)
+            
+    def OnSelectMove(self, *args):
+        sel = self.moves.GetSelection()
+        self.ATTACK.SetSelection(self.attacks[sel])
         
     def OnSelectAllComp(self, instance):
         num = self.CompList.GetItemCount()
