@@ -75,6 +75,7 @@ def LZCompress(data):
         bit_field = get_hex_from_string(bit_field)
         compressed += bit_field
         compressed += current_string
+    return compressed
         
     
     
