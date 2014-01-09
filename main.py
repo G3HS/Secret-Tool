@@ -346,10 +346,6 @@ class DataEditingTabs(wx.Notebook):
     def __init__(self, parent):
         wx.Notebook.__init__(self, parent, id=wx.ID_ANY, style=
                                              wx.BK_DEFAULT
-                                             #wx.BK_TOP 
-                                             #wx.BK_BOTTOM
-                                             #wx.BK_LEFT
-                                             #wx.BK_RIGHT
                                              )
         sizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -363,10 +359,10 @@ class DataEditingTabs(wx.Notebook):
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
-        self.AddPage(self.tutor, "Move Tutor")
         dex_name = "POK\xe9Dex"
         dex_name = encode_per_platform(dex_name)
         self.AddPage(self.dex, dex_name)
+        self.AddPage(self.tutor, "Move Tutor")
         self.AddPage(self.egg_moves, "Egg Moves")
         
         self.SetSizer(sizer)
