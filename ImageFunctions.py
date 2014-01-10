@@ -27,13 +27,13 @@ def ConvertGBAPalTo25Bit(palette):
     return new_palette
     
 def ConvertGBAImageToNormal(image, palette, size=(64,64)):
-    indexed_image = ""
+    indexed_image = []
     for c in image:
         pixels = int(hexlify(c),16)
         pixela = pixels & 0x0F
         pixelb = pixels & 0xF0 >> 4
-        indexed_image += pixela
-        indexed_image += pixelb
+        indexed_image.append(pixela)
+        indexed_image.append(pixelb)
     img_data = []
     for pixel in indexed_image:
         img_data.append(palette[pixel])

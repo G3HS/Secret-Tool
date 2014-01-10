@@ -58,7 +58,7 @@ def LZCompress(data):
             x = 0
             if data[1] == byte:
                 while tmp == byte and x < 0xFF:
-                    x++
+                    x += 1
                     try: tmp = data[x]
                     except: break
                 multiplier = x

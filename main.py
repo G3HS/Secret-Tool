@@ -7,6 +7,8 @@ from module_locator import *
 from rom_insertion_operations import *
 from CheckListCtrl import *
 
+from PokeSpriteTab import *
+
 from cStringIO import StringIO
 
 version = 'Alpha Demo 0.5'
@@ -356,6 +358,7 @@ class DataEditingTabs(wx.Notebook):
         self.tutor = MoveTutorTab(self)
         self.egg_moves = EggMoveTab(self)
         
+        self.sprites = SpriteTab(self, rom=frame.open_rom)
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
