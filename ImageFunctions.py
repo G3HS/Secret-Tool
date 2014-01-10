@@ -22,7 +22,7 @@ def ConvertGBAPalTo25Bit(palette):
         green = green << 3
         blue = blue << 3
         
-        new_color = (red << 10)+(green << 5)+(blue)
+        new_color = [red,green,blue]
         new_palette.append(new_color)
     return new_palette
     
@@ -36,7 +36,9 @@ def ConvertGBAImageToNormal(image, palette, size=(64,64)):
         indexed_image.append(pixelb)
     img_data = []
     for pixel in indexed_image:
-        img_data.append(palette[pixel])
+        img_data.append(palette[pixel][0]) #Append Red
+        img_data.append(palette[pixel][1]) #Append Green
+        img_data.append(palette[pixel][2]) #Append Blue
     img = wx.ImageFromData(size[0], size[1], img_data)
     bitmap = wx.BitmapFromImage(img)
     return bitmap
