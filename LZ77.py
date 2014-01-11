@@ -20,23 +20,42 @@ def LZUncompress(rom, offset):
     data_length = int(data_length, 16)
     
     uncompressed = ""
-    
-    while len(uncompressed) < data_length:
+    i = 0
+    while True:
         ##Load the bit field that tells what bytes 
         ##are compressed and what are raw.
         bit_field = get_bytes_string_from_hex_string(rom.read(1))
-        bit_field = bin(int(bit_field,16))[2:]
-        bit_field = bit_field[::-1]
+        bit_field = bin(int(bit_field,16))[2:].zfill(8)
+        print bit_field, "|", hex(int(bit_field, 2)),"|", hex(rom.tell())
         ##Now uncompress bytes.
         for bit in bit_field:
             if bit == "1":
-                multiplier = int(get_bytes_string_from_hex_string(rom.read(1)),16)
+                r5 = int(get_bytes_string_from_hex_string(rom.read(1)),16)
+                store = r5
+                r6 = 3
+                r3 = (r5>>4)+r6
+                print "r3", hex(r3)
+                r6 = store
+                print "r6", hex(r6) 
+                r5 = r6 & 0xF
+                print "r5", hex(r5)
+                r12 = r5<<8
+                print "r12", hex(r12)
+                r6 = int(get_bytes_string_from_hex_string(rom.read(1)),16)
+                print "r6", hex(r6)
+                r5 = r6 | r12
+                print "r5", hex(r5)
+                r12 = r5 +1
+                print "r12", hex(r12)
+                for n in range(r3):
+                    r5 = uncompressed[-r12]
+                    print "r5", get_bytes_string_from_hex_string(r5)
+                    uncompressed += r5
+                    if len(uncompressed) == data_length: return uncompressed
+            elif bit == "0":
                 byte = rom.read(1)
-                for n in range(multiplier):
-                    uncompressed += byte
-            if bit == "0":
-                uncompressed += rom.read(1)
-    return uncompressed
+                uncompressed += byte
+                if len(uncompressed) == data_length: return uncompressed
     
 def LZCompress(data):
     ##Data is a string of byte values like "\xFF".

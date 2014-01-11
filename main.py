@@ -359,6 +359,7 @@ class DataEditingTabs(wx.Notebook):
         self.egg_moves = EggMoveTab(self)
         
         self.sprites = SpriteTab(self, rom=frame.open_rom)
+        
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
@@ -367,6 +368,7 @@ class DataEditingTabs(wx.Notebook):
         self.AddPage(self.dex, dex_name)
         self.AddPage(self.tutor, "Move Tutor")
         self.AddPage(self.egg_moves, "Egg Moves")
+        self.AddPage(self.sprites, "Sprites")
         
         self.SetSizer(sizer)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)

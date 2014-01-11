@@ -15,8 +15,11 @@ class SpriteTab(wx.Panel):
         palette = LZUncompress(self.rom, 0xD2FE78)
         image = LZUncompress(self.rom, 0xD2FBD4)
         
+        import binascii
+        
         pal = ConvertGBAPalTo25Bit(palette)
         bmp = ConvertGBAImageToNormal(image,pal)
+        
         
         static_image = wx.StaticBitmap(self,-1,bmp)
         
