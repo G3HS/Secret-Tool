@@ -15,7 +15,12 @@ class SpriteTab(wx.Panel):
         palette = LZUncompress(self.rom, 0xD2FE78)
         image = LZUncompress(self.rom, 0xD2FBD4)
         
-        import binascii
+        Compressed = LZCompress(image)
+
+        self.rom.seek(0x760000)
+        self.rom.write(Compressed)
+        
+        image = LZUncompress(self.rom, 0x760000)
         
         pal = ConvertGBAPalTo25Bit(palette)
         bmp = ConvertGBAImageToNormal(image,pal)
