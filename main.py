@@ -358,7 +358,8 @@ class DataEditingTabs(wx.Notebook):
         self.tutor = MoveTutorTab(self)
         self.egg_moves = EggMoveTab(self)
         
-        self.sprites = SpriteTab(self, rom=frame.open_rom)
+        self.sprites = SpriteTab(self, rom=frame.open_rom, 
+                                                 config=frame.Config, rom_id=frame.rom_id)
         
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
@@ -392,6 +393,8 @@ class DataEditingTabs(wx.Notebook):
         self.evo.load_everything()
         self.dex.LoadEverything()
         self.tutor.load_everything()
+        global poke_num
+        self.sprites.load_everything(poke_num=poke_num)
         
 class StatsTab(wx.Panel):
     def __init__(self, parent):

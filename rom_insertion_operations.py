@@ -14,10 +14,18 @@ def encode_per_platform(string):
     return out
 
 def deal_with_16bit_signed_hex(hex_value, method="forward"):
-    #This function, will take a hex value and check if it is signed and then
-    #return its int value.
-    #If the given value is already and int, it will convert it back and
-    #return a signed hex value.
+    """
+    This function, will take a hex value and check if it is signed and then
+    return its int value.
+    If the given value is already an int, it will convert it back and
+    return a signed hex value.
+    
+    Valid methods are:
+    
+    "forward": Signed Hex -> Int
+    
+    "backward": Int -> Signed Hex
+    """
     if method == "forward":
         binary = bin(hex_value)[2:].zfill(16)
         if binary[0] == "1":
@@ -29,6 +37,35 @@ def deal_with_16bit_signed_hex(hex_value, method="forward"):
     elif method == "backward":
         if hex_value < 0:
             output = hex_value+0x10000 
+            output = hex(output)[2:].zfill(4)
+        else: output = hex(hex_value)[2:].zfill(4)
+        return output
+    else: return None
+    
+def deal_with_8bit_signed_hex(hex_value, method="forward"):
+    """
+    This function, will take a hex value and check if it is signed and then
+    return its int value.
+    If the given value is already an int, it will convert it back and
+    return a signed hex value.
+    
+    Valid methods are:
+    
+    "forward": Signed Hex -> Int
+    
+    "backward": Int -> Signed Hex
+    """
+    if method == "forward":
+        binary = bin(hex_value)[2:].zfill(16)
+        if binary[0] == "1":
+            x = int(binary, 2)
+            output = x-0x100
+        else: 
+            output = int(binary, 2)
+        return output
+    elif method == "backward":
+        if hex_value < 0:
+            output = hex_value+0x100 
             output = hex(output)[2:].zfill(4)
         else: output = hex(hex_value)[2:].zfill(4)
         return output

@@ -34,3 +34,231 @@ BPRE Main stats @0x2547A0:
 +25 Color
  
  +26 Padding [2]
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~Egg Move Structures:
+
+Egg Move Table is located at:
+25EF0C
+
+It is pointed to twice, once at 045C50 and once at 045CC8
+
+The table is listed in the form
+
+?? 4E/4F, and then move indexes.
+
+?? refers to 20+ a pokemon's index.
+which is then followed by 4E or 4F depending on the index.
+
+ie. Bulbasaurs index is 01 00
+thus its entry starts off with
+21 4E,
+whereas Chimecho with an index of 9B 01, would have an entry starting with
+9B 4F.
+
+The moves themselves are then listed in their respective indexes, until the next Pokemon.
+
+
+This would make it seems like the table could be expanded rather simply, by repointing it, and just adding index entries as one would please.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~Evolution Notes
+Each species has 5 substructures, as Eevee has 5 evolution options. The overall structure is laid out as follows:
+Offset  Size    Type    Notes
+0x00    6       Substructure    First Substructure
+0x06    2       Padding due to alignment
+ 
+evolution substruct is
+ 
+2 bytes for method
+2 bytes for argument to method (what level, what item, etc.)
+2 bytes for what to evolve into
+ 
+methods:
+ 
+04 = level
+07 = evolutionary stone (62=leaf)
+ 
+ 
+data starts at x259754 with slot #0
+there are five pointers to this
+ 
+for our purposes, repoint to xCD0000
+pointers are at:
+x42F6C
+x42FBC
+x43138
+x4599C
+xCE8C4
+ 
+reads of turtwig's first (stone) evolution:
+x4318c
+x43192 (only if there)
+x4317c (only if there)
+ 
+reads of level evolution:
+x42fa4
+x4301e
+x4310c
+ 
+reads of second level evolution:
+same as first
+ 
+there is an
+evolution method pointer table at x42fc4
+this may lead to new advances in evolution manipulation
+i need to know the mappings though
+and i'm too lazy to find them myself when bulbapedia exists :v
+also this doesn't matter too much for
+what i'm doing atm
+ 
+ 
+it looks like the level evolution limiter is the command at x43116
+the part that makes it skip five slots per mon is
+r6 and r7
+so:
+x43116: 04 -> 07
+x42f9c: add r0, r6, r7 -> lsl r0, r6, #0x1 (70 00)
+#x42f94: lsl r6, r7, #0x2 -> mov r6, #0x8 (08 26)
+ 
+after this we reach the level evolution method pointer table
+for the second part it looks like we just need to
+x43016: add r0, r6, r7 -> (70 00)
+ 
+ 
+okay that's all it takes???
+cool
+ 
+okay types of evolution in detail:
+00 = none
+01 = friendship
+02 = friendship (day)
+03 = friendship (night)
+04 = level-up
+05 = trade
+06 = stone evo
+07 = trade w/item
+08 = level-up atk>def
+09 = level-up atk<def
+0A = level-up atk=def
+0B = level-up personality
+0C = level-up personality
+0D = level-up +spawn (ninjask)
+0E = spawn when above (shedinja)
+0F = beauty
+ 
+stone time
+it looks like it does pretty much the exact same thing ._.
+break the cmp r2, #0x4 at x4319e to make it search 8 slots
+actually since it's 8
+we can do just do
+lsl r0, r6, r7
+instead of changing the values assigned to those registers
+which is probably better
+so
+x4319e: 04 -> 07
+x43182: F0 19 -> lsl r0, r6, #0x1 (70 00)
+that's it???
+ 
+well i messed up
+evidently r6/r7 were also storing what slot is evolving
+or trying to
+durp
+well resetting everything should be simple and then i can
+take a closer look
+and by everything i just mean x43182
+when we try to evolve chansey
+r6 is x5C and r7 is x17
+so r6 stores four times r7
+and r7 is the mon in question
+so what we could do is
+replace the adds with lsl r0, r6, #0x1
+since we're using 8 evos
+ 
+aaand it's working
+okay
+ 
+x43116: 04 -> 07
+x42f9c: add r0, r6, r7 -> lsl r0, r6, #0x1 (70 00)
+x43016: add r0, r6, r7 -> (70 00)
+ 
+x4319e: 04 -> 07
+x43182: F0 19 -> lsl r0, r6, #0x1 (70 00)
+ 
+that was too easy
+i think the weirder evos will require special handling
+as will breeding
+but still it works :)
+ 
+okay now for the fun part
+atk/def evos
+all three lead to x43110
+i see an F0 19 at x43126
+going to blindly change it :v
+yeah figured that wasn't enough
+wait
+i messed up
+those are the trade/item evos
+they go to x43026, x43050, and x4307A
+first route eventually jumps to x430a2
+second does as well
+third just falls into it?
+wait this makes no sense
+x430a2 just goes to x43110
+albeit not without setting r10....
+maybe that's it?
+yeah it looks like it is accessing the evo table
+like
+the first line of each of these routines is add r0,r6,r7 >_>
+ez
+ 
+x43026: F0 19 -> 70 00
+x43050: F0 19 -> 70 00
+x4307A: F0 19 -> 70 00
+yeah that did it it seems
+ 
+vanilla level seems broken
+that path is via x43016
+yeah it uses wrong methodology to find the level
+x43016: F0 19 -> 70 00 ???
+
+
+ninjask evo: x430EC -> 70 00
+
+wurmple's:
+x430C8 -> 70 00
+
+x430A8-> 70 00
+
+happiness: x43008 -> 70 00
+
+shedinja: ce766 -> lsl r0, r0, #0x1
+
+
+lsl r0, r6, #0x1 (70 00)
+lsl r0, r6, #0x2 (B0 00)
+lsl r0, r6, #0x3 (F0 00)
+lsl r0, r6, #0x4 (30 01)
+lsl r0, r6, #0x5 (70 00)
+lsl r0, r6, #0x1 (70 00)
+lsl r0, r6, #0x1 (70 00)
+
+----------------------------
+
+
+x43116: 04 -> 07
+x4319e: 04 -> 07
+x43116: 04 -> 07
+x4319e: 04 -> 07
+
+
+x42f9c: add r0, r6, r7 -> lsl r0, r6, #0x1 (70 00)
+x43182: F0 19 -> lsl r0, r6, #0x1 (70 00)
+x43016: add r0, r6, r7 -> (70 00)
+x43182: F0 19 -> lsl r0, r6, #0x1 (70 00)
+x43026: F0 19 -> 70 00
+x43050: F0 19 -> 70 00
+x4307A: F0 19 -> 70 00
+x43016: F0 19 -> 70 00
+
+#x42f94: lsl r6, r7, #0x2 -> mov r6, #0x8 (08 26)
