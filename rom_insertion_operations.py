@@ -149,7 +149,7 @@ def convert_ascii_and_poke(string, mode):
         ("\\xEC",'x'),("\\x00",' '),("\\x01",'À'),("\\x02",'Á'),("\\x03",'Â'),("\\x04",'Ç'),
         ("\\x05",'È'),("\\x06",'É'),("\\x07",'Ê'),("\\x08",'Ë'),("\\x09",'Ì'),("\\x0A",'\\x0A'),("\\x0B",'Î'),("\\x0C",'Ï'),("\\x0D",'Ò'),("\\x0E",'Ó'),
         ("\\x0F",'Ô'),("\\x10",'[OE]'),("\\x11",'Ù'),("\\x12",'Ú'),("\\x13",'Û'),("\\x14",'Ñ'),("\\x15",'ß'),("\\x16",'à'),("\\x17",'á'),("\\x18",'\\x18'),
-        ("\\x19",'Ç'),("\\x1A",'è'),("\\x1B",'é'),("\\x1C",'ê'),("\\x1D",'ë'),("\\x1E",'ì'),("\\x1F",'\\x1F'),("\\x20",'î'),("\\x21",'ï'),("\\x22",'ò'),
+        ("\\x19",'Ç'),("\\x1A",'è'),("\\x1B",'é'),("\\x1B",'\xe9'),("\\x1C",'ê'),("\\x1D",'ë'),("\\x1E",'ì'),("\\x1F",'\\x1F'),("\\x20",'î'),("\\x21",'ï'),("\\x22",'ò'),
         ("\\x23",'ó'),("\\x24",'ô'),("\\x25",'œ'),("\\x26",'ù'),("\\x27",'ú'),("\\x28",'û'),("\\x29",'ñ'),("\\x2A",'º'),("\\x2B",'ª'),("\\x2C",'¹'),
         ("\\x2D",'&'),("\\x2F",'\\x2F'),("\\x30",'\\x30'),("\\x31",'\\x31'),("\\x32",'\\x32'),("\\x33",'\\x33'),("\\x35",'='),
         ("\\x36",';'),("\\x37",'\\x37'),("\\x38",'\\x38'), ("\\x39",'\\x39'),("\\x3A",'\\x3A'),("\\x3B",'\\x3B'),("\\x3C",'\\x3C'),
@@ -176,9 +176,11 @@ def convert_ascii_and_poke(string, mode):
     
     
     if mode == "to_ascii":
+        string = string.encode('Latin-1')
         old_chart = chart
         chart = {}
         for hexer, poke in old_chart:
+            poke = poke.decode('Latin-1').encode('Latin-1')
             chart[poke] = hexer
         new_string = ""
         while string != "":
@@ -195,7 +197,9 @@ def convert_ascii_and_poke(string, mode):
             else:
                 string = ""
             try: new = chart[char]
-            except: new = ""
+            except: 
+                new = ""
+                print "There was an error reading:", char
             new_string += new
         string = new_string
         string = re.sub("(\\\\x)", "", string, 0, re.DOTALL)
