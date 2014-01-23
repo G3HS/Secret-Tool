@@ -108,6 +108,7 @@ def generate_list_of_names(offset, datalength, terminating_character, num_of_nam
     rom.seek(offset)
     list_of_names = []
     for n in range(num_of_names):
+        rom.seek(offset+n*datalength)
         tmp = rom.read(datalength)
         tmp = tmp.split(terminating_character, 1)
         tmp = convert_ascii_and_poke(tmp[0], "to_poke")

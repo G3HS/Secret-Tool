@@ -102,7 +102,7 @@ class SpriteTab(wx.Panel):
         
         bytes_per_entry = 8 ##Need to load from ini for EMERALD
         
-        with open(self.rom_name, "r+") as rom:
+        with open(self.rom_name, "r+b") as rom:
             rom.seek(FrontSpriteTable+(poke_num+1)*bytes_per_entry)
             self.FrontSpritePointer = read_pointer(rom.read(4))
             rom.seek(BackSpriteTable+(poke_num+1)*bytes_per_entry)
@@ -117,13 +117,13 @@ class SpriteTab(wx.Panel):
             FrontPalette = LZUncompress(rom, self.FrontPalettePointer)
             ShinyPalette = LZUncompress(rom, self.ShinyPalettePointer)
 
-            FrontPalette = ConvertGBAPalTo25Bit(FrontPalette)
-            ShinyPalette = ConvertGBAPalTo25Bit(ShinyPalette)
+            self.FrontPalette = ConvertGBAPalTo25Bit(FrontPalette)
+            self.ShinyPalette = ConvertGBAPalTo25Bit(ShinyPalette)
             
-            self.TMPFrontSprite = ConvertGBAImageToNormal(FrontSprite,FrontPalette)
-            self.TMPBackSprite = ConvertGBAImageToNormal(BackSprite,FrontPalette)
-            self.TMPSFrontSprite = ConvertGBAImageToNormal(FrontSprite,ShinyPalette)
-            self.TMPSBackSprite = ConvertGBAImageToNormal(BackSprite,ShinyPalette)
+            self.TMPFrontSprite = ConvertGBAImageToNormal(FrontSprite,self.FrontPalette)
+            self.TMPBackSprite = ConvertGBAImageToNormal(BackSprite,self.FrontPalette)
+            self.TMPSFrontSprite = ConvertGBAImageToNormal(FrontSprite,self.ShinyPalette)
+            self.TMPSBackSprite = ConvertGBAImageToNormal(BackSprite,self.ShinyPalette)
             
             self.FrontSprite.SetBitmap(self.TMPFrontSprite)
             self.BackSprite.SetBitmap(self.TMPBackSprite)
@@ -302,4 +302,40 @@ class SpriteTab(wx.Panel):
             self.screen.blit(self.PYGTEXTBOX,pygame.Rect(0,0,240,160))
             pygame.display.flip()
         except: pass
+        
+class POKEDEXEntryRepointer(wx.Dialog):
+    def __init__(self, parent=None, palette=None, repoint_what=None, *args, **kw):
+        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
+        self.palette = palette
+        self.num = need
+        self.repoint = repoint_what
+        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.InitUI()
+        self.SetTitle("Palette Editor")
+        
+    def InitUI(self):
+        PalettePanel = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        PalettePanelSizer = wx.BoxSizer(wx.VERTICAL)
+        PalettePanel.SetSizer(PalettePanelSizer)
+        self.sizer.Add(PalettePanel, 0, wx.EXPAND | wx.ALL, 5)
+        
+        hbox_high = wx.BoxSizer(wx.HORIZONTAL)
+        hbox_low = wx.BoxSizer(wx.HORIZONTAL)
+        PalettePanelSizer.Add(hbox_high, 0, wx.EXPAND | wx.ALL, 5)
+        PalettePanelSizer.Add(hbox_low, 0, wx.EXPAND | wx.ALL, 5)
+        
+        for num, color in enumerate(self.palette):
+            if num < 8:
+                hbox_high.Add(wx.Button(PalettePanel, num, "").SetBackgroundColor(color), 0, wx.EXPAND | wx.ALL, 5)
+                self.Bind(wx.EVT_BUTTON, self.edit_color, id=num)
+            else:
+                hbox_low.Add(wx.Button(PalettePanel, num, "").SetBackgroundColor(color), 0, wx.EXPAND | wx.ALL, 5)
+                self.Bind(wx.EVT_BUTTON, self.edit_color, id=num)
+        
+        
+        
+        
+        
+        
         
