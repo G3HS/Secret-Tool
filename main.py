@@ -1296,7 +1296,7 @@ class MovesTab(wx.Panel):
                 string += set
         return string
     
-    def load_everything(self):
+    def load_everything(self): #Moves
         self.NEW_LEARNED_OFFSET = None
         self.NEW_NUMBER_OF_MOVES = None
         self.original_amount_of_moves = 0
@@ -1895,6 +1895,7 @@ class PokeDexTab(wx.Panel):
             entry1 = convert_ascii_and_poke(self.Entry1.GetValue(), "to_ascii")
            
             if self.OriginalEntry1Len < len(entry1):
+                self.OriginalEntry1Len = len(entry1)
                 repointer = POKEDEXEntryRepointer(parent=None, 
                                                   need=len(entry1)+3,
                                                   repoint_what="'Dex Entry 1")
@@ -1907,7 +1908,7 @@ class PokeDexTab(wx.Panel):
                         else:
                             org_offset = self.entry1_offset
                             self.entry1_offset = int(returned_offset, 16)
-                            
+                            returned_offset = None
                             need_overwrite = True
                             break
             else: need_overwrite = False
@@ -1916,7 +1917,7 @@ class PokeDexTab(wx.Panel):
             rom.write(entry1+"\xff\xff")
             
             rom.seek(0,1)
-            check = rom.read(2)
+            check = rom.read(1)
             if check == "\xff":
                 rom.seek(-1,1)
                 rom.write("\xfe")
@@ -1951,6 +1952,7 @@ class PokeDexTab(wx.Panel):
                 entry1 = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
            
                 if self.OriginalEntry2Len < len(entry2):
+                    self.OriginalEntry2Len = len(entry2)
                     repointer = POKEDEXEntryRepointer(parent=None, 
                                                       need=len(entry2)+3,
                                                       repoint_what="'Dex Entry 2")
@@ -1962,7 +1964,7 @@ class PokeDexTab(wx.Panel):
                             else:
                                 org_offset = self.entry2_offset
                                 self.entry2_offset =  int(returned_offset, 16)
-                                
+                                returned_offset = None
                                 need_overwrite = True
                                 break
                 else: need_overwrite = False
@@ -2350,7 +2352,7 @@ class MoveTutorTab(wx.Panel):
                 word = binary[:16]
                 word = word[::-1]
                 word = int(word, 2)
-                word = hex(word).rstrip("L").lstrip("0x").zfill(8)
+                word = hex(word).rstrip("L").lstrip("0x").zfill(4)
                 word = reverse_hex(word)
                 word = get_hex_from_string(word)
                 hexCOMP += word
@@ -2866,6 +2868,9 @@ class MOVE_REPOINTER(wx.Dialog):
                     if offset%4 != 0:
                         start = offset+1
                         continue
+                    if read[offset-1] != "\xFF":
+                        start = offset+1
+                        continue
                     self.OFFSETS.Append(hex(offset))
                     x = (1,True)
                     start = offset+len(search)
@@ -3208,6 +3213,9 @@ class NumberofEvosChanger(wx.Dialog):
                     if offset%4 != 0:
                         start = offset+1
                         continue
+                    if read[offset-1] != "\xFF":
+                        start = offset+1
+                        continue
                     self.OFFSETS.Append(hex(offset))
                     x = (1,True)
                     start = offset+len(search)
@@ -3297,6 +3305,9 @@ class POKEDEXEntryRepointer(wx.Dialog):
                     if offset == -1:
                         x = (1,None)
                     if offset%4 != 0:
+                        start = offset+1
+                        continue
+                    if read[offset-1] != "\xFF":
                         start = offset+1
                         continue
                     self.OFFSETS.Append(hex(offset))
