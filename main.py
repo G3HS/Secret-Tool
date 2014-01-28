@@ -212,8 +212,8 @@ class MainWindow(wx.Frame):
         frame.SetTitle("Gen III Hacking Suite"+" ~ "+self.Config.get(self.rom_id, "name")+" ~ "+self.open_rom.name)
             
     def reload_all_tabs(self):
-        self.tabbed_area.Destroy()
-        
+        try:    self.tabbed_area.Destroy()
+        except: pass
         self.tabbed_area = TabbedEditorArea(self.panel) 
         
         self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 5)
