@@ -142,8 +142,10 @@ class SpriteTab(wx.Panel):
         self.ColorButtons[color_number].SetBackgroundColour(data.GetColour())
         if color_number < 16:
             self.FrontPalette[color_number] = data.GetColour()
+            self.Changes["normal"]=True
         else:
             self.ShinyPalette[color_number-16] = data.GetColour()
+            self.Changes["shiny"]=True
         self.ReloadShownSprites()
         
     def ReloadShownSprites(self):
@@ -186,15 +188,23 @@ class SpriteTab(wx.Panel):
             if sprite_number == 56:
                 self.GBAFrontSprite = gbaversion
                 self.FrontPalette = palette
+                self.Changes["front"]=True
+                self.Changes["normal"]=True
             elif sprite_number == 57:
                 self.GBABackSprite = gbaversion
                 self.FrontPalette = palette
+                self.Changes["back"]=True
+                self.Changes["normal"]=True
             elif sprite_number == 58:
                 self.GBAFrontSprite = gbaversion
                 self.ShinyPalette = palette
+                self.Changes["front"]=True
+                self.Changes["shiny"]=True
             elif sprite_number == 59:
                 self.GBABackSprite = gbaversion
                 self.ShinyPalette = palette
+                self.Changes["back"]=True
+                self.Changes["shiny"]=True
             self.ReloadShownSprites()
             
     def LoadSheetSprite(self, instance):
@@ -231,7 +241,10 @@ class SpriteTab(wx.Panel):
             self.GBABackSprite, tmp = ConvertNormalImageToGBAUnderPal(wxback, self.FrontPalette)
             self.ShinyPalette = GetShinyPalette(front.convert("RGB"), shiny.convert("RGB"), self.FrontPalette)
             self.ReloadShownSprites()
-        
+            self.Changes["front"]=True
+            self.Changes["back"]=True
+            self.Changes["normal"]=True
+            self.Changes["shiny"]=True
     def load_everything(self, poke_num):
         self.Changes = {"front":False, "back":False, "normal":False, "shiny":False}
         self.poke_num = poke_num
@@ -380,7 +393,7 @@ class SpriteTab(wx.Panel):
     def set_timer(self):
         TIMER_ID = 1  # pick a number
         self.timer = wx.Timer(self, TIMER_ID)  # message will be sent to the panel
-        self.timer.Start(100)  # x500 milliseconds
+        self.timer.Start(100)  # 100 milliseconds
         wx.EVT_TIMER(self, TIMER_ID, self.on_timer)  # call the on_timer function
         
     def PositionEditorLoop(self, *args):
@@ -398,46 +411,40 @@ class SpriteTab(wx.Panel):
         for need in need_update:
             if need == "PUp":
                 try:
-                    curr = int(self.PlayerY.GetValue(),0)
+                    curr = self.PlayerY.GetValue()
                     curr -= 1
                     self.PlayerY.SetValue(curr)
                     print self.PlayerY.GetValue()
-                    #time.sleep(0.15)
                 except: pass
             elif need == "PDown":
                 try:
-                    curr = int(self.PlayerY.GetValue(),0)
+                    curr = self.PlayerY.GetValue()
                     curr += 1
                     self.PlayerY.SetValue(curr)
-                    #time.sleep(0.1)
                 except: pass
             elif need == "EUp":
                 try:
-                    curr = int(self.EnemyY.GetValue(),0)
+                    curr = self.EnemyY.GetValue()
                     curr -= 1
                     self.EnemyY.SetValue(curr)
-                    #time.sleep(0.1)
                 except: pass
             elif need == "EDown":
                 try:
-                    curr = int(self.EnemyY.GetValue(),0)
+                    curr = self.EnemyY.GetValue()
                     curr += 1
                     self.EnemyY.SetValue(curr)
-                    #time.sleep(0.1)
                 except: pass
             elif need == "EAUp":
                 try:
-                    curr = int(self.EnemyAlt.GetValue(),0)
-                    curr -= 1
+                    curr = self.EnemyAlt.GetValue()
+                    curr += 1
                     self.EnemyAlt.SetValue(curr)
-                    #time.sleep(0.1)
                 except: pass
             elif need == "EADown":
                 try:
-                    curr = int(self.EnemyAlt.GetValue(),0)
-                    curr += 1
+                    curr = self.EnemyAlt.GetValue()
+                    curr -= 1
                     self.EnemyAlt.SetValue(curr)
-                    #time.sleep(0.1)
                 except: pass
             
         self.UpdatePosition()
