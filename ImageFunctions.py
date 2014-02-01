@@ -2,7 +2,13 @@ from binascii import hexlify, unhexlify
 import wx
 
 def ConvertGBAPalTo25Bit(palette):
-    ##Palette should be in the form of "\xFF\xFF\xFF\xFF..."
+    """
+    Take a GBA palette and convert it to a normal
+    25bit RGB palette. This function will return a
+    list of tuples like (Red, Green, Blue).
+    
+    Palette should be in the form of "\xFF\xFF\xFF\xFF..."
+    """
     blue_mask = 0x7C00
     green_mask = 0x3E0
     red_mask = 0x1F
@@ -26,8 +32,48 @@ def ConvertGBAPalTo25Bit(palette):
         new_palette.append(new_color)
         count += 2
     return new_palette
+
+def Convert25bitPalettetoGBA(palette):
+    """
+    This function will take a list of tuples of RGB values
+    and convert them back into the GBA format.
+    
+    It will return a bytestring of length 32.
+    
+    This function is only for 16 color sprites.
+    """
+    GBAPal = ""
+    for color in palette:
+        red = color[0]
+        green = color[1]
+        blue = color[2]
+        
+        red = red >> 3
+        green = green >> 3
+        blue = blue >> 3
+        
+        
+        green = green << 5
+        blue = blue << 10
+        
+        color = (blue & green & red)
+        hexColor = hex(color).rstrip("L").lstrip("0x").zfill(4)
+        bytes = unhexlify(hexColor)
+        bytes = bytes[1]+bytes[0]
+        GBAPal += bytes
+    for i in range(32-len(GBAPal)):
+        GBAPal += "\x00"
+    return GBAPal
     
 def ConvertGBAImageToNormal(image, palette, size=(64,64)):
+    """
+    This will take a GBA image in the form of a byte string
+    like "\xff\xe0\x22..." and convert it to a normal RGB image.
+    
+    Because GBA images are stored in 8x8 tiles, there are a lot of
+    loops in the function.:P
+    """
+    
     indexed_image = []
     for c in image:
         pixels = hexlify(c)
@@ -71,3 +117,105 @@ def ConvertGBAImageToNormal(image, palette, size=(64,64)):
     img = wx.ImageFromData(size[0], size[1], data)
     bitmap = wx.BitmapFromImage(img)
     return bitmap
+    
+def ConvertNormalImageToGBA(image, size=(64,64)):
+    """
+    This function will take a normal wx.Image and return tuple
+    of (GBA_Image, Palette). Image must be already 16 colors
+    and have dimensions divisible by 8.
+    """
+    data = image.GetData()
+    height = size[1]
+    width = size[0]
+    palette = []
+    blocks = []
+    block_num = width/8
+    for w in range(height/8):
+        for x in range(8):
+            block_num -= width/8
+            for y in range(width/8):
+                for z in range(8):
+                    color = (int(hexlify(data[:1]),16),
+                                  int(hexlify(data[1:2]),16),
+                                  int(hexlify(data[2:3]),16))
+                    if color not in palette:
+                        palette.append(color)
+                    try: blocks[block_num]
+                    except: blocks.append([])
+                    blocks[block_num].append(color)
+                    data = data[3:]
+                block_num += 1
+        block_num += width/8
+    GBAImage = ""
+    color1 = None
+    color2 = None
+    for block in blocks:
+        for color in block:
+            if color1 == None:
+                color1 = hex(palette.index(color))[2:].zfill(1)
+            else:
+                color2 = hex(palette.index(color))[2:].zfill(1)
+                GBAImage += unhexlify(color2+color1)
+                color1 = None
+                color2 = None
+    return (GBAImage, palette)
+    
+def ConvertNormalImageToGBAUnderPal(image, palette,size=(64,64)):
+    """
+    This function will take a normal wx.Image and return tuple
+    of (GBA_Image, Palette). Image must be already 16 colors
+    and have dimensions divisible by 8.
+    
+    The difference between this function and the last is that a palette is provided
+    to index to.
+    """
+    data = image.GetData()
+    height = size[1]
+    width = size[0]
+    blocks = []
+    block_num = width/8
+    for w in range(height/8):
+        for x in range(8):
+            block_num -= width/8
+            for y in range(width/8):
+                for z in range(8):
+                    color = (int(hexlify(data[:1]),16),
+                                  int(hexlify(data[1:2]),16),
+                                  int(hexlify(data[2:3]),16))
+                    try: blocks[block_num]
+                    except: blocks.append([])
+                    blocks[block_num].append(color)
+                    data = data[3:]
+                block_num += 1
+        block_num += width/8
+    GBAImage = ""
+    color1 = None
+    color2 = None
+    for block in blocks:
+        for color in block:
+            if color1 == None:
+                color1 = hex(palette.index(color))[2:].zfill(1)
+            else:
+                color2 = hex(palette.index(color))[2:].zfill(1)
+                GBAImage += unhexlify(color2+color1)
+                color1 = None
+                color2 = None
+    return (GBAImage, palette)
+
+def GetShinyPalette(normal, shiny, normal_palette):
+    """
+    This function helps to ensure that the shiny and 
+    normal palettes are in the same order.
+    
+    Just pass it the normal and shiny images,
+     along with the normal palette.
+    """
+       
+    palette = []
+    norm = list(normal.getdata())
+    shin = list(shiny.getdata())
+    for pixel in normal_palette:
+        index = norm.index(pixel)
+        palette.append(shin[index])
+    return palette
+        

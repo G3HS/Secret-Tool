@@ -6,7 +6,7 @@ from baseconv import *
 from module_locator import *
 from rom_insertion_operations import *
 from CheckListCtrl import *
-
+from Button import *
 from PokeSpriteTab import *
 
 from cStringIO import StringIO
@@ -226,13 +226,7 @@ class MainWindow(wx.Frame):
 #############################################################
 class TabbedEditorArea(wx.Notebook):
     def __init__(self, parent):
-        wx.Notebook.__init__(self, parent, id=wx.ID_ANY, style=
-                                             wx.BK_DEFAULT
-                                             #wx.BK_TOP 
-                                             #wx.BK_BOTTOM
-                                             #wx.BK_LEFT
-                                             #wx.BK_RIGHT
-                                             )
+        wx.Notebook.__init__(self, parent, id=wx.ID_ANY, style=wx.BK_DEFAULT)
         
         self.PokeDataTab = PokemonDataEditor(self)
         name = "POK\xe9MON Data Editor"
@@ -278,7 +272,7 @@ class PokemonDataEditor(wx.Panel):
                 self.Poke_Name = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(150,-1))
                 self.Poke_Name.SetValue(self.poke_names[0])
                 
-                save = wx.Button(self, 1, "Save All")
+                save = Button(self, 1, "Save All")
                 self.Bind(wx.EVT_BUTTON, self.OnSave, id=1)
                 self.sizer = wx.BoxSizer(wx.VERTICAL)
                 self.sizer_top = wx.BoxSizer(wx.HORIZONTAL)
@@ -1043,7 +1037,7 @@ class MovesTab(wx.Panel):
         self.LEVEL = wx.TextCtrl(learned_moves, -1,style=wx.TE_CENTRE, size=(40,-1))
         editing_box.Add(self.LEVEL, 0, wx.EXPAND | wx.ALL, 2)
         
-        SET = wx.Button(learned_moves, 8, "Replace")
+        SET = Button(learned_moves, 8, "Replace")
         self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=8)
         editing_box.Add(SET, 0, wx.EXPAND | wx.ALL, 2)
         
@@ -1055,23 +1049,23 @@ class MovesTab(wx.Panel):
         self.LEARNED_OFFSET = wx.StaticText(learned_moves, -1, "0xXXXXXX")
         v_lm_box_buttons.Add(self.LEARNED_OFFSET, 0, wx.EXPAND | wx.ALL, 5)
         
-        REPOINT = wx.Button(learned_moves, 1, "Repoint")
+        REPOINT = Button(learned_moves, 1, "Repoint")
         self.Bind(wx.EVT_BUTTON, self.OnRepoint, id=1)
         v_lm_box_buttons.Add(REPOINT, 0, wx.EXPAND | wx.ALL, 5)
 
-        ADD = wx.Button(learned_moves, 2, "Add")
+        ADD = Button(learned_moves, 2, "Add")
         self.Bind(wx.EVT_BUTTON, self.OnAdd, id=2)
         v_lm_box_buttons.Add(ADD, 0, wx.EXPAND | wx.ALL, 5)
         
-        DELETE = wx.Button(learned_moves, 3, "Delete")
+        DELETE = Button(learned_moves, 3, "Delete")
         self.Bind(wx.EVT_BUTTON, self.OnDelete, id=3)
         v_lm_box_buttons.Add(DELETE, 0, wx.EXPAND | wx.ALL, 5)
         
-        MOVE_UP = wx.Button(learned_moves, 4, "Move Up")
+        MOVE_UP = Button(learned_moves, 4, "Move Up")
         self.Bind(wx.EVT_BUTTON, self.OnMoveUp, id=4)
         v_lm_box_buttons.Add(MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
         
-        MOVE_DOWN = wx.Button(learned_moves, 5, "Move Down")
+        MOVE_DOWN = Button(learned_moves, 5, "Move Down")
         self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=5)
         v_lm_box_buttons.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -1096,11 +1090,11 @@ class MovesTab(wx.Panel):
         self.HMList.InsertColumn(1, 'Move')
         TMBox.Add(self.HMList, 0, wx.EXPAND | wx.ALL, 5)
         
-        SELECTALL = wx.Button(TMHMPanel, 6, "Select All")
+        SELECTALL = Button(TMHMPanel, 6, "Select All")
         self.Bind(wx.EVT_BUTTON, self.OnSelectAllTMHMs, id=6)
         ButtonBox.Add(SELECTALL, 0, wx.EXPAND | wx.ALL, 5)
         
-        CLEAR = wx.Button(TMHMPanel, 7, "Clear All")
+        CLEAR = Button(TMHMPanel, 7, "Clear All")
         self.Bind(wx.EVT_BUTTON, self.OnClearAllTMHMs, id=7)
         ButtonBox.Add(CLEAR, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -1119,8 +1113,10 @@ class MovesTab(wx.Panel):
             rom.seek(learned_offset)
             learned_moves = self.prepare_string_of_learned_moves()
             learned_moves = get_hex_from_string(learned_moves)
-            rom.write(learned_moves)
-            
+            if learned_moves != None: rom.write(learned_moves)
+            else:
+                raise AttributeError("There was an issue saving learned moves. They have been skipped. Please try again. If this continues, restart the program.")
+                return
             learnedmoveslength = int(frame.Config.get(frame.rom_id, "learnedmoveslength"), 0)
             
             ##Fill old table with free space
@@ -1501,29 +1497,29 @@ class EvoTab(wx.Panel):
                                                style=wx.SUNKEN_BORDER, size=(100, -1))
         editor_area_c.Add(self.poke, 0, wx.EXPAND | wx.ALL, 5)
         
-        ReplaceEvo = wx.Button(EVO, 3, "Replace Evolution")
+        ReplaceEvo = Button(EVO, 3, "Replace Evolution")
         self.Bind(wx.EVT_BUTTON, self.OnReplaceEvo, id=3)
         editor_area.Add(ReplaceEvo, 0, wx.EXPAND | wx.ALL, 5)
         
         buttons = wx.BoxSizer(wx.VERTICAL)
         
-        ChangeNumberofEvos = wx.Button(EVO, 0, "Change Number of\nEvolutions per 'MON")
+        ChangeNumberofEvos = Button(EVO, 0, "Change Number of\nEvolutions per 'MON")
         self.Bind(wx.EVT_BUTTON, self.OnChangeNumberofEvos, id=0)
         buttons.Add(ChangeNumberofEvos, 0, wx.EXPAND | wx.ALL, 5)
         
-        AddEvo = wx.Button(EVO, 1, "Add Evolution")
+        AddEvo = Button(EVO, 1, "Add Evolution")
         self.Bind(wx.EVT_BUTTON, self.OnAddEvo, id=1)
         buttons.Add(AddEvo, 0, wx.EXPAND | wx.ALL, 5)
         
-        RemoveEvo = wx.Button(EVO, 2, "Delete Evolution")
+        RemoveEvo = Button(EVO, 2, "Delete Evolution")
         self.Bind(wx.EVT_BUTTON, self.OnRemoveEvo, id=2)
         buttons.Add(RemoveEvo, 0, wx.EXPAND | wx.ALL, 5)
         
-        MoveUp = wx.Button(EVO, 4, "Move Up")
+        MoveUp = Button(EVO, 4, "Move Up")
         self.Bind(wx.EVT_BUTTON, self.OnMoveUp, id=4)
         buttons.Add(MoveUp, 0, wx.EXPAND | wx.ALL, 5)
         
-        MoveDown = wx.Button(EVO, 5, "Move Down")
+        MoveDown = Button(EVO, 5, "Move Down")
         self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=5)
         buttons.Add(MoveDown, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2286,11 +2282,11 @@ class MoveTutorTab(wx.Panel):
         self.CompList.InsertColumn(0, 'Move', width=140)
         CompBox.Add(self.CompList, 0, wx.EXPAND | wx.ALL, 5)
         
-        SELECTALL = wx.Button(TutorComp, 0, "Select All")
+        SELECTALL = Button(TutorComp, 0, "Select All")
         self.Bind(wx.EVT_BUTTON, self.OnSelectAllComp, id=0)
         ButtonBox.Add(SELECTALL, 0, wx.EXPAND | wx.ALL, 5)
         
-        CLEAR = wx.Button(TutorComp, 1, "Clear All")
+        CLEAR = Button(TutorComp, 1, "Clear All")
         self.Bind(wx.EVT_BUTTON, self.OnClearAllComp, id=1)
         ButtonBox.Add(CLEAR, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2316,19 +2312,19 @@ class MoveTutorTab(wx.Panel):
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         TutorMovesButtons.Add(self.ATTACK, 0, wx.EXPAND | wx.ALL, 2)
         
-        SET = wx.Button(TutorMoves, 8, "Replace")
+        SET = Button(TutorMoves, 8, "Replace")
         self.Bind(wx.EVT_BUTTON, self.OnChangeMove, id=8)
         TutorMovesButtons.Add(SET, 0, wx.EXPAND | wx.ALL, 2)
         
-        DELETE = wx.Button(TutorMoves, 3, "Delete")
+        DELETE = Button(TutorMoves, 3, "Delete")
         self.Bind(wx.EVT_BUTTON, self.OnDelete, id=3)
         TutorMovesButtons.Add(DELETE, 0, wx.EXPAND | wx.ALL, 5)
         
-        MOVE_UP = wx.Button(TutorMoves, 4, "Move Up")
+        MOVE_UP = Button(TutorMoves, 4, "Move Up")
         self.Bind(wx.EVT_BUTTON, self.OnMoveUp, id=4)
         TutorMovesButtons.Add(MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
         
-        MOVE_DOWN = wx.Button(TutorMoves, 5, "Move Down")
+        MOVE_DOWN = Button(TutorMoves, 5, "Move Down")
         self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=5)
         TutorMovesButtons.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2486,11 +2482,11 @@ class EggMoveTab(wx.Panel):
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         names_buttons_vbox.Add(self.POKE_NAME, 0, wx.EXPAND | wx.ALL, 5)
         
-        ADD_POKE =  wx.Button(self, 1, "Add Poke")
+        ADD_POKE =  Button(self, 1, "Add Poke")
         self.Bind(wx.EVT_BUTTON, self.OnAddPoke, id=1)
         names_buttons_vbox.Add(ADD_POKE, 0, wx.EXPAND | wx.ALL, 5)
 
-        DELETE_POKE =  wx.Button(self, 2, "Remove Poke")
+        DELETE_POKE =  Button(self, 2, "Remove Poke")
         self.Bind(wx.EVT_BUTTON, self.OnDeletePoke, id=2)
         names_buttons_vbox.Add(DELETE_POKE, 0, wx.EXPAND | wx.ALL, 5)
 
@@ -2517,19 +2513,19 @@ class EggMoveTab(wx.Panel):
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         moves_butons_vbox.Add(self.MOVE_NAME, 0, wx.EXPAND | wx.ALL, 5)
         
-        ADD_POKE =  wx.Button(self, 3, "Add Move")
+        ADD_POKE =  Button(self, 3, "Add Move")
         self.Bind(wx.EVT_BUTTON, self.OnAddMove, id=3)
         moves_butons_vbox.Add(ADD_POKE, 0, wx.EXPAND | wx.ALL, 5)
 
-        DELETE_POKE =  wx.Button(self, 4, "Remove Move")
+        DELETE_POKE =  Button(self, 4, "Remove Move")
         self.Bind(wx.EVT_BUTTON, self.OnDeleteMove, id=4)
         moves_butons_vbox.Add(DELETE_POKE, 0, wx.EXPAND | wx.ALL, 5)
         
-        MOVE_UP = wx.Button(self, 5, "Move Up")
+        MOVE_UP = Button(self, 5, "Move Up")
         self.Bind(wx.EVT_BUTTON, self.OnMoveUp, id=5)
         moves_butons_vbox.Add(MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
         
-        MOVE_DOWN = wx.Button(self, 6, "Move Down")
+        MOVE_DOWN = Button(self, 6, "Move Down")
         self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=6)
         moves_butons_vbox.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2766,7 +2762,7 @@ class MOVE_REPOINTER(wx.Dialog):
         self.New_Move_Num = wx.TextCtrl(pnl, -1,style=wx.TE_CENTRE, size=(50,-1))
         vbox.Add(self.New_Move_Num, 0, wx.EXPAND | wx.ALL, 5)
         
-        SEARCH = wx.Button(pnl, 1, "Search")
+        SEARCH = Button(pnl, 1, "Search")
         self.Bind(wx.EVT_BUTTON, self.OnSearch, id=1)
         vbox.Add(SEARCH, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2783,7 +2779,7 @@ class MOVE_REPOINTER(wx.Dialog):
         hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
         vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
         
-        SUBMIT = wx.Button(pnl, 2, "Submit")
+        SUBMIT = Button(pnl, 2, "Submit")
         self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2906,7 +2902,7 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
         hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
         vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
         
-        SUBMIT = wx.Button(pnl, 2, "Submit")
+        SUBMIT = Button(pnl, 2, "Submit")
         self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2987,7 +2983,7 @@ class NumberofEvosChanger(wx.Dialog):
         self.OFFSETS = wx.ListBox(pnl, -1)
         vbox.Add(self.OFFSETS, 0, wx.EXPAND | wx.ALL, 5)
         
-        SEARCH = wx.Button(pnl, 1, "Search")
+        SEARCH = Button(pnl, 1, "Search")
         self.Bind(wx.EVT_BUTTON, self.OnSearch, id=1)
         vbox.Add(SEARCH, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2998,7 +2994,7 @@ class NumberofEvosChanger(wx.Dialog):
         hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
         vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
         
-        SUBMIT = wx.Button(pnl, 2, "Submit")
+        SUBMIT = Button(pnl, 2, "Submit")
         self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         

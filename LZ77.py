@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 
-def LZUncompress(rom, offset):
+def LZUncompress(rom, offset, returnSize=False):
     """
     This function will take a byte string like "\xFF\xFF\x34\x48..." and 
     decompress it LZ77 GBA. It will return a byte string, like the one it
@@ -46,11 +46,21 @@ def LZUncompress(rom, offset):
                         raise "Bad LZ77 compressed data at "+hex(offset)
                         return None
                     uncompressed += r5
-                    if len(uncompressed) == data_length: return uncompressed
+                    if len(uncompressed) == data_length: 
+                        if returnSize == True:
+                            size = rom.tell()-offset
+                            return (uncompressed, size)
+                        else:
+                            return uncompressed
             elif bit == "0":
                 byte = rom.read(1)
                 uncompressed += byte
-                if len(uncompressed) == data_length: return uncompressed
+                if len(uncompressed) == data_length:
+                    if returnSize == True:
+                        size = rom.tell()-offset
+                        return (uncompressed, size)
+                    else:
+                        return uncompressed
     
 def LZCompress(data):
     """
