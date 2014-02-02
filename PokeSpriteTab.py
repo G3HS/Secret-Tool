@@ -50,7 +50,6 @@ class SpriteTab(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.LoadSingleSprite, id=58)
         self.Bind(wx.EVT_BUTTON, self.LoadSingleSprite, id=59)
         
-        
         sprite_border = 6
         spritePanelSizer.Add(self.FrontSprite, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, sprite_border)
         spritePanelSizer.Add(self.BackSprite, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, sprite_border)
@@ -60,13 +59,11 @@ class SpriteTab(wx.Panel):
         spritePanelSizer.Add(self.SFrontSprite, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, sprite_border)
         spritePanelSizer.Add(self.SBackSprite, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, sprite_border)
         
-        
         PalettePanel = wx.Panel(spritePanel, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         PalettePanelSizer = wx.BoxSizer(wx.VERTICAL)
         PalettePanel.SetSizer(PalettePanelSizer)
         SpritesAndPals.Add(PalettePanel, 0, wx.EXPAND | wx.ALL, 5)
        
-        
         PalettesSizer = wx.BoxSizer(wx.HORIZONTAL)
         PalettePanelSizer.Add(PalettesSizer, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -128,6 +125,16 @@ class SpriteTab(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.PositionEditor, id=55)
         PositionPanelSizer.Add(GUIEditor, 0, wx.EXPAND | wx.ALL, 2)
         
+        IconPanel = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        IconPanelSizer = wx.BoxSizer(wx.VERTICAL)
+        IconPanel.SetSizer(IconPanelSizer)
+        self.sizer.Add(IconPanel, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.Icons = wx.BitmapButton(IconPanel,61,wx.EmptyBitmap(32,64), size=(44,76))
+        self.Icons.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        self.Bind(wx.EVT_BUTTON, self.LoadIcon, id=61)
+        IconPanelSizer.Add(self.Icons, 0, wx.EXPAND | wx.ALL, 5)
+        
         self.load_everything(self.poke_num)
     
     def edit_color(self, instance):
@@ -147,7 +154,25 @@ class SpriteTab(wx.Panel):
             self.ShinyPalette[color_number-16] = data.GetColour()
             self.Changes["shiny"]=True
         self.ReloadShownSprites()
-        
+    
+    def LoadIcon(self, instance):
+        open_dialog = wx.FileDialog(self, message="Open a image...", 
+                                                        defaultDir=os.path.dirname(self.rom_name), style=wx.OPEN)
+        if open_dialog.ShowModal() == wx.ID_OK:
+            filename = open_dialog.GetPath()
+            raw = Image.open(filename)
+            if raw.size != (32,64):
+                raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 32x64.")
+            if raw.mode != "P":
+                converted = raw.convert("P", palette=Image.ADAPTIVE, colors=16)
+            else:
+                if len(raw.getcolors()) > 16:
+                    tmp = raw.convert("RGB")
+                    converted = raw.convert("P", palette=Image.ADAPTIVE, colors=16)
+                else: converted = raw
+            converted = converted.convert("RGB")
+            
+            
     def ReloadShownSprites(self):
         self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSprite,self.FrontPalette)
         self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSprite,self.FrontPalette)
@@ -245,6 +270,7 @@ class SpriteTab(wx.Panel):
             self.Changes["back"]=True
             self.Changes["normal"]=True
             self.Changes["shiny"]=True
+            
     def load_everything(self, poke_num):
         self.Changes = {"front":False, "back":False, "normal":False, "shiny":False}
         self.poke_num = poke_num
