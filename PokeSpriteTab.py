@@ -285,6 +285,7 @@ class SpriteTab(wx.Panel):
         iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
         iconpalettetable = int(self.config.get(self.rom_id, "iconpalettetable"), 0)
         iconpalettes = int(self.config.get(self.rom_id, "iconpalettes"), 0)
+        numiconpalettes = int(self.config.get(self.rom_id, "numiconpalettes"), 0)
         
         bytes_per_entry = 8 ##Need to load from ini for EMERALD
         
@@ -328,11 +329,30 @@ class SpriteTab(wx.Panel):
             rom.seek(enemyytable+(poke_num+1)*4+1)
             EnemyY = deal_with_8bit_signed_hex(int(get_bytes_string_from_hex_string(rom.read(1)),16))
             self.EnemyY.SetValue(EnemyY)
+            
+            rom.seek(iconspritetable+(poke_num+1)*4)
+            self.IconPointer = read_pointer(rom.read(4))
+            rom.seek(self.IconPointer)
+            self.GBAIcon = rom.read((32*64)/2)
+            
+            rom.seek(iconpalettetable+(poke_num+1))
+            self.IconPalNum = int(hexlify(rom.read(1)),16)
+            
+            rom.seek(iconpalettes)
+            self.IconPals = []
+            for n in range(numiconpalettes):
+                self.IconPals.append(ConvertGBAPalTo25Bit(rom.read(32)))
+               
+            self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
+            self.Icons.SetBitmapLabel(self.TMPIcon)
+            
         for num, color in enumerate(self.FrontPalette):
             self.ColorButtons[num].SetBackgroundColour(color)
         for num, color in enumerate(self.ShinyPalette):
             self.ColorButtons[num+16].SetBackgroundColour(color)
-    
+            
+             
+            
     def PositionEditor(self, instance):
         #origin for pokeback is (40,48)
         #origin for pokefront is (144,8)

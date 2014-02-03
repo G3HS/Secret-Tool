@@ -81,30 +81,31 @@ def ConvertGBAImageToNormal(image, palette, size=(64,64)):
         pixelb = int(pixels[0],16)
         indexed_image.append(pixela)
         indexed_image.append(pixelb)
-    
+    width = size[0]
+    height = size[1]
+    NumOfBlocks = (width/8) * (height/8)
     blocks = []
     n = 0
-    for z in range(64):
+    for z in range(NumOfBlocks):
         tmp_list = indexed_image[n:n+64]
         blocks.append(tmp_list)
         n += 64
-    #create first 8 rows
     image_data = []
     b = 0
     a = 0
     row = 0
-    for n in range(size[0]/8):
-        for n in range(size[1]/8):
+    for x in range(height/8):
+        for y in range(8):
             b = row
-            for n in range(size[1]/8):
+            for z in range(width/8):
                 r = 0
-                for n in range(8):
+                for w in range(8):
                     image_data.append(blocks[b][a+r])
                     r += 1
                 b += 1
             a += 8
         a = 0
-        row += 8
+        row += width/8
     img_data = []
     for pixel in image_data:
         img_data.append(palette[pixel][0]) #Append Red
