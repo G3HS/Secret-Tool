@@ -12,10 +12,12 @@ class SpriteTab(wx.Panel):
     def __init__(self, parent, rom=None, config=None, rom_id=None):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.rom_name = rom
+        self.lastPath = os.path.dirname(self.rom_name)
         self.config = config
         self.rom_id = rom_id
         self.poke_num = 0
         self.OrgSizes = {}
+        self.IconPalNum = 0
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.generate_UI(self.poke_num)
 
@@ -130,12 +132,61 @@ class SpriteTab(wx.Panel):
         IconPanel.SetSizer(IconPanelSizer)
         self.sizer.Add(IconPanel, 0, wx.EXPAND | wx.ALL, 5)
         
+        IconImageSizer = wx.BoxSizer(wx.HORIZONTAL)
+        IconPanelSizer.Add(IconImageSizer, 0, wx.EXPAND | wx.ALL, 0)
+        
         self.Icons = wx.BitmapButton(IconPanel,61,wx.EmptyBitmap(32,64), size=(44,76))
         self.Icons.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         self.Bind(wx.EVT_BUTTON, self.LoadIcon, id=61)
-        IconPanelSizer.Add(self.Icons, 0, wx.EXPAND | wx.ALL, 5)
+        IconImageSizer.Add(self.Icons, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.AniIcon = wx.BitmapButton(IconPanel,61,wx.EmptyBitmap(64,64), size=(76,76))
+        self.AniIcon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        IconImageSizer.Add(self.AniIcon, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.IconPalChoice = wx.ComboBox(IconPanel, -1, choices=[],
+                                            style=wx.SUNKEN_BORDER, size=(60, -1))
+        self.IconPalChoice.Bind(wx.EVT_COMBOBOX, self.SwapIconPal)
+        IconPanelSizer.Add(self.IconPalChoice, 0, wx.EXPAND | wx.ALL, 5)
+        
+        
+        IconPalBox = wx.BoxSizer(wx.HORIZONTAL)
+        IconPanelSizer.Add(IconPalBox, 0, wx.EXPAND | wx.ALL, 0)
+        
+        IconPalBoxLeft = wx.BoxSizer(wx.VERTICAL)
+        IconPalBox.Add(IconPalBoxLeft, 0, wx.EXPAND | wx.ALL, 0)
+        IconPalBoxRight = wx.BoxSizer(wx.VERTICAL)
+        IconPalBox.Add(IconPalBoxRight, 0, wx.EXPAND | wx.ALL, 0)
+        self.IconColorButtons = []
+        IconButtonsize = (60,25)
+        for n in range(16):
+            #Use IDs 70->86
+            ID = 70
+            button = Button(IconPanel, 70+n, "", size=IconButtonsize)
+            self.Bind(wx.EVT_BUTTON, self.editIconColor, id=70+n)
+            if n < 8:
+                IconPalBoxLeft.Add(button, 0, wx.EXPAND | wx.ALL, 5)
+            elif n > 7:
+                IconPalBoxRight.Add(button, 0, wx.EXPAND | wx.ALL, 5)
+            self.IconColorButtons.append(button)
         
         self.load_everything(self.poke_num)
+    
+    def SwapIconPal(self, instance):
+        self.IconPalNum = instance.GetSelection()
+        self.ReloadShownSprites()
+        
+    def editIconColor(self, instance):
+        instance = instance.GetEventObject()
+        color_number = instance.Id-70
+        dlg = wx.ColourDialog(self)
+        dlg.GetColourData().SetChooseFull(True)
+        if dlg.ShowModal() == wx.ID_OK:
+            data = dlg.GetColourData()
+        else: return
+        dlg.Destroy()
+        self.IconPals[self.IconPalNum][color_number] = data.GetColour()
+        self.ReloadShownSprites()
     
     def edit_color(self, instance):
         instance = instance.GetEventObject()
@@ -146,7 +197,6 @@ class SpriteTab(wx.Panel):
             data = dlg.GetColourData()
         else: return
         dlg.Destroy()
-        self.ColorButtons[color_number].SetBackgroundColour(data.GetColour())
         if color_number < 16:
             self.FrontPalette[color_number] = data.GetColour()
             self.Changes["normal"]=True
@@ -156,10 +206,11 @@ class SpriteTab(wx.Panel):
         self.ReloadShownSprites()
     
     def LoadIcon(self, instance):
-        open_dialog = wx.FileDialog(self, message="Open a image...", 
-                                                        defaultDir=os.path.dirname(self.rom_name), style=wx.OPEN)
+        open_dialog = wx.FileDialog(self, message="Open an icon...", 
+                                                        defaultDir=self.lastPath, style=wx.OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
+            self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
             if raw.size != (32,64):
                 raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 32x64.")
@@ -172,7 +223,36 @@ class SpriteTab(wx.Panel):
                 else: converted = raw
             converted = converted.convert("RGB")
             
+            TC = self.IconPals[self.IconPalNum][0]
+            TransColor = (TC[0],TC[1],TC[2])
             
+            PILPal = []
+            for color in self.IconPals[self.IconPalNum]:
+                PILPal.append(color[0])
+                PILPal.append(color[1])
+                PILPal.append(color[2])
+            while len(PILPal) < 256*3:
+                PILPal.append(TC[0])
+                PILPal.append(TC[1])
+                PILPal.append(TC[2])
+            PILImg = Image.new("P", (64, 64), 0)
+            PILImg.putpalette(PILPal)
+            
+            pixels = converted.load()
+            FirstColor = pixels[0,0]
+            for y in range(64):
+                for x in range(32):
+                    if pixels[x,y] == FirstColor:
+                        pixels[x,y] = TransColor
+            converted = converted.quantize(palette=PILImg)
+            converted = converted.convert("RGB")
+            
+            image = PilImageToWxImage(converted)
+            self.GBAIcon, palette = ConvertNormalImageToGBA(image, palette=self.IconPals[self.IconPalNum], size=(32,64))
+            self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
+            self.Icons.SetBitmapLabel(self.TMPIcon)
+            self.ReloadShownSprites()
+    
     def ReloadShownSprites(self):
         self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSprite,self.FrontPalette)
         self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSprite,self.FrontPalette)
@@ -184,16 +264,30 @@ class SpriteTab(wx.Panel):
         self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
         self.SBackSprite.SetBitmapLabel(self.TMPSBackSprite)
         
+        self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
+        self.Icons.SetBitmapLabel(self.TMPIcon)
+        
         for num, color in enumerate(self.FrontPalette):
             self.ColorButtons[num].SetBackgroundColour(color)
         for num, color in enumerate(self.ShinyPalette):
             self.ColorButtons[num+16].SetBackgroundColour(color)
+        for num, color in enumerate(self.IconPals[self.IconPalNum]):
+            self.IconColorButtons[num].SetBackgroundColour(color)
+            
+        tmpimage = wx.ImageFromBitmap(self.TMPIcon)
+            
+        self.IconTop = tmpimage.GetSubImage((0,0,32,32)).Scale(64, 64)
+        self.IconBottom = tmpimage.GetSubImage((0,32,32,32)).Scale(64, 64)
         
+        self.IconTop = wx.BitmapFromImage(self.IconTop)
+        self.IconBottom = wx.BitmapFromImage(self.IconBottom)
+    
     def LoadSingleSprite(self, instance):
-        open_dialog = wx.FileDialog(self, message="Open a image...", 
-                                                        defaultDir=os.path.dirname(self.rom_name), style=wx.OPEN)
+        open_dialog = wx.FileDialog(self, message="Open a sprite...", 
+                                                        defaultDir=self.lastPath, style=wx.OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
+            self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
             if raw.size != (64,64):
                 raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 64x64.")
@@ -233,10 +327,11 @@ class SpriteTab(wx.Panel):
             self.ReloadShownSprites()
             
     def LoadSheetSprite(self, instance):
-        open_dialog = wx.FileDialog(self, message="Open a image...", 
-                                                        defaultDir=os.path.dirname(self.rom_name), style=wx.OPEN)
+        open_dialog = wx.FileDialog(self, message="Open a sprite sheet...", 
+                                                        defaultDir=self.lastPath, style=wx.OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
+            self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
             if raw.size != (256,64):
                 raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 256x64.")
@@ -346,13 +441,46 @@ class SpriteTab(wx.Panel):
             self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
             self.Icons.SetBitmapLabel(self.TMPIcon)
             
+            tmpimage = wx.ImageFromBitmap(self.TMPIcon)
+            
+            self.IconTop = tmpimage.GetSubImage((0,0,32,32)).Scale(64, 64)
+            self.IconBottom = tmpimage.GetSubImage((0,32,32,32)).Scale(64, 64)
+            
+            self.IconTop = wx.BitmapFromImage(self.IconTop)
+            self.IconBottom = wx.BitmapFromImage(self.IconBottom)
+            self.AniIcon.SetBitmapLabel(self.IconTop)
+            self.SetIconTimer(1)
+            
         for num, color in enumerate(self.FrontPalette):
             self.ColorButtons[num].SetBackgroundColour(color)
         for num, color in enumerate(self.ShinyPalette):
             self.ColorButtons[num+16].SetBackgroundColour(color)
+        for num, color in enumerate(self.IconPals[self.IconPalNum]):
+            self.IconColorButtons[num].SetBackgroundColour(color)
+        nums = []
+        for n in range(numiconpalettes):
+            nums.append(str(n))
+        self.IconPalChoice.Clear()
+        self.IconPalChoice.AppendItems(nums) 
+        self.IconPalChoice.SetSelection(self.IconPalNum)
             
-             
-            
+    def OnIconTimer1(self, event):
+        self.SetIconTimer(2)
+        self.AniIcon.SetBitmapLabel(self.IconTop)
+        
+    def OnIconTimer2(self, event):
+        self.SetIconTimer(1)
+        self.AniIcon.SetBitmapLabel(self.IconBottom)
+        
+    def SetIconTimer(self, num):
+        TIMER_ID = 2  # pick a number
+        self.Icontimer = wx.Timer(self, TIMER_ID)  # message will be sent to the panel
+        self.Icontimer.Start(250)  # 100 milliseconds
+        if num == 1:
+            wx.EVT_TIMER(self, TIMER_ID, self.OnIconTimer1)  # call the on_timer function
+        elif num == 2:
+            wx.EVT_TIMER(self, TIMER_ID, self.OnIconTimer2)
+        
     def PositionEditor(self, instance):
         #origin for pokeback is (40,48)
         #origin for pokefront is (144,8)

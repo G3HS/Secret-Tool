@@ -119,16 +119,28 @@ def ConvertGBAImageToNormal(image, palette, size=(64,64)):
     bitmap = wx.BitmapFromImage(img)
     return bitmap
     
-def ConvertNormalImageToGBA(image, size=(64,64)):
+def ConvertNormalImageToGBA(image, palette=None, size=(64,64)):
     """
     This function will take a normal wx.Image and return tuple
     of (GBA_Image, Palette). Image must be already 16 colors
     and have dimensions divisible by 8.
+    
+    If a palette is provided, it will not make a new palette, instead
+    using that one to find indexes.
     """
+    if palette:
+        dontmap = True
+        if type(palette[0]) is list:
+            tmp = palette
+            palette = []
+            for color in tmp:
+                palette.append((color[0],color[1],color[2]))
+    else:
+        dontmap = False
+        palette = []
     data = image.GetData()
     height = size[1]
     width = size[0]
-    palette = []
     blocks = []
     block_num = width/8
     for w in range(height/8):
@@ -139,8 +151,9 @@ def ConvertNormalImageToGBA(image, size=(64,64)):
                     color = (int(hexlify(data[:1]),16),
                                   int(hexlify(data[1:2]),16),
                                   int(hexlify(data[2:3]),16))
-                    if color not in palette:
-                        palette.append(color)
+                    if dontmap == False:
+                        if color not in palette:
+                            palette.append(color)
                     try: blocks[block_num]
                     except: blocks.append([])
                     blocks[block_num].append(color)
