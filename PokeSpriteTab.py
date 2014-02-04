@@ -1,4 +1,5 @@
 from LZ77 import *
+from binascii import hexlify, unhexlify
 from ImageFunctions import *
 from rom_insertion_operations import *
 import os,time
@@ -172,6 +173,176 @@ class SpriteTab(wx.Panel):
         
         self.load_everything(self.poke_num)
     
+    def save(self):
+        #Save sprites
+        FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
+        BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
+        FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)
+        ShinyPaletteTable = int(self.config.get(self.rom_id, "ShinyPaletteTable"), 0)
+        enemyytable = int(self.config.get(self.rom_id, "enemyytable"), 0)
+        playerytable = int(self.config.get(self.rom_id, "playerytable"), 0)
+        enemyaltitudetable = int(self.config.get(self.rom_id, "enemyaltitudetable"), 0)
+        iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
+        iconpalettetable = int(self.config.get(self.rom_id, "iconpalettetable"), 0)
+        iconpalettes = int(self.config.get(self.rom_id, "iconpalettes"), 0)
+        numiconpalettes = int(self.config.get(self.rom_id, "numiconpalettes"), 0)
+        
+        bytes_per_entry = 8 ##Need to load from ini for EMERALD
+        
+        with open(self.rom_name, "r+b") as rom:
+            if self.Changes["front"] != False:
+                GBAFSLZ = LZCompress(self.GBAFrontSprite)
+                if len(GBAFSLZ) > self.OrgSizes["front"]:
+                    repointer = SpriteRepointer(self.rom_name, 
+                                                             need=len(GBAFSLZ), 
+                                                             repoint_what="Front Sprite")
+                    while True:
+                        if repointer.ShowModal() == wx.ID_OK:
+                            
+                            if repointer.offset == self.FrontSpritePointer: continue
+                            elif repointer.offset == None: continue
+                            else:
+                                rom.seek(FrontSpriteTable+(self.poke_num+1)*bytes_per_entry)
+                                #Write new pointer
+                                offset = repointer.offset
+                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                hexOffset = make_pointer(hexOffset)
+                                hexOffset = unhexlify(hexOffset)
+                                rom.write(hexOffset)
+                                #Clear old image
+                                rom.seek(self.FrontSpritePointer)
+                                for x in range(self.OrgSizes["front"]):
+                                    rom.write("\xFF")
+                                #Write new image
+                                rom.seek(offset)
+                                rom.write(GBAFSLZ)
+                                self.OrgSizes["front"] = len(GBAFSLZ)
+                                break
+                else:
+                    rom.seek(self.FrontSpritePointer)
+                    rom.write(GBAFSLZ)
+                                
+            if self.Changes["back"] != False:
+                GBABSLZ = LZCompress(self.GBABackSprite)
+                if len(GBABSLZ) > self.OrgSizes["back"]:
+                    repointer = SpriteRepointer(self.rom_name, 
+                                                             need=len(GBABSLZ), 
+                                                             repoint_what="Back Sprite")
+                    while True:
+                        if repointer.ShowModal() == wx.ID_OK:
+                            
+                            if repointer.offset == self.BackSpritePointer: continue
+                            elif repointer.offset == None: continue
+                            else:
+                                rom.seek(BackSpriteTable+(self.poke_num+1)*bytes_per_entry)
+                                #Write new pointer
+                                offset = repointer.offset
+                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                hexOffset = make_pointer(hexOffset)
+                                hexOffset = unhexlify(hexOffset)
+                                rom.write(hexOffset)
+                                #Clear old image
+                                rom.seek(self.BackSpritePointer)
+                                for x in range(self.OrgSizes["back"]):
+                                    rom.write("\xFF")
+                                #Write new image
+                                rom.seek(offset)
+                                rom.write(GBABSLZ)
+                                self.OrgSizes["back"] = len(GBABSLZ)
+                                break
+                else:
+                    rom.seek(self.BackSpritePointer)
+                    rom.write(GBABSLZ)
+                    
+            if self.Changes["normal"] != False:
+                normal = Convert25bitPalettetoGBA(self.FrontPalette)
+                GBANORMALLZ = LZCompress(normal)
+                if len(GBANORMALLZ) > self.OrgSizes["normal"]:
+                    repointer = SpriteRepointer(self.rom_name, 
+                                                             need=len(GBANORMALLZ), 
+                                                             repoint_what="Normal Palette")
+                    while True:
+                        if repointer.ShowModal() == wx.ID_OK:
+                            
+                            if repointer.offset == self.FrontPalettePointer: continue
+                            elif repointer.offset == None: continue
+                            else:
+                                rom.seek(FrontPaletteTable+(self.poke_num+1)*bytes_per_entry)
+                                #Write new pointer
+                                offset = repointer.offset
+                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                hexOffset = make_pointer(hexOffset)
+                                hexOffset = unhexlify(hexOffset)
+                                rom.write(hexOffset)
+                                #Clear old image
+                                rom.seek(self.FrontPalettePointer)
+                                for x in range(self.OrgSizes["normal"]):
+                                    rom.write("\xFF")
+                                #Write new image
+                                rom.seek(offset)
+                                rom.write(GBANORMALLZ)
+                                self.OrgSizes["normal"] = len(GBANORMALLZ)
+                                break
+                else:
+                    rom.seek(self.FrontPalettePointer)
+                    rom.write(GBANORMALLZ)
+                    
+            if self.Changes["shiny"] != False:
+                shiny = Convert25bitPalettetoGBA(self.ShinyPalette)
+                GBASHINYLZ = LZCompress(shiny)
+                if len(GBASHINYLZ) > self.OrgSizes["shiny"]:
+                    repointer = SpriteRepointer(self.rom_name, 
+                                                             need=len(GBASHINYLZ), 
+                                                             repoint_what="Shiny Palette")
+                    while True:
+                        if repointer.ShowModal() == wx.ID_OK:
+                            
+                            if repointer.offset == self.ShinyPalettePointer: continue
+                            elif repointer.offset == None: continue
+                            else:
+                                rom.seek(ShinyPaletteTable+(self.poke_num+1)*bytes_per_entry)
+                                #Write new pointer
+                                offset = repointer.offset
+                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                hexOffset = make_pointer(hexOffset)
+                                hexOffset = unhexlify(hexOffset)
+                                rom.write(hexOffset)
+                                #Clear old image
+                                rom.seek(self.ShinyPalettePointer)
+                                for x in range(self.OrgSizes["shiny"]):
+                                    rom.write("\xFF")
+                                #Write new image
+                                rom.seek(offset)
+                                rom.write(GBASHINYLZ)
+                                self.OrgSizes["shiny"] = len(GBASHINYLZ)
+                                break
+                else:
+                    rom.seek(self.ShinyPalettePointer)
+                    rom.write(GBASHINYLZ)
+            #Write positions
+            rom.seek(playerytable+(self.poke_num+1)*4+1)
+            PlayerY = hex(self.PlayerY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
+            rom.write(unhexlify(PlayerY))
+            
+            rom.seek(enemyaltitudetable+(self.poke_num+1)*4+1)
+            EnemyAlt = hex(self.EnemyAlt.GetValue()).rstrip("L").lstrip("0x").zfill(2)
+            rom.write(unhexlify(EnemyAlt))
+            
+            rom.seek(enemyytable+(self.poke_num+1)*4+1)
+            EnemyY = hex(self.EnemyY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
+            rom.write(unhexlify(EnemyY))
+            
+            #Write all things Icon
+            rom.seek(self.IconPointer)
+            rom.write(self.GBAIcon)
+            
+            pals = ""
+            for pal in self.IconPals:
+                tmp = Convert25bitPalettetoGBA(pal)
+                pals += tmp
+            rom.seek(iconpalettes)
+            rom.write(pals)
+            
     def SwapIconPal(self, instance):
         self.IconPalNum = instance.GetSelection()
         self.ReloadShownSprites()
@@ -641,3 +812,91 @@ class SpriteTab(wx.Panel):
             pygame.display.flip()
         except: pass
         
+class SpriteRepointer(wx.Dialog):
+    def __init__(self, rom, parent=None, need=None, repoint_what=None, *args, **kw):
+        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
+        
+        self.offset = None
+        self.num = need
+        self.repoint = repoint_what
+        self.rom = rom
+        self.InitUI()
+        self.OnSearch()
+        self.SetTitle("Repoint "+self.repoint)
+        
+    def InitUI(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        txt = wx.StaticText(self, -1, self.repoint+" needs to be repointed.\n\n",style=wx.TE_CENTRE)
+        vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        txt2 = wx.StaticText(self, -1, "Please choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.",style=wx.TE_CENTRE)
+        vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.OFFSETS = wx.ListBox(self, -1)
+        self.OFFSETS.Bind(wx.EVT_LISTBOX, self.GetOffset)
+        vbox.Add(self.OFFSETS, 0, wx.EXPAND | wx.ALL, 5)
+        
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        manual_txt = wx.StaticText(self, -1, "Manual Offset: 0x",style=wx.TE_CENTRE)
+        hbox.Add(manual_txt, 0, wx.EXPAND | wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        self.MANUAL = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
+        self.MANUAL.Bind(wx.EVT_TEXT, self.GetOffset)
+        hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
+        vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
+        
+        OK = self.CreateButtonSizer(wx.OK)
+        vbox.Add(OK, 0, wx.EXPAND | wx.ALL, 5)
+        
+        txt3 = wx.StaticText(self, -1, "______________________________",style=wx.TE_CENTRE)
+        vbox.Add(txt3, 0, wx.EXPAND | wx.ALL, 15)
+        
+        self.SetSizerAndFit(vbox)
+        self.Fit()
+        self.SetMinSize(self.GetEffectiveMinSize())
+        
+    def GetOffset(self, *args):
+        sel = self.OFFSETS.GetSelection()
+        _offset_ = self.MANUAL.GetValue()
+        
+        if _offset_ != "":
+            if len(_offset_) > 6:
+                check = _offset_[-7:-6]
+                if check == "1" or check == "9":
+                    check = "1"
+                else:
+                    check = ""
+                _offset_ = check+_offset_[-6:].zfill(6)
+        elif sel != -1:
+            _offset_ = self.OFFSETS.GetString(sel)[2:]
+        else: return
+        
+        try: self.offset = int(_offset_, 16)
+        except: return
+
+    def OnSearch(self, *args):
+        self.OFFSETS.Clear()
+        search = "\xff"*self.num
+        with open(self.rom, "r+b") as rom:
+            rom.seek(0)
+            read = rom.read()
+            x = (0,True)
+            start = 7602176
+            for n in range(5):
+                if x[1] == None:
+                    break
+                x = (0,True)
+                while x[0] != 1:
+                    offset = read.find(search, start)
+                    if offset == -1:
+                        x = (1,None)
+                    if offset%4 != 0:
+                        start = offset+1
+                        continue
+                    if read[offset-1] != "\xFF":
+                        start = offset+1
+                        continue
+                    self.OFFSETS.Append(hex(offset))
+                    x = (1,True)
+                    start = offset+len(search)

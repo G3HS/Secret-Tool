@@ -52,11 +52,10 @@ def Convert25bitPalettetoGBA(palette):
         green = green >> 3
         blue = blue >> 3
         
-        
         green = green << 5
         blue = blue << 10
         
-        color = (blue & green & red)
+        color = (blue | green | red)
         hexColor = hex(color).rstrip("L").lstrip("0x").zfill(4)
         bytes = unhexlify(hexColor)
         bytes = bytes[1]+bytes[0]

@@ -11,7 +11,7 @@ from PokeSpriteTab import *
 
 from cStringIO import StringIO
 
-version = 'Alpha Demo 0.5'
+version = 'Beta 0.9'
 
 OPEN = 1
 poke_num = 0
@@ -324,6 +324,7 @@ class PokemonDataEditor(wx.Panel):
         self.tabbed_area.evo.save()
         self.tabbed_area.tutor.save()
         self.tabbed_area.dex.save()
+        self.tabbed_area.sprites.save()
         
     def save_new_poke_name(self):
         name = self.Poke_Name.GetValue()
