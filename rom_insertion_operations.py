@@ -179,7 +179,7 @@ def convert_ascii_and_poke(string, mode):
     elif mode == "to_poke":
         string = binascii.hexlify(string)
         string = string.upper()
-        string = "\\x"+re.sub("(.{2})", "\\1\\x", string, 0, re.DOTALL)[:-2]
+        string = "\\x"+re.sub("((.|\n|\r){2})", "\\1\\x", string, 0)[:-2]
         for k,v in chart:
             string = string.replace(k,v)
         p = platform.system()

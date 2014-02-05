@@ -8,10 +8,11 @@ from rom_insertion_operations import *
 from CheckListCtrl import *
 from Button import *
 from PokeSpriteTab import *
+from ExpandPokes import *
 
 from cStringIO import StringIO
 
-version = 'Beta 0.9'
+version = 'Beta 0.9.1'
 
 OPEN = 1
 poke_num = 0
@@ -19,9 +20,6 @@ poke_names = None
 MOVES_LIST = None
 ITEM_NAMES = None
 returned_offset = None
-
-fallback = sys.stderr
-
 
 description = """POK\xe9MON Gen III Hacking Suite was developed to enable better cross-
 platform POK\xe9MON  Rom Hacking by removing the need for the .NET
@@ -131,7 +129,6 @@ class MainWindow(wx.Frame):
             self.open_rom_name = filename
             self.work_with_ini()
         
-            
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
         #If yes, load it's custom ini. If no, create its ini.
@@ -407,7 +404,6 @@ class StatsTab(wx.Panel):
         
         self.SetSizer(self.sizer)
         self.Layout()
-        
         
     def reload_stuff(self):
         basestatsoffset = int(frame.Config.get(frame.rom_id, "pokebasestats"), 0)
@@ -2743,7 +2739,7 @@ class EggMoveTab(wx.Panel):
                             
                         
 #############################################################
-##----------------------------------------Extra Dialogues----------------------------------------##
+##----------------------------------------Extra Dialogues-------------------------------##
 #############################################################
 
 class MOVE_REPOINTER(wx.Dialog):
