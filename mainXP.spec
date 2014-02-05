@@ -1,7 +1,10 @@
 # -*- mode: python -*-
 a = Analysis(['D:\\Secret-Tool\\main.py'],
              pathex=['D:\\Secret-Tool'])
-             
+for d in a.datas:
+    if 'pyconfig' in d[0]: 
+        a.datas.remove(d)
+        break
 pyz = PYZ(a.pure)
 exe = EXE( pyz,
           a.scripts,

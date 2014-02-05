@@ -1116,7 +1116,7 @@ class MovesTab(wx.Panel):
             learned_moves = get_hex_from_string(learned_moves)
             if learned_moves != None: rom.write(learned_moves)
             else:
-                raise AttributeError("There was an issue saving learned moves. They have been skipped. Please try again. If this continues, restart the program.")
+                sys.stderr.write("There was an issue saving learned moves. They have been skipped. Please try again. If this continues, restart the program.")
                 return
             learnedmoveslength = int(frame.Config.get(frame.rom_id, "learnedmoveslength"), 0)
             
@@ -1301,7 +1301,11 @@ class MovesTab(wx.Panel):
         self.MOVESET.DeleteAllItems()
         self.learned_moves = self.get_move_data()
         for move, level in self.learned_moves:
-            index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
+            try:
+                index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
+            except:
+                sys.stderr.write("Moves have not been fully loaded because there was an error. Either not enough moves were loaded due to a bad number in the ini or the learned move data offset is bad/corrupted. The error occurred trying to read move #{0}. The current number of moves is: {1}.".format(move, len(self.MOVES_LIST)))
+                return
             self.MOVESET.SetStringItem(index, 1, str(level))
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
         
@@ -1459,10 +1463,10 @@ class EvoTab(wx.Panel):
         
         vbox = wx.BoxSizer(wx.VERTICAL)
         
-        self.evo_list = wx.ListCtrl(EVO, -1, style=wx.LC_REPORT, size=(600,300))
-        self.evo_list.InsertColumn(0, 'Method', width=160)
-        self.evo_list.InsertColumn(1, 'Argument', width=160)
-        self.evo_list.InsertColumn(2, 'Evolves into...', width=140)
+        self.evo_list = wx.ListCtrl(EVO, -1, style=wx.LC_REPORT, size=(570,300))
+        self.evo_list.InsertColumn(0, 'Method', width=150)
+        self.evo_list.InsertColumn(1, 'Argument', width=150)
+        self.evo_list.InsertColumn(2, 'Evolves into...', width=130)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnSelectEvo,  self.evo_list)
         vbox.Add(self.evo_list, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -1801,7 +1805,7 @@ class PokeDexTab(wx.Panel):
         PScaleBox = wx.BoxSizer(wx.HORIZONTAL)
         vbox.Add(PScaleBox, 0, wx.LEFT, 5)
         PScaleBoxLeft = wx.BoxSizer(wx.VERTICAL)
-        PScaleBox.Add(PScaleBoxLeft, 0, wx.ALL, 5)
+        PScaleBox.Add(PScaleBoxLeft, 0, wx.LEFT | wx.RIGHT, 5)
         
         Pscale_txt = wx.StaticText(DEX, -1,encode_per_platform("POK\xe9MON Scale:"))
         PScaleBoxLeft.Add(Pscale_txt, 0, wx.ALL, 5)
@@ -1816,7 +1820,7 @@ class PokeDexTab(wx.Panel):
         PScaleBoxLeft.Add(self.Poffset, 0, wx.ALL, 5)
         
         PScaleBoxRight = wx.BoxSizer(wx.VERTICAL)
-        PScaleBox.Add(PScaleBoxRight, 0, wx.ALL, 5)
+        PScaleBox.Add(PScaleBoxRight, 0, wx.LEFT | wx.RIGHT, 5)
         
         self.PScale_x = wx.StaticText(DEX, -1,"0.000x---")
         PScaleBoxRight.Add(self.PScale_x, 0, wx.TOP, 15)
@@ -1828,7 +1832,7 @@ class PokeDexTab(wx.Panel):
         TScaleBox = wx.BoxSizer(wx.HORIZONTAL)
         vbox.Add(TScaleBox, 0, wx.LEFT, 5)
         TScaleBoxLeft = wx.BoxSizer(wx.VERTICAL)
-        TScaleBox.Add(TScaleBoxLeft, 0, wx.ALL, 5)
+        TScaleBox.Add(TScaleBoxLeft, 0, wx.LEFT | wx.RIGHT, 5)
         
         Tscale_txt = wx.StaticText(DEX, -1, "Trainer Scale:")
         TScaleBoxLeft.Add(Tscale_txt, 0, wx.ALL, 5)
@@ -1845,7 +1849,7 @@ class PokeDexTab(wx.Panel):
         self.sizer.Add(DEX, 0, wx.EXPAND | wx.ALL, 5)
     
         TScaleBoxRight = wx.BoxSizer(wx.VERTICAL)
-        TScaleBox.Add(TScaleBoxRight, 0, wx.ALL, 5)
+        TScaleBox.Add(TScaleBoxRight, 0, wx.LEFT | wx.RIGHT, 5)
         
         self.TScale_x = wx.StaticText(DEX, -1,"0.000x---")
         TScaleBoxRight.Add(self.TScale_x, 0, wx.TOP, 15)

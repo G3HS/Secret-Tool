@@ -84,7 +84,7 @@ class SpriteTab(wx.Panel):
         PalettesSizer.Add(hbox_high2, 0, wx.EXPAND | wx.ALL, 5)
         PalettesSizer.Add(hbox_low2, 0, wx.EXPAND | wx.ALL, 5)
         self.ColorButtons = []
-        btnSize = ((55, 30)) 
+        btnSize = ((55, 28)) 
         for n in range(32):
             button = Button(PalettePanel, n, "", size=btnSize)
             self.Bind(wx.EVT_BUTTON, self.edit_color, id=n)
@@ -141,7 +141,8 @@ class SpriteTab(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.LoadIcon, id=61)
         IconImageSizer.Add(self.Icons, 0, wx.EXPAND | wx.ALL, 5)
         
-        self.AniIcon = wx.BitmapButton(IconPanel,61,wx.EmptyBitmap(64,64), size=(76,76))
+        self.AniIcon = wx.BitmapButton(IconPanel,62,wx.EmptyBitmap(64,64), size=(76,76))
+        self.Bind(wx.EVT_BUTTON, self.LoadIcon, id=62)
         self.AniIcon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         IconImageSizer.Add(self.AniIcon, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -619,6 +620,7 @@ class SpriteTab(wx.Panel):
             
             self.IconTop = wx.BitmapFromImage(self.IconTop)
             self.IconBottom = wx.BitmapFromImage(self.IconBottom)
+            
             self.AniIcon.SetBitmapLabel(self.IconTop)
             self.SetIconTimer(1)
             
