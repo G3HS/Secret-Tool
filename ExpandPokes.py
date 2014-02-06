@@ -1,35 +1,34 @@
 # -*- coding: utf-8 -*- 
 
-from __future__ import division
 import wx, os, ConfigParser, sys
 from binascii import hexlify, unhexlify
 from Button import *
+from ExpandPokesOffsets import *
+from rom_insertion_operations import *
+from LZ77 import *
 
-def RepointPokes():
-    #Need:
-    NewNumberOfPokes = None
-    NewDexSize = None
-    RAMOffset = None
+def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_id, ini):
     #-#-#-#
-    with open(rom.name, "r+b") as rom:
+    with open(rom, "r+b") as rom:
+        SUPERBACKUP = rom.read()
         #Write JPAN's hack.
-        with open("SBRTable.bin", "rb") as table:
+        with open(os.path.join("Resources","SBRTable.bin"), "rb") as table:
             NewBlockTable = table.read()
             rom.seek(0x3FEC94)
             rom.write(NewBlockTable)
-        with open("SaveBlockRecycle.bin", "rb") as SBR:
+        with open(os.path.join("Resources","SaveBlockRecycle.bin"), "rb") as SBR:
             JPANsSBR = SBR.read()
-            rom.seek("""OFFSET""")
+            rom.seek(StartOffset)
             rom.write(JPANsSBR)
         rom.seek(0xD991E)
         rom.write("\x38\x47")
         rom.seek(0xD995C)
-        offset = hex("""OFFSET"""+0x8000061).rstrip("L").lstrip("0x").zfill(8)
+        offset = hex(StartOffset+0x8000061).rstrip("L").lstrip("0x").zfill(8)
         offset = make_pointer(offset)
         offset = unhexlify(offset)
         rom.write(offset)
         rom.seek(0xD9EDC)
-        offset = hex("""OFFSET"""+0x8000001).rstrip("L").lstrip("0x").zfill(8)
+        offset = hex(StartOffset+0x8000001).rstrip("L").lstrip("0x").zfill(8)
         offset = make_pointer(offset)
         offset = unhexlify(offset)
         rom.write("\x00\x48\x00\x47"+offset)
@@ -37,6 +36,7 @@ def RepointPokes():
         rom.write("\x1D\xE0")
         #Begin to follow Doesnt's tutorial
         ##Step 1: Write the seen/caught flags data.
+        OrgNewDexSize = NewDexSize
         while NewDexSize % 8 != 0:
             NewDexSize += 1
         NeededFlagBytes = int(NewDexSize/8)
@@ -57,7 +57,7 @@ def RepointPokes():
         rom.write("\x1A\xE0")
         #Caught Flags
         #----Writing Flag Changes
-        tmp = (RAMOffset, 16)+NeededFlagBytes
+        tmp = int(RAMOffset, 16)+NeededFlagBytes
         tmp = hex(tmp).rstrip("L").lstrip("0x").zfill(8)
         CaughtFlagsPoint = make_pointer(tmp)
         CaughtFlagsPoint = unhexlify(CaughtFlagsPoint)
@@ -76,17 +76,390 @@ def RepointPokes():
         rom.seek(0x104B34)
         rom.write("\x0F\xE0")
         ##Step 2: Repoint Goddamn everything
-        TEMP = "\xCE\xBF\xC7\xCA\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+        #Name table
+        NamesTable = int(ini.get(rom_id, "PokeNames"),0)
+        OriginalNumOfPokes = int(ini.get(rom_id, "NumberofPokes"), 0)
+        NameLength = int(ini.get(rom_id, "PokeNamesLength"), 0)
+        TEMP = "\xCE\xBF\xC7\xCA"
+        while len(TEMP) < NameLength:
+            TEMP += "\xFF"
+        UNOWN = "\xCF\xC8\xC9\xD1\xC8"
+        while len(UNOWN) < NameLength:
+            UNOWN += "\xFF"
+        BADEGG = "\xBC\xBB\xBE\x00\xBF\xC1\xC1"
+        while len(BADEGG) < NameLength:
+            BADEGG += "\xFF"
+        rom.seek(NamesTable)
+        Names = rom.read(NameLength*OriginalNumOfPokes)
+        ##Fill table with FF
+        rom.seek(NamesTable)
+        rom.write("\xFF"*len(Names))
+        ##Append the new names
+        while len(Names)/NameLength < 439:
+            Names += UNOWN
+        Names += BADEGG
+        for n in range(NewNumberOfPokes):
+            Names += TEMP
+        ##Write the names
+        NewNamesOffset = FindFreeSpace(StartOffset, len(Names),rom)
+        rom.seek(NewNamesOffset)
+        rom.write(Names)        
+        ##Write the pointers for the names
+        NamesPointer = MakeByteStringPointer(NewNamesOffset)
+        for offset in NameTablePointers:
+            rom.seek(offset)
+            rom.write(NamesPointer)
+        ##Allow reading from new table.
+        rom.seek(0x41000)
+        rom.write("\x00"*6)
+        #Base Stats Table
+        basestatsoffset = int(ini.get(rom_id, "pokebasestats"), 0)
+        basestatslength = int(ini.get(rom_id, "pokebasestatslength"), 0)
+        BlankEntry = "\x00"*basestatslength
+        rom.seek(basestatsoffset)
+        BaseStats = rom.read(basestatslength*OriginalNumOfPokes)
+        TotalPokesAfterChanges = 440+NewNumberOfPokes
+        ##Fill old table with FF
+        rom.seek(basestatsoffset)
+        rom.write("\xFF"*len(BaseStats))
+        ##Write the stats
+        while len(BaseStats)/basestatslength < TotalPokesAfterChanges:
+            BaseStats += BlankEntry
+        NewStatsOffset = FindFreeSpace(StartOffset, len(BaseStats),rom)
+        rom.seek(NewStatsOffset)
+        rom.write(BaseStats)     
+        ##Write the pointers for the names
+        StatsPointer = MakeByteStringPointer(NewStatsOffset)
+        for offset in StatsTablePointers:
+            rom.seek(offset)
+            rom.write(StatsPointer)
+        #Level-up movepool table
+        LearnedMovesTable = int(ini.get(rom_id, "LearnedMoves"), 0)
+        rom.seek(LearnedMovesTable)
+        LearnedMoves = rom.read(4*OriginalNumOfPokes)
+        BlankMoveSet = LearnedMoves[:4]
+        ##Fill old table with FF
+        rom.seek(LearnedMovesTable)
+        rom.write("\xFF"*len(LearnedMoves))
+        ##Write the move table
+        while len(LearnedMoves)/4 < TotalPokesAfterChanges:
+            LearnedMoves += BlankMoveSet
+        NewMovesOffset = FindFreeSpace(StartOffset, len(LearnedMoves),rom)
+        rom.seek(NewMovesOffset)
+        rom.write(LearnedMoves)     
+        ##Write the pointers for the table
+        MovesPointer = MakeByteStringPointer(NewMovesOffset)
+        for offset in LevelUpMoveTablePointers:
+            rom.seek(offset)
+            rom.write(MovesPointer)
+        #Prepare to expand sprites.
+        ##Insert blank palettes and sprites for the new pokemon.
+        ImageSize = (64*64)/2
+        BlankImage = "\x00"*ImageSize
+        BlankImage = LZCompress(BlankImage)
+        BlankPalette = "\x00\x00"*16
+        BlankPalette = LZCompress(BlankPalette)
+        BlankImageOffset = FindFreeSpace(StartOffset, len(BlankImage),rom)
+        rom.seek(BlankImageOffset)
+        rom.write(BlankImage)
+        BlankPaletteOffset = FindFreeSpace(StartOffset, len(BlankPalette),rom)
+        rom.seek(BlankPaletteOffset)
+        rom.write(BlankPalette)
+        BlankImagePointer = MakeByteStringPointer(BlankImageOffset)
+        BlankPalettePointer = MakeByteStringPointer(BlankPaletteOffset)
+        NewImageEntry = BlankImagePointer+"\x00\x08\x00\x00"
+        NewPaletteEntry = BlankPalettePointer+"\x00\x00\x00\x00"
+        frontspritetable = int(ini.get(rom_id, "frontspritetable"), 0)
+        backspritetable = int(ini.get(rom_id, "backspritetable"), 0)
+        frontpalettetable = int(ini.get(rom_id, "frontpalettetable"), 0)
+        shinypalettetable = int(ini.get(rom_id, "shinypalettetable"), 0)
+        #Extend Sprite Tables
+        #-Front Sprite Table
+        rom.seek(frontspritetable)
+        FrontSprites = rom.read(8*OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(frontspritetable)
+        rom.write("\xFF"*len(FrontSprites))
+        ##Write the sprite table
+        while len(FrontSprites)/8 < TotalPokesAfterChanges:
+            FrontSprites += NewImageEntry
+        NewFSOffset = FindFreeSpace(StartOffset, len(FrontSprites),rom)
+        rom.seek(NewFSOffset)
+        rom.write(FrontSprites)     
+        ##Write the pointers for the table
+        FSPointer = MakeByteStringPointer(NewFSOffset)
+        for offset in FrontSpriteTablePointers:
+            rom.seek(offset)
+            rom.write(FSPointer)
+        #-Back Sprite Table
+        rom.seek(backspritetable)
+        BackSprites = rom.read(8*OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(backspritetable)
+        rom.write("\xFF"*len(BackSprites))
+        ##Write the sprite table
+        while len(BackSprites)/8 < TotalPokesAfterChanges:
+            BackSprites += NewImageEntry
+        NewBSOffset = FindFreeSpace(StartOffset, len(BackSprites),rom)
+        rom.seek(NewBSOffset)
+        rom.write(BackSprites)     
+        ##Write the pointers for the table
+        BSPointer = MakeByteStringPointer(NewBSOffset)
+        for offset in BackSpriteTablePointers:
+            rom.seek(offset)
+            rom.write(BSPointer)
+        #Sprite Fixes
+        ##Remove limits
+        rom.seek(0xED72)
+        rom.write("\x07\xE0")
+        rom.seek(0xF1B6)
+        rom.write("\x07\xE0")
+        #-Normal Palette Table
+        rom.seek(frontpalettetable)
+        NormalPals = rom.read(8*OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(frontpalettetable)
+        rom.write("\xFF"*len(NormalPals))
+        ##Write the palette table
+        while len(NormalPals)/8 < TotalPokesAfterChanges:
+            NormalPals += NewPaletteEntry
+        NewNPalOffset = FindFreeSpace(StartOffset, len(NormalPals),rom)
+        rom.seek(NewNPalOffset)
+        rom.write(NormalPals)     
+        ##Write the pointers for the table
+        NPalPointer = MakeByteStringPointer(NewNPalOffset)
+        for offset in FrontPaletteTablePointers:
+            rom.seek(offset)
+            rom.write(NPalPointer)
+        #Fix bug with loading OAK
+        TMP = NewNPalOffset + 232
+        TMPPointer = MakeByteStringPointer(TMP)
+        rom.seek(0x130fa4)
+        rom.write(TMPPointer)
+        #-Shiny Palette Table
+        rom.seek(shinypalettetable)
+        ShinyPals = rom.read(8*OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(shinypalettetable)
+        rom.write("\xFF"*len(ShinyPals))
+        ##Write the palette table
+        while len(ShinyPals)/8 < TotalPokesAfterChanges:
+            ShinyPals += NewPaletteEntry
+        NewSPalOffset = FindFreeSpace(StartOffset, len(ShinyPals),rom)
+        rom.seek(NewSPalOffset)
+        rom.write(ShinyPals)     
+        ##Write the pointers for the table
+        SPalPointer = MakeByteStringPointer(NewSPalOffset)
+        for offset in ShinyPaletteTablePointers:
+            rom.seek(offset)
+            rom.write(SPalPointer)
+        #Palette Fixes
+        ##Remove limits
+        rom.seek(0x44104)
+        rom.write("\x04\xE0")
+        #Player Y
+        playerytable = int(ini.get(rom_id, "playerytable"), 0)
+        rom.seek(playerytable)
+        PlayerY = rom.read(4*OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(playerytable)
+        rom.write("\xFF"*len(PlayerY))
+        ##Write the table
+        while len(PlayerY)/4 < TotalPokesAfterChanges:
+            PlayerY += "\x00\x00\x00\x00"
+        NewPlayerYOffset = FindFreeSpace(StartOffset, len(PlayerY),rom)
+        rom.seek(NewPlayerYOffset)
+        rom.write(PlayerY)     
+        ##Write the pointers for the table
+        PlayerYPointer = MakeByteStringPointer(NewPlayerYOffset)
+        for offset in PlayerYTablePointers:
+            rom.seek(offset)
+            rom.write(PlayerYPointer)
+        #Enemy  Y
+        enemyytable = int(ini.get(rom_id, "enemyytable"), 0)
+        rom.seek(enemyytable)
+        EnemyY = rom.read(4*OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(enemyytable)
+        rom.write("\xFF"*len(EnemyY))
+        ##Write the table
+        while len(EnemyY)/4 < TotalPokesAfterChanges:
+            EnemyY += "\x00\x00\x00\x00"
+        NewEnemyYOffset = FindFreeSpace(StartOffset, len(EnemyY),rom)
+        rom.seek(NewEnemyYOffset)
+        rom.write(EnemyY)     
+        ##Write the pointers for the table
+        EnemyYPointer = MakeByteStringPointer(NewEnemyYOffset)
+        for offset in EnemyYTablePointers:
+            rom.seek(offset)
+            rom.write(EnemyYPointer)
+        #Enemy Altitude
+        enemyaltitudetable = int(ini.get(rom_id, "enemyaltitudetable"), 0)
+        rom.seek(enemyaltitudetable)
+        EnemyAlt = rom.read(OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(enemyaltitudetable)
+        rom.write("\xFF"*len(EnemyAlt))
+        ##Write the table
+        while len(EnemyAlt) < TotalPokesAfterChanges:
+            EnemyAlt += "\x00"
+        NewEnemyAltOffset = FindFreeSpace(StartOffset, len(EnemyAlt),rom)
+        rom.seek(NewEnemyAltOffset)
+        rom.write(EnemyAlt)     
+        ##Write the pointers for the table
+        EnemyAltPointer = MakeByteStringPointer(NewEnemyAltOffset)
+        for offset in EnemyAltTablePointers:
+            rom.seek(offset)
+            rom.write(EnemyAltPointer)
+        #Change Position Limiters
+        rom.seek(0x7472E)
+        rom.write("\x03\xE0")
+        rom.seek(0x7465E)
+        rom.write("\x03\xE0")
+        #IconPrep
+        BlankIcon = "\x00"*((32*64)/2)
+        BlankIconOffset = FindFreeSpace(StartOffset, len(BlankIcon),rom)
+        BlankIconPointer = MakeByteStringPointer(BlankIconOffset)
+        rom.seek(BlankIconOffset)
+        rom.write(BlankIcon)
+        #Icons
+        iconspritetable = int(ini.get(rom_id, "iconspritetable"), 0)
+        rom.seek(iconspritetable)
+        Icons = rom.read(4*OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(iconspritetable)
+        rom.write("\xFF"*len(Icons))
+        ##Write the icon table
+        while len(Icons)/4 < TotalPokesAfterChanges:
+            Icons += BlankIconPointer
+        NewIconsOffset = FindFreeSpace(StartOffset, len(Icons),rom)
+        rom.seek(NewIconsOffset)
+        rom.write(Icons)     
+        ##Write the pointers for the table
+        IconsPointer = MakeByteStringPointer(NewIconsOffset)
+        for offset in IconTablePointers:
+            rom.seek(offset)
+            rom.write(IconsPointer)
+        #Icon Palettes
+        iconpalettetable = int(ini.get(rom_id, "iconpalettetable"), 0)
+        rom.seek(iconpalettetable)
+        IconPals = rom.read(OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(iconpalettetable)
+        rom.write("\xFF"*len(IconPals))
+        ##Write the palette table
+        while len(IconPals) < TotalPokesAfterChanges:
+            IconPals += "\x00"
+        NewIconPalsOffset = FindFreeSpace(StartOffset, len(IconPals),rom)
+        rom.seek(NewIconPalsOffset)
+        rom.write(IconPals)     
+        ##Write the pointers for the table
+        IconPalsPointer = MakeByteStringPointer(NewIconPalsOffset)
+        for offset in IconPaletteTablePointers:
+            rom.seek(offset)
+            rom.write(IconPalsPointer)
+        #Change Icon Limiters
+        rom.seek(0x96F90)
+        rom.write("\x00\x00")
+        rom.seek(0x96E7A)
+        rom.write("\x00\x00\x00\x00")
+        rom.seek(0x971DA)
+        rom.write("\x00\x00")
+        #Step 3: Dealing with dex entries
+        #Repoint the order table
+        NationalDexOrder = int(ini.get(rom_id, "NationalDexOrder"), 0)
+        numofnondexpokesafterchimecho = int(ini.get(rom_id, "numofnondexpokesafterchimecho"), 0)
+        rom.seek(NationalDexOrder)
+        NatDexOrder = rom.read(2*OriginalNumOfPokes)
+        ##Fill old table with FF
+        rom.seek(NationalDexOrder)
+        rom.write("\xFF"*len(NatDexOrder))
+        ##Write the table
+        for n in range(numofnondexpokesafterchimecho):
+            NatDexOrder += "\x00"
+        i = 386
+        while len(NatDexOrder)/2 < TotalPokesAfterChanges:
+            i += 1
+            tmp = hex(i).rstrip("L").lstrip("0x").zfill(4)
+            tmp = unhexlify(tmp)[::-1]
+            NatDexOrder += tmp
+        NatDexOrderOffset = FindFreeSpace(StartOffset, len(NatDexOrder),rom)
+        rom.seek(NatDexOrderOffset)
+        rom.write(NatDexOrder)     
+        ##Write the pointers for the table
+        NatDexOrderPointer = MakeByteStringPointer(NatDexOrderOffset)
+        for offset in NatDexOrderTablePointers:
+            rom.seek(offset)
+            rom.write(NatDexOrderPointer)
+        #Now the actual dex table
+        pokedex = int(ini.get(rom_id, "pokedex"), 0)
+        LengthofPokedexEntry = int(ini.get(rom_id, "LengthofPokedexEntry"), 0)
+        rom.seek(pokedex)
+        DexEntries = rom.read(LengthofPokedexEntry*387)
+        ##Fill old table with FF
+        rom.seek(pokedex)
+        rom.write("\xFF"*len(DexEntries))
+        ##Write the table
+        MissingnoEntry = DexEntries[:LengthofPokedexEntry]
+        while len(DexEntries)/LengthofPokedexEntry < TotalPokesAfterChanges-numofnondexpokesafterchimecho:
+            DexEntries += MissingnoEntry
+        NewDexEntriesOffset = FindFreeSpace(StartOffset, len(DexEntries),rom)
+        rom.seek(NewDexEntriesOffset)
+        rom.write(DexEntries)     
+        ##Write the pointers for the table
+        NewDexEntriesPointer = MakeByteStringPointer(NewDexEntriesOffset)
+        for offset in DexEntriesTablePointers:
+            rom.seek(offset)
+            rom.write(NewDexEntriesPointer)
+        #CRUSH DEX LIMITERS
+        if OrgNewDexSize < 510: #Number of dex entries < 510
+            write = OrgNewDexSize/2
+        elif OrgNewDexSize >= 510 and OrgNewDexSize < 1020:
+            write = OrgNewDexSize/4
+            rom.seek(0x1025EE)
+            rom.write("\x40\x01")
+        else:
+            raise AttributeError("You have issues. {0} dex entries???? Really???".format(OrgNewDexSize))
+        rom.seek(0x1025ec)
+        write = hex(write).rstrip("L").lstrip("0x").zfill(2)
+        write = unhexlify(write)[::-1]
+        rom.write(write)
         
+        DexMinusOne = OrgNewDexSize-1
+        DexMinusOne = hex(DexMinusOne).rstrip("L").lstrip("0x").zfill(4)
+        DexMinusOne = unhexlify(DexMinusOne)[::-1]
+        rom.seek(0x103920)
+        rom.write(DexMinusOne)
         
+        rom.seek(0x43220)
+        rom.write("\x00\x00")
+        #Step 4: Misc. repointing
+        
+        #Step 5: Change ini
+        
+def FindFreeSpace(starting, length, rom):
+        search = "\xFF"*length
+        rom.seek(0)
+        read = rom.read()
+        start = starting
+        while True:
+            offset = read.find(search, start)
+            if offset == -1:
+                return None
+            if offset%4 != 0:
+                start = offset+1
+                continue
+            if read[offset-1] != "\xFF":
+                start = offset+1
+                continue
+            return offset
+                    
 class PokemonExpander(wx.Dialog):
-    def __init__(self, rom, ini, parent=None, *args, **kw):
+    def __init__(self, rom, parent=None, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
         
         self.offset = None
-        self.num = need
-        self.repoint = repoint_what
         self.rom = rom
         self.InitUI()
         self.SetTitle("'MON Expander")
@@ -94,24 +467,26 @@ class PokemonExpander(wx.Dialog):
     def InitUI(self):
         vbox = wx.BoxSizer(wx.VERTICAL)
         
-        txt = wx.StaticText(self, -1, "Welcome to the first ever 'mon expander.\n This tool will take care of all of the heavy lifting.\n All the user has to do is supply a start offset\n to begin searching for free space. I did not\n set this program up to ask you for every single\n offset because I felt it would be awfully boring. So, all\n you have to do is chose one offset and then sit back\n and relax and I will dynamically search for free space\n after it and move any and all tables and expand them!:D\n\n",style=wx.TE_CENTRE)
+        txt = wx.StaticText(self, -1, "Welcome to the first ever 'mon expander. This tool will\n take care of all of the heavy lifting. All the user has to do \nis supply a start offset to begin searching for free\n space. I did not set this program up to ask you for\n every single offset because I felt it would be awfully\n boring. So, all you have to do is chose one offset and\nthen sit back and relax and I will dynamically search\n for free space after it and move any and all tables\nand expand them!:D\n",style=wx.TE_CENTRE)
         vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
         
-        txt = wx.StaticText(self, -1, "How many TOTAL 'mons would you like?")
+        txt = wx.StaticText(self, -1, "How many NEW 'mons would you like?")
         vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
         
-        self.NewPokeNum = wx.SpinCtrl(pnl, -1,style=wx.TE_CENTRE, size=(100,-1))
+        self.NewPokeNum = wx.SpinCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
         self.NewPokeNum.SetRange(0,9999)
+        self.NewPokeNum.Bind(wx.EVT_TEXT, self.GetOffset)
         vbox.Add(self.NewPokeNum, 0, wx.EXPAND | wx.ALL, 5)
         
         NumDexEntriesTxt = wx.StaticText(self, -1, "How many TOTAL 'dex entries would you like?")
         vbox.Add(NumDexEntriesTxt, 0, wx.EXPAND | wx.ALL, 5)
         
-        self.NumDexEntriesTxt = wx.SpinCtrl(pnl, -1,style=wx.TE_CENTRE, size=(100,-1))
-        self.NumDexEntriesTxt.SetRange(0,9999)
-        vbox.Add(self.NumDexEntriesTxt, 0, wx.EXPAND | wx.ALL, 5)
+        self.NumDexEntries = wx.SpinCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
+        self.NumDexEntries.SetRange(0,9999)
+        self.NumDexEntries.Bind(wx.EVT_TEXT, self.GetOffset)
+        vbox.Add(self.NumDexEntries, 0, wx.EXPAND | wx.ALL, 5)
         
-        SEARCH = Button(pnl, 1, "Search")
+        SEARCH = Button(self, 1, "Search")
         self.Bind(wx.EVT_BUTTON, self.OnSearch, id=1)
         vbox.Add(SEARCH, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -130,7 +505,7 @@ class PokemonExpander(wx.Dialog):
         hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
         vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
         
-        RAM_Head = wx.StaticText(self, -1, "Please choose provide a RAM offset for\nthe seen/caught flags. If you don't know what\nthis is, don't change it.\n",style=wx.TE_CENTRE)
+        RAM_Head = wx.StaticText(self, -1, "\nPlease choose provide a RAM offset for\nthe seen/caught flags. If you don't know what\nthis is, don't change it.\n",style=wx.TE_CENTRE)
         vbox.Add(RAM_Head, 0, wx.EXPAND | wx.ALL, 5)
         
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -156,6 +531,8 @@ class PokemonExpander(wx.Dialog):
         sel = self.OFFSETS.GetSelection()
         _offset_ = self.MANUAL.GetValue()
         self.RAM_offset = self.RAM.GetValue()
+        self.NewNumOfPokes = self.NewPokeNum.GetValue()
+        self.NewNumOfDexEntries = self.NumDexEntries.GetValue()
         if self.RAM_offset == "":
             self.RAM_offset = "0203c400"
         if _offset_ != "":
@@ -175,7 +552,7 @@ class PokemonExpander(wx.Dialog):
 
     def OnSearch(self, *args):
         self.OFFSETS.Clear()
-        search = "\xff"*self.NewPokeNum.GetValue()*0x1C
+        search = "\xff"*self.NewPokeNum.GetValue()*0x1C+"\xff"*27*0x1C
         with open(self.rom, "r+b") as rom:
             rom.seek(0)
             read = rom.read()

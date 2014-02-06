@@ -279,6 +279,10 @@ class PokemonDataEditor(wx.Panel):
                 self.sizer_top.Add(self.Poke_Name, 0, wx.ALL, 5)
                 self.sizer_top.Add(save, 0, wx.LEFT, 20)
                 
+                ExpandPokes = Button(self, 2, "Expand Number of 'MONs")
+                self.Bind(wx.EVT_BUTTON, self.OnExpandPokes, id=2)
+                self.sizer_top.Add(ExpandPokes, 0, wx.LEFT, 20)
+                
                 self.sizer.Add(self.sizer_top, 0, wx.ALL, 2)
                 self.tabbed_area = DataEditingTabs(self)
                 
@@ -286,6 +290,17 @@ class PokemonDataEditor(wx.Panel):
                 self.SetSizer(self.sizer)
         self.Layout()
         
+    def OnExpandPokes(self, instance):
+        Expander = PokemonExpander(frame.open_rom_name)
+        if Expander.ShowModal() == wx.ID_OK:
+            RepointPokes(frame.open_rom_name, 
+                                    Expander.NewNumOfPokes,
+                                    Expander.NewNumOfDexEntries,
+                                    Expander.RAM_offset,
+                                    Expander.offset,
+                                    frame.rom_id,
+                                    frame.Config)
+            
     def get_pokemon_names(self):
         offset = int(frame.Config.get(frame.rom_id, "PokeNames"),0)
         with open(frame.open_rom_name, "r+b") as rom:
@@ -2112,32 +2127,39 @@ class PokeDexTab(wx.Panel):
             self.Toffset.SetValue(str(Toffset))
         
     def GetNationalDexOrder(self):
-        NationalDexOrderprt1 = int(frame.Config.get(frame.rom_id, "NationalDexOrderprt1"), 0)
-        NationalDexOrderprt2 = int(frame.Config.get(frame.rom_id, "nationaldexorderprt2"), 0)
-        NumberofNatDexEntries1 = int(frame.Config.get(frame.rom_id, "NumberofNatDexEntries1"), 0)
-        NumberofNatDexEntries2 = int(frame.Config.get(frame.rom_id, "NumberofNatDexEntries2"), 0)
-        numofpokesbetweencelebiandtreeko = int(frame.Config.get(frame.rom_id, "numofpokesbetweencelebiandtreeko"), 0)
+        NationalDexOrder = int(frame.Config.get(frame.rom_id, "NationalDexOrder"), 0)
+        numofnondexpokesbetweencelebiandtreeko = int(frame.Config.get(frame.rom_id, "numofnondexpokesbetweencelebiandtreeko"), 0)
+        numberofpokes = int(frame.Config.get(frame.rom_id, "numberofpokes"), 0)
+        numofnondexpokesafterchimecho = int(frame.Config.get(frame.rom_id, "numofnondexpokesafterchimecho"), 0)
         self.NatDexList = []
         with open(frame.open_rom_name, "r+b") as rom:
-            rom.seek(NationalDexOrderprt1)
-            for n in range(NumberofNatDexEntries1):
+            rom.seek(NationalDexOrder)
+            for n in range(251):
                 tmp = rom.read(2)
                 reverse = tmp[1]+tmp[0]
                 halfword = get_bytes_string_from_hex_string(reverse)
                 integer = int(halfword, 16)
                 self.NatDexList.append(integer)
-            rom.seek(NationalDexOrderprt2)
             
-            for n in range(numofpokesbetweencelebiandtreeko):
+            
+            for n in range(numofnondexpokesbetweencelebiandtreeko):
                 self.NatDexList.append(0)
-            
-            for n in range(NumberofNatDexEntries2):
+            rom.seek(numofnondexpokesbetweencelebiandtreeko*2,1)
+            for n in range(136):
                 tmp = rom.read(2)
                 tmp = tmp[1]+tmp[0]
                 tmp = get_bytes_string_from_hex_string(tmp)
                 tmp = int(tmp, 16)
                 self.NatDexList.append(tmp)
-
+            for n in range(numofnondexpokesafterchimecho):
+                self.NatDexList.append(0)
+            rom.seek(numofnondexpokesafterchimecho*2,1)
+            for n in range(numberofpokes-(136+251+numofnondexpokesafterchimecho+numofnondexpokesbetweencelebiandtreeko)):
+                tmp = rom.read(2)
+                tmp = tmp[1]+tmp[0]
+                tmp = get_bytes_string_from_hex_string(tmp)
+                tmp = int(tmp, 16)
+                self.NatDexList.append(tmp)
     def ChangePscale(self, instance):
         try: value = int(self.Pscale.GetValue(),0)
         except:

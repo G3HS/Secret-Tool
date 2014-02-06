@@ -134,6 +134,15 @@ def make_pointer(string):
     for byte in list_of_bytes:
         offset += byte
     return offset
+
+def MakeByteStringPointer(offset):
+    """
+    Take an offset and return a rom pointer that can be inserted.
+    """
+    Pointer = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+    Pointer = make_pointer(Pointer)
+    Pointer = binascii.unhexlify(Pointer)
+    return Pointer
     
 def reverse_hex(string):
     list_of_bytes = split_string_into_bytes(string)
