@@ -127,7 +127,10 @@ class MainWindow(wx.Frame):
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
             self.open_rom_name = filename
-            ###Set up loading animation.
+            
+            Loading = LOADING(parent=None)
+            
+            
             self.work_with_ini()
             ###Kill loading animation.
     def work_with_ini(self):
