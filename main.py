@@ -109,7 +109,7 @@ class MainWindow(wx.Frame):
         global version
         info.SetVersion(version)
         info.SetDescription(description)
-        info.SetCopyright('(C) 2013 karatekid552')
+        info.SetCopyright('(C) 2014 karatekid552')
         #info.SetWebSite('')
         info.SetLicence(licence)
         #info.AddDocWriter('')
@@ -279,9 +279,11 @@ class PokemonDataEditor(wx.Panel):
                 self.sizer_top.Add(self.Poke_Name, 0, wx.ALL, 5)
                 self.sizer_top.Add(save, 0, wx.LEFT, 20)
                 
-                ExpandPokes = Button(self, 2, "Expand Number of 'MONs")
-                self.Bind(wx.EVT_BUTTON, self.OnExpandPokes, id=2)
-                self.sizer_top.Add(ExpandPokes, 0, wx.LEFT, 20)
+                gamecode = frame.Config.get(frame.rom_id, "gamecode")
+                if gamecode == "BPRE":
+                    ExpandPokes = Button(self, 2, "Expand Number of 'MONs")
+                    self.Bind(wx.EVT_BUTTON, self.OnExpandPokes, id=2)
+                    self.sizer_top.Add(ExpandPokes, 0, wx.LEFT, 20)
                 
                 self.sizer.Add(self.sizer_top, 0, wx.ALL, 2)
                 self.tabbed_area = DataEditingTabs(self)
@@ -293,14 +295,20 @@ class PokemonDataEditor(wx.Panel):
     def OnExpandPokes(self, instance):
         Expander = PokemonExpander(frame.open_rom_name)
         if Expander.ShowModal() == wx.ID_OK:
-            RepointPokes(frame.open_rom_name, 
-                                    Expander.NewNumOfPokes,
-                                    Expander.NewNumOfDexEntries,
-                                    Expander.RAM_offset,
-                                    Expander.offset,
-                                    frame.rom_id,
-                                    frame.Config)
-            
+            if Expander.offset and Expander.NewNumOfPokes != 0:
+                RepointPokes(frame.open_rom_name, 
+                                        Expander.NewNumOfPokes,
+                                        Expander.NewNumOfDexEntries,
+                                        Expander.RAM_offset,
+                                        Expander.offset,
+                                        frame.rom_id,
+                                        frame.Config)
+            else:
+                ERROR = wx.MessageDialog(None, 
+                                "You failed to provide either an offset for repointing or a new number of 'MONs. Please try again.", 
+                                'Data Error', 
+                                wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
     def get_pokemon_names(self):
         offset = int(frame.Config.get(frame.rom_id, "PokeNames"),0)
         with open(frame.open_rom_name, "r+b") as rom:
@@ -424,7 +432,7 @@ class StatsTab(wx.Panel):
         basestatsoffset = int(frame.Config.get(frame.rom_id, "pokebasestats"), 0)
         basestatslength = int(frame.Config.get(frame.rom_id, "pokebasestatslength"), 0)
         global poke_num
-        self.basestatsoffset = basestatslength*poke_num + basestatsoffset
+        self.basestatsoffset = basestatslength*(poke_num+1) + basestatsoffset
         with open(frame.open_rom_name, "r+b") as rom:
             rom.seek(self.basestatsoffset, 0)
             self.base_stats_dict = {}
@@ -1350,7 +1358,7 @@ class MovesTab(wx.Panel):
         
         Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
         global poke_num
-        self.learned_moves_pointer = poke_num*4+self.learned_moves_pointer
+        self.learned_moves_pointer = (poke_num+1)*4+self.learned_moves_pointer
         with open(frame.open_rom_name, "r+b") as rom:
             rom.seek(self.learned_moves_pointer, 0)
             self.learned_moves_offset = read_pointer(rom.read(4))
@@ -1392,7 +1400,7 @@ class MovesTab(wx.Panel):
         length = int(frame.Config.get(frame.rom_id, "TMHMCompatibilityLength"), 0)
         global poke_num
         
-        self.TMHMoffset += length+poke_num*length
+        self.TMHMoffset += (poke_num+1)*length
         with open(frame.open_rom_name, "r+b") as rom:
             rom.seek(self.TMHMoffset)
             read = rom.read(length)
@@ -2417,7 +2425,7 @@ class MoveTutorTab(wx.Panel):
         global poke_num
         
         with open(frame.open_rom_name, "r+b") as rom:
-            self.MoveTutorComp += length+poke_num*length
+            self.MoveTutorComp += (poke_num+1)*length
             rom.seek(self.MoveTutorComp)
             read = rom.read(length)
             self.COMP = []
@@ -2843,7 +2851,7 @@ class MOVE_REPOINTER(wx.Dialog):
             pointer = make_pointer(offset)
             pointer = get_hex_from_string(pointer)
             global poke_num
-            offset_of_pointer = learned_moves_pointer+poke_num*4
+            offset_of_pointer = learned_moves_pointer+(poke_num+1)*4
             with open(frame.open_rom_name, "r+b") as rom:
                 rom.seek(offset_of_pointer)
                 rom.write(pointer)
