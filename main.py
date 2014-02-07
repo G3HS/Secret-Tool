@@ -2772,6 +2772,26 @@ class EggMoveTab(wx.Panel):
 #############################################################
 ##----------------------------------------Extra Dialogues-------------------------------##
 #############################################################
+class LOADING(wx.Dialog):
+    def __init__(self, parent, *args, **kw):
+        wx.Dialog.__init__(self, parent=parent, ani=None, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle() | wx.RESIZE_BORDER )
+        
+        self.num = None
+        self.ani = ani
+        self.InitUI()
+        self.SetTitle("Please wait...")
+        
+    def InitUI(self):
+        pnl = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        vbox.Add(self.ani, 0, wx.RIGHT|wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER, 5)
+        
+        txt = wx.StaticText(pnl, -1, "Loading...")
+        vbox.Add(txt, 0, wx.RIGHT|wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER, 5)
+        pnl.SetSizerAndFit(vbox)
+        self.Fit()
+        self.SetMinSize(self.GetEffectiveMinSize())
 
 class MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, *args, **kw):
