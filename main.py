@@ -129,10 +129,13 @@ class MainWindow(wx.Frame):
             self.open_rom_name = filename
             
             Loading = LOADING(parent=None)
-            
+            Loading.ani.LoadFile(os.path.join("Resources","POKE.gif"))
+            Loading.Show()
+            Loading.ani.Play()
             
             self.work_with_ini()
-            ###Kill loading animation.
+            Loading.Destroy()
+            
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
         #If yes, load it's custom ini. If no, create its ini.
