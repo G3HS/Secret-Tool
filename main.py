@@ -127,8 +127,9 @@ class MainWindow(wx.Frame):
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
             self.open_rom_name = filename
+            ###Set up loading animation.
             self.work_with_ini()
-        
+            ###Kill loading animation.
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
         #If yes, load it's custom ini. If no, create its ini.
