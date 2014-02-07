@@ -2777,17 +2777,18 @@ class EggMoveTab(wx.Panel):
 #############################################################
 class LOADING(wx.Dialog):
     def __init__(self, parent, *args, **kw):
-        wx.Dialog.__init__(self, parent=parent, ani=None, id=wx.ID_ANY)
+        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.SetWindowStyle( self.GetWindowStyle() | wx.RESIZE_BORDER )
         
         self.num = None
-        self.ani = ani
+        
         self.InitUI()
         self.SetTitle("Please wait...")
         
     def InitUI(self):
         pnl = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
+        self.ani = wx.AnimationCtrl(pnl)
         vbox.Add(self.ani, 0, wx.RIGHT|wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER, 5)
         
         txt = wx.StaticText(pnl, -1, "Loading...")
