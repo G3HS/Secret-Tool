@@ -84,12 +84,12 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             TEMP = "\xCE\xBF\xC7\xCA"
             while len(TEMP) < NameLength:
                 TEMP += "\xFF"
-            UNOWN = "\xCF\xC8\xC9\xD1\xC8"
-            while len(UNOWN) < NameLength:
-                UNOWN += "\xFF"
             BADEGG = "\xBC\xBB\xBE\x00\xBF\xC1\xC1"
             while len(BADEGG) < NameLength:
                 BADEGG += "\xFF"
+            UNOWN = "\xCF\xC8\xC9\xD1\xC8"
+            while len(UNOWN) < NameLength:
+                UNOWN += "\xFF"
             rom.seek(NamesTable)
             Names = rom.read(NameLength*OriginalNumOfPokes)
             ##Fill table with FF
@@ -178,7 +178,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             #Extend Sprite Tables
             #-Front Sprite Table
             rom.seek(frontspritetable)
-            FrontSprites = rom.read(8*OriginalNumOfPokes)
+            FrontSprites = rom.read(8*440)
             ##Fill old table with FF
             rom.seek(frontspritetable)
             rom.write("\xFF"*len(FrontSprites))
@@ -200,7 +200,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.write(TMPPointer)
             #-Back Sprite Table
             rom.seek(backspritetable)
-            BackSprites = rom.read(8*OriginalNumOfPokes)
+            BackSprites = rom.read(8*440)
             ##Fill old table with FF
             rom.seek(backspritetable)
             rom.write("\xFF"*len(BackSprites))
@@ -223,7 +223,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.write("\x07\xE0")
             #-Normal Palette Table
             rom.seek(frontpalettetable)
-            NormalPals = rom.read(8*OriginalNumOfPokes)
+            NormalPals = rom.read(8*440)
             ##Fill old table with FF
             rom.seek(frontpalettetable)
             rom.write("\xFF"*len(NormalPals))
@@ -245,7 +245,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.write(TMPPointer)
             #-Shiny Palette Table
             rom.seek(shinypalettetable)
-            ShinyPals = rom.read(8*OriginalNumOfPokes)
+            ShinyPals = rom.read(8*440)
             ##Fill old table with FF
             rom.seek(shinypalettetable)
             rom.write("\xFF"*len(ShinyPals))

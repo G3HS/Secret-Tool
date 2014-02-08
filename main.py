@@ -9,10 +9,9 @@ from CheckListCtrl import *
 from Button import *
 from PokeSpriteTab import *
 from ExpandPokes import *
-
 from cStringIO import StringIO
 
-version = 'Beta 0.9.1'
+version = 'Beta 0.9.5'
 
 OPEN = 1
 poke_num = 0
@@ -127,15 +126,10 @@ class MainWindow(wx.Frame):
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
             self.open_rom_name = filename
-            
-            Loading = LOADING(parent=None)
-            Loading.ani.LoadFile(os.path.join("Resources","POKE.gif"))
-            Loading.Show()
-            Loading.ani.Play()
-            
+
             self.work_with_ini()
-            Loading.Destroy()
             
+
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
         #If yes, load it's custom ini. If no, create its ini.
@@ -1148,15 +1142,16 @@ class MovesTab(wx.Panel):
             
             ##Fill old table with free space
             if self.NEW_LEARNED_OFFSET != None:
-                fill = self.original_amount_of_moves*learnedmoveslength
-                original_offset = self.learned_moves_offset
-                rom.seek(original_offset)
-                for n in range(fill):
-                    rom.write("\xff")
-                check = rom.read(4)
-                if check == "\xff\xff\xfe\xfe" or check == "\xff\xff\xff\xfe":
-                    rom.seek(-4, 1)
-                    rom.write("\xff\xff\xff\xff")
+                if self.overwrite == True:
+                    fill = self.original_amount_of_moves*learnedmoveslength
+                    original_offset = self.learned_moves_offset
+                    rom.seek(original_offset)
+                    for n in range(fill):
+                        rom.write("\xff")
+                    check = rom.read(4)
+                    if check == "\xff\xff\xfe\xfe" or check == "\xff\xff\xff\xfe":
+                        rom.seek(-4, 1)
+                        rom.write("\xff\xff\xff\xff")
             
             ##Write TM & HM Data
             num = self.TMList.GetItemCount()
@@ -1197,7 +1192,8 @@ class MovesTab(wx.Panel):
         
     def OnRepoint(self, *args):
         repoint = MOVE_REPOINTER(parent=None)
-        repoint.Show()
+        repoint.ShowModal()
+        self.overwrite = repoint.cb.IsChecked()
         
     def OnAdd(self, *args):
         self.UPDATE_FRACTION()
@@ -1936,7 +1932,10 @@ class PokeDexTab(wx.Panel):
                             org_offset = self.entry1_offset
                             self.entry1_offset = int(returned_offset, 16)
                             returned_offset = None
-                            need_overwrite = True
+                            if repointer.cb.IsChecked() == True:
+                                need_overwrite = True
+                            else:
+                                need_overwrite = False
                             break
             else: need_overwrite = False
             
@@ -1992,7 +1991,10 @@ class PokeDexTab(wx.Panel):
                                 org_offset = self.entry2_offset
                                 self.entry2_offset =  int(returned_offset, 16)
                                 returned_offset = None
-                                need_overwrite = True
+                                if repointer.cb.IsChecked() == True:
+                                    need_overwrite = True
+                                else:
+                                    need_overwrite = False
                                 break
                 else: need_overwrite = False
 
@@ -2778,27 +2780,6 @@ class EggMoveTab(wx.Panel):
 #############################################################
 ##----------------------------------------Extra Dialogues-------------------------------##
 #############################################################
-class LOADING(wx.Dialog):
-    def __init__(self, parent, *args, **kw):
-        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
-        self.SetWindowStyle( self.GetWindowStyle() | wx.RESIZE_BORDER )
-        
-        self.num = None
-        
-        self.InitUI()
-        self.SetTitle("Please wait...")
-        
-    def InitUI(self):
-        pnl = wx.Panel(self)
-        vbox = wx.BoxSizer(wx.VERTICAL)
-        self.ani = wx.AnimationCtrl(pnl)
-        vbox.Add(self.ani, 0, wx.RIGHT|wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER, 5)
-        
-        txt = wx.StaticText(pnl, -1, "Loading...")
-        vbox.Add(txt, 0, wx.RIGHT|wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER, 5)
-        pnl.SetSizerAndFit(vbox)
-        self.Fit()
-        self.SetMinSize(self.GetEffectiveMinSize())
 
 class MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, *args, **kw):
@@ -2837,6 +2818,10 @@ class MOVE_REPOINTER(wx.Dialog):
         self.MANUAL = wx.TextCtrl(pnl, -1,style=wx.TE_CENTRE, size=(100,-1))
         hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
         vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
+        
+        self.cb = wx.CheckBox(pnl, -1, 'Fill old table with 0xFF?', (10, 10))
+        self.cb.SetValue(True)
+        vbox.Add(self.cb, 0, wx.ALL|wx.ALIGN_CENTER, 5)
         
         SUBMIT = Button(pnl, 2, "Submit")
         self.Bind(wx.EVT_BUTTON, self.OnSubmit, id=2)
@@ -3311,6 +3296,10 @@ class POKEDEXEntryRepointer(wx.Dialog):
         hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
         vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
         
+        self.cb = wx.CheckBox(self, -1, 'Fill old entry with 0xFF?', (10, 10))
+        self.cb.SetValue(True)
+        vbox.Add(self.cb, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        
         OK = self.CreateButtonSizer(wx.OK)
         vbox.Add(OK, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -3368,7 +3357,8 @@ class POKEDEXEntryRepointer(wx.Dialog):
                     self.OFFSETS.Append(hex(offset))
                     x = (1,True)
                     start = offset+len(search)
-                
+
+
 app = wx.App(False)
 name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)

@@ -38,6 +38,10 @@ class SpriteTab(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.LoadSheetSprite, id=60)
         SpritesAndPals.Add(LoadAllButton, 0, wx.EXPAND | wx.ALL, 6)
         
+        self.cb = wx.CheckBox(spritePanel, -1, 'Fill sprites with 0xFF on repoint?', (10, 10))
+        self.cb.SetValue(True)
+        SpritesAndPals.Add(self.cb, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        
         button_size = (76,76)
         self.FrontSprite = wx.BitmapButton(spritePanel,56,wx.EmptyBitmap(64,64), size=button_size)
         self.FrontSprite.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
@@ -84,7 +88,7 @@ class SpriteTab(wx.Panel):
         PalettesSizer.Add(hbox_high2, 0, wx.EXPAND | wx.ALL, 5)
         PalettesSizer.Add(hbox_low2, 0, wx.EXPAND | wx.ALL, 5)
         self.ColorButtons = []
-        btnSize = ((55, 28)) 
+        btnSize = ((55, 24)) 
         for n in range(32):
             button = Button(PalettePanel, n, "", size=btnSize)
             self.Bind(wx.EVT_BUTTON, self.edit_color, id=n)
@@ -146,6 +150,10 @@ class SpriteTab(wx.Panel):
         self.AniIcon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         IconImageSizer.Add(self.AniIcon, 0, wx.EXPAND | wx.ALL, 5)
         
+        IconRepoint = Button(IconPanel, 55, "Repoint Icon")
+        self.Bind(wx.EVT_BUTTON, self.RepointIcon, id=65)
+        IconPanelSizer.Add(IconRepoint, 0, wx.EXPAND | wx.ALL, 5)
+        
         self.IconPalChoice = wx.ComboBox(IconPanel, -1, choices=[],
                                             style=wx.SUNKEN_BORDER, size=(60, -1))
         self.IconPalChoice.Bind(wx.EVT_COMBOBOX, self.SwapIconPal)
@@ -160,7 +168,7 @@ class SpriteTab(wx.Panel):
         IconPalBoxRight = wx.BoxSizer(wx.VERTICAL)
         IconPalBox.Add(IconPalBoxRight, 0, wx.EXPAND | wx.ALL, 0)
         self.IconColorButtons = []
-        IconButtonsize = (60,25)
+        IconButtonsize = (60,21)
         for n in range(16):
             #Use IDs 70->86
             ID = 70
@@ -174,6 +182,30 @@ class SpriteTab(wx.Panel):
         
         self.load_everything(self.poke_num)
     
+    def RepointIcon(self):
+        repointer = SpriteRepointer(self.rom_name, 
+                                                need=len(GBAFSLZ), 
+                                                repoint_what="Icon")
+        if repointer.ShowModal() == wx.ID_OK:
+            iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
+            rom.seek(iconspritetable+(self.poke_num+1)*4)
+            #Write new pointer
+            offset = repointer.offset
+            hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+            hexOffset = make_pointer(hexOffset)
+            hexOffset = unhexlify(hexOffset)
+            rom.write(hexOffset)
+            #Write new image
+            rom.seek(offset)
+            rom.write(self.GBAIcon)
+            self.IconPointer = offset
+        else:
+            ERROR = wx.MessageDialog(None, 
+                                "Either no offset was selected or you aborted repoint. Nothing was changed.", 
+                                'Just letting you know...', 
+                                wx.OK | wx.ICON_ERROR)
+            ERROR.ShowModal()
+            
     def save(self):
         #Save sprites
         FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
@@ -189,7 +221,7 @@ class SpriteTab(wx.Panel):
         numiconpalettes = int(self.config.get(self.rom_id, "numiconpalettes"), 0)
         
         bytes_per_entry = 8 ##Need to load from ini for EMERALD
-        
+        overwrite = self.cb.IsChecked()
         with open(self.rom_name, "r+b") as rom:
             if self.Changes["front"] != False:
                 GBAFSLZ = LZCompress(self.GBAFrontSprite)
@@ -199,7 +231,6 @@ class SpriteTab(wx.Panel):
                                                              repoint_what="Front Sprite")
                     while True:
                         if repointer.ShowModal() == wx.ID_OK:
-                            
                             if repointer.offset == self.FrontSpritePointer: continue
                             elif repointer.offset == None: continue
                             else:
@@ -211,9 +242,11 @@ class SpriteTab(wx.Panel):
                                 hexOffset = unhexlify(hexOffset)
                                 rom.write(hexOffset)
                                 #Clear old image
-                                rom.seek(self.FrontSpritePointer)
-                                for x in range(self.OrgSizes["front"]):
-                                    rom.write("\xFF")
+                                if overwrite == True:
+                                    rom.seek(self.FrontSpritePointer)
+                                    
+                                    for x in range(self.OrgSizes["front"]):
+                                        rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
                                 rom.write(GBAFSLZ)
@@ -243,9 +276,10 @@ class SpriteTab(wx.Panel):
                                 hexOffset = unhexlify(hexOffset)
                                 rom.write(hexOffset)
                                 #Clear old image
-                                rom.seek(self.BackSpritePointer)
-                                for x in range(self.OrgSizes["back"]):
-                                    rom.write("\xFF")
+                                if overwrite == True:
+                                    rom.seek(self.BackSpritePointer)
+                                    for x in range(self.OrgSizes["back"]):
+                                        rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
                                 rom.write(GBABSLZ)
@@ -275,10 +309,11 @@ class SpriteTab(wx.Panel):
                                 hexOffset = make_pointer(hexOffset)
                                 hexOffset = unhexlify(hexOffset)
                                 rom.write(hexOffset)
+                                if overwrite == True:
                                 #Clear old image
-                                rom.seek(self.FrontPalettePointer)
-                                for x in range(self.OrgSizes["normal"]):
-                                    rom.write("\xFF")
+                                    rom.seek(self.FrontPalettePointer)
+                                    for x in range(self.OrgSizes["normal"]):
+                                        rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
                                 rom.write(GBANORMALLZ)
@@ -309,9 +344,10 @@ class SpriteTab(wx.Panel):
                                 hexOffset = unhexlify(hexOffset)
                                 rom.write(hexOffset)
                                 #Clear old image
-                                rom.seek(self.ShinyPalettePointer)
-                                for x in range(self.OrgSizes["shiny"]):
-                                    rom.write("\xFF")
+                                if overwrite == True:
+                                    rom.seek(self.ShinyPalettePointer)
+                                    for x in range(self.OrgSizes["shiny"]):
+                                        rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
                                 rom.write(GBASHINYLZ)
