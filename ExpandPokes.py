@@ -548,7 +548,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.write(AuxCryTableData)     
             ##Write the pointers for the table
             NewAuxCryPointer = MakeByteStringPointer(NewAuxCryOffset)
-            for offset in ItemAniTablePointers:
+            for offset in AuxCryTablePointers:
                 rom.seek(offset)
                 rom.write(NewAuxCryPointer)
             rom.seek(0x720CA)
@@ -654,14 +654,14 @@ class PokemonExpander(wx.Dialog):
         self.NewPokeNum.SetRange(0,1020)
         self.NewPokeNum.Bind(wx.EVT_TEXT, self.GetOffset)
         QVboxA.Add(self.NewPokeNum, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        
         NumDexEntriesTxt = wx.StaticText(self, -1, "How many TOTAL 'dex entries would you like?",style=wx.TE_CENTRE)
         QVboxB.Add(NumDexEntriesTxt, 0, wx.ALL | wx.ALIGN_CENTER, 5)
         
         self.NumDexEntries = wx.SpinCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
         self.NumDexEntries.SetRange(0,1020)
+        
         self.NumDexEntries.Bind(wx.EVT_TEXT, self.GetOffset)
-        self.NumDexEntries.SetValue(387)
+        
         QVboxB.Add(self.NumDexEntries, 0, wx.ALL | wx.ALIGN_CENTER, 5)
         
         SEARCH = Button(self, 1, "Search")
@@ -694,6 +694,8 @@ class PokemonExpander(wx.Dialog):
         self.RAM.Bind(wx.EVT_TEXT, self.GetOffset)
         hbox2.Add(self.RAM, 0, wx.RIGHT|wx.TOP|wx.BOTTOM| wx.ALIGN_CENTER, 5)
         vbox.Add(hbox2, 0, wx.ALL|wx.ALIGN_CENTER, 0)
+        
+        self.NumDexEntries.SetValue(387)
         
         OK = self.CreateButtonSizer(wx.OK)
         vbox.Add(OK, 0, wx.EXPAND | wx.ALL, 10)

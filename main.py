@@ -11,7 +11,7 @@ from PokeSpriteTab import *
 from ExpandPokes import *
 from cStringIO import StringIO
 
-version = 'Beta 0.9.5'
+version = 'Beta 0.90.6'
 
 OPEN = 1
 poke_num = 0
