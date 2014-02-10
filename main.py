@@ -1572,8 +1572,6 @@ class EvoTab(wx.Panel):
             poke = self.poke.GetSelection()
             if poke == -1:
                 poke = 1
-            else:
-                poke += 1
             
             location = None
             for num, evo in enumerate(self.evos):
@@ -1633,8 +1631,6 @@ class EvoTab(wx.Panel):
             poke = self.poke.GetSelection()
             if poke == -1:
                 poke = 1
-            else:
-                poke += 1
                 
             self.evos[sel] = [method,arg,poke]
             self.load_evos_into_list()
@@ -1652,7 +1648,7 @@ class EvoTab(wx.Panel):
             self.arg.SetSelection(self.evos[sel][1])
         else:
             self.arg.SetSelection(0)
-        self.poke.SetSelection(self.evos[sel][2]-1)
+        self.poke.SetSelection(self.evos[sel][2])
         
     def change_method(self, instance):
         method = instance.GetSelection()
@@ -1722,7 +1718,7 @@ class EvoTab(wx.Panel):
                 need = "-"
             self.evo_list.SetStringItem(index, 1, need)
             if opts[0] != 0:
-                self.evo_list.SetStringItem(index, 2, poke_names[opts[2]-1])
+                self.evo_list.SetStringItem(index, 2, poke_names[opts[2]])
             else:
                 self.evo_list.SetStringItem(index, 2, "-")
 
