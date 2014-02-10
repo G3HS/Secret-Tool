@@ -76,6 +76,20 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             #Skip extra tables
             rom.seek(0x104B34)
             rom.write("\x0F\xE0")
+            #Clear Flags on new game:
+            rom.seek(0x549D0)
+            rom.write(SeenFlagsPoint)
+            rom.seek(0x549B0)
+            rom.write("\x20\x1C\x00\x00")
+            XX = unhexlify(hex(NeededFlagBytes).rstrip("L").lstrip("0x").zfill(2))
+            rom.seek(0x549B6)
+            rom.write(XX+"\x22")
+            rom.seek(0x549BC)
+            rom.write("\x20\x1C")
+            rom.seek(0x549BE)
+            rom.write(XX+"\x30")
+            rom.seek(0x549C2)
+            rom.write(XX+"\x22")
             ##Step 2: Repoint Goddamn everything
             #Name table
             NamesTable = int(ini.get(rom_id, "PokeNames"),0)
@@ -88,20 +102,22 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             while len(BADEGG) < NameLength:
                 BADEGG += "\xFF"
             UNOWN = "\xCF\xC8\xC9\xD1\xC8"
-            while len(UNOWN) < NameLength:
-                UNOWN += "\xFF"
+            UNOWNADD = "\xFF"*(NameLength-(len(UNOWN)+1))
             rom.seek(NamesTable)
             Names = rom.read(NameLength*OriginalNumOfPokes)
             ##Fill table with FF
             rom.seek(NamesTable)
             rom.write("\xFF"*len(Names))
             ##Append the new names
-            while len(Names)/NameLength < 439:
-                Names += UNOWN
             Names += BADEGG
+            Forme = 0xBB
+            while len(Names)/NameLength < 438:
+                Forme += 1
+                Names += UNOWN+unhexlify(hex(Forme).rstrip("L").lstrip("0x").zfill(2))+UNOWNADD
+            Names += UNOWN+"\xAB"+UNOWNADD
+            Names += UNOWN+"\xAC"+UNOWNADD
             for n in range(NewNumberOfPokes):
                 Names += TEMP
-            Names = "\xAC\xAC\xAC\xAC\xAC\xAC\xAC\xAC\xAC\xAC\xFF"+Names
             ##Write the names
             NewNamesOffset = FindFreeSpace(StartOffset, len(Names),rom)
             rom.seek(NewNamesOffset)
@@ -332,7 +348,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             #Icons
             iconspritetable = int(ini.get(rom_id, "iconspritetable"), 0)
             rom.seek(iconspritetable)
-            Icons = rom.read(4*OriginalNumOfPokes)
+            Icons = rom.read(4*440)
             ##Fill old table with FF
             rom.seek(iconspritetable)
             rom.write("\xFF"*len(Icons))
@@ -350,7 +366,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             #Icon Palettes
             iconpalettetable = int(ini.get(rom_id, "iconpalettetable"), 0)
             rom.seek(iconpalettetable)
-            IconPals = rom.read(OriginalNumOfPokes)
+            IconPals = rom.read(440)
             ##Fill old table with FF
             rom.seek(iconpalettetable)
             rom.write("\xFF"*len(IconPals))
@@ -377,15 +393,19 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             NationalDexOrder = int(ini.get(rom_id, "NationalDexOrder"), 0)
             numofnondexpokesafterchimecho = int(ini.get(rom_id, "numofnondexpokesafterchimecho"), 0)
             rom.seek(NationalDexOrder)
-            NatDexOrder = rom.read(2*OriginalNumOfPokes)
+            NatDexOrder = rom.read(2*411)
             ##Fill old table with FF
             rom.seek(NationalDexOrder)
             rom.write("\xFF"*len(NatDexOrder))
             ##Write the table
             for n in range(numofnondexpokesafterchimecho):
-                NatDexOrder += "\x00"
+                NatDexOrder += "\x00\x00"
+            #------Get rid of ???? entries.
+            LimboEntries = "\x00\x00"*25
+            NatDexOrder = NatDexOrder[:251*2]+LimboEntries+NatDexOrder[276*2:]
+            ##  Add new entries
             i = 386
-            while len(NatDexOrder)/2 < TotalPokesAfterChanges:
+            while len(NatDexOrder)/2 < TotalPokesAfterChanges-1:
                 i += 1
                 tmp = hex(i).rstrip("L").lstrip("0x").zfill(4)
                 tmp = unhexlify(tmp)[::-1]
@@ -408,7 +428,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.write("\xFF"*len(DexEntries))
             ##Write the table
             MissingnoEntry = DexEntries[:LengthofPokedexEntry]
-            while len(DexEntries)/LengthofPokedexEntry < TotalPokesAfterChanges-numofnondexpokesafterchimecho:
+            while len(DexEntries)/LengthofPokedexEntry < TotalPokesAfterChanges-(numofnondexpokesafterchimecho+1):
                 DexEntries += MissingnoEntry
             NewDexEntriesOffset = FindFreeSpace(StartOffset, len(DexEntries),rom)
             rom.seek(NewDexEntriesOffset)
@@ -419,10 +439,18 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
                 rom.seek(offset)
                 rom.write(NewDexEntriesPointer)
             #CRUSH DEX LIMITERS
-            if OrgNewDexSize < 510: #Number of dex entries < 510
-                write = OrgNewDexSize/2
-            elif OrgNewDexSize >= 510 and OrgNewDexSize < 1020:
-                write = OrgNewDexSize/4
+            DexSize = OrgNewDexSize-1
+            if DexSize < 510: #Number of dex entries < 510
+                if DexSize % 2 != 0:
+                    write = (DexSize+1)/2
+                else: write = DexSize/2
+            elif DexSize >= 510 and DexSize < 1020:
+                if DexSize % 4 != 0:
+                    tmp = DexSize
+                    while tmp % 4 != 0:
+                        tmp += 1
+                    write = (tmp)/4
+                else: write = DexSize/4
                 rom.seek(0x1025EE)
                 rom.write("\x40\x01")
             else:
@@ -432,7 +460,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             write = unhexlify(write)[::-1]
             rom.write(write)
             
-            DexMinusOne = OrgNewDexSize-1
+            DexMinusOne = DexSize-1
             DexMinusOne = hex(DexMinusOne).rstrip("L").lstrip("0x").zfill(4)
             DexMinusOne = unhexlify(DexMinusOne)[::-1]
             rom.seek(0x103920)
@@ -535,7 +563,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             #Handle Cries
             HoennCryAuxTable = int(ini.get(rom_id, "HoennCryAuxTable"), 0)
             NumNewCries = NewNumberOfPokes+numofnondexpokesafterchimecho
-            BackFill = "\x01\x00"*NumNewCries
+            BackFill = "\x00\x00"*NumNewCries
             rom.seek(HoennCryAuxTable)
             AuxCryTableData = rom.read(0x10E)
             ##Fill old table with FF
@@ -573,7 +601,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
                 rom.seek(offset)
                 rom.write(NewFootPrintPointer)
             #Step 5: Change the world.. I mean ini
-            ini.set(rom_id, "PokeNames",hex(NewNamesOffset+11).rstrip("L"))
+            ini.set(rom_id, "PokeNames",hex(NewNamesOffset).rstrip("L"))
             ini.set(rom_id, "NumberofPokes", hex(TotalPokesAfterChanges).rstrip("L"))
             ini.set(rom_id, "pokebasestats", hex(NewStatsOffset).rstrip("L"))
             ini.set(rom_id, "LearnedMoves", hex(NewMovesOffset).rstrip("L"))

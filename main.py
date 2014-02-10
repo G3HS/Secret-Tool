@@ -1,7 +1,7 @@
 ﻿# -*- coding: utf-8 -*- 
 #venv pyi-env-name
 from __future__ import division
-import wx, os, binascii, ConfigParser, sys
+import wx, os, binascii, ConfigParser, sys, textwrap
 from baseconv import *
 from module_locator import *
 from rom_insertion_operations import *
@@ -11,7 +11,7 @@ from PokeSpriteTab import *
 from ExpandPokes import *
 from cStringIO import StringIO
 
-version = 'Beta 0.90.6'
+version = 'Beta 0.91.1'
 
 OPEN = 1
 poke_num = 0
@@ -20,23 +20,19 @@ MOVES_LIST = None
 ITEM_NAMES = None
 returned_offset = None
 
-description = """POK\xe9MON Gen III Hacking Suite was developed to enable better cross-
-platform POK\xe9MON  Rom Hacking by removing the need for the .NET
-framework.  It was also created in order to be more adaptable to more
-advanced hacking techniques that change some boundaries, like the number
-of POK\xe9MON. In the past, these changes rendered some very necessary
-tools useless and which made using these new limits difficult."""
+description = textwrap.fill("POK\xe9MON Gen III Hacking Suite was developed to enable better cross-platform POK\xe9MON  Rom Hacking by removing the need for the .NET framework.  It was also created in order to be more adaptable to more advanced hacking techniques that change some boundaries, like the number of POK\xe9MON. In the past, these changes rendered some very necessary tools useless and which made using these new limits difficult.", 90)
 
 description = encode_per_platform(description)
 
-licence = """The POK\xe9MON Gen III Hacking Suite is free software; you can redistribute 
-it and/or modify it under the terms of the GNU General Public License as 
-published by the Free Software Foundation; either version 2 of the License, 
-or (at your option) any later version. See the GNU General Public License 
-for more details.
+licence = """The MIT License (MIT)
 
-This program has NO WARRENTY and the creator is not responsible for any 
-corruption/data loss it may cause."""
+Copyright (c) 2014 karatekid552
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 
 licence = encode_per_platform(licence)
 
@@ -304,6 +300,7 @@ class PokemonDataEditor(wx.Panel):
                                         Expander.offset,
                                         frame.rom_id,
                                         frame.Config)
+                frame.reload_all_tabs()
             else:
                 ERROR = wx.MessageDialog(None, 
                                 "You failed to provide either an offset for repointing or a new number of 'MONs. Please try again.", 
@@ -433,7 +430,7 @@ class StatsTab(wx.Panel):
         basestatsoffset = int(frame.Config.get(frame.rom_id, "pokebasestats"), 0)
         basestatslength = int(frame.Config.get(frame.rom_id, "pokebasestatslength"), 0)
         global poke_num
-        self.basestatsoffset = basestatslength*(poke_num+1) + basestatsoffset
+        self.basestatsoffset = basestatslength*(poke_num) + basestatsoffset
         with open(frame.open_rom_name, "r+b") as rom:
             rom.seek(self.basestatsoffset, 0)
             self.base_stats_dict = {}
@@ -1361,7 +1358,7 @@ class MovesTab(wx.Panel):
         
         Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
         global poke_num
-        self.learned_moves_pointer = (poke_num+1)*4+self.learned_moves_pointer
+        self.learned_moves_pointer = (poke_num)*4+self.learned_moves_pointer
         with open(frame.open_rom_name, "r+b") as rom:
             rom.seek(self.learned_moves_pointer, 0)
             self.learned_moves_offset = read_pointer(rom.read(4))
@@ -1403,7 +1400,7 @@ class MovesTab(wx.Panel):
         length = int(frame.Config.get(frame.rom_id, "TMHMCompatibilityLength"), 0)
         global poke_num
         
-        self.TMHMoffset += (poke_num+1)*length
+        self.TMHMoffset += (poke_num)*length
         with open(frame.open_rom_name, "r+b") as rom:
             rom.seek(self.TMHMoffset)
             read = rom.read(length)
@@ -1692,7 +1689,7 @@ class EvoTab(wx.Panel):
         EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
         
         global poke_num
-        self.offset = EvolutionTable+(poke_num+1)*(LengthOfOneEntry*EvolutionsPerPoke)
+        self.offset = EvolutionTable+(poke_num)*(LengthOfOneEntry*EvolutionsPerPoke)
         with open(frame.open_rom_name, "r+b") as rom:
             rom.seek(self.offset, 0)
             raw = rom.read(LengthOfOneEntry*EvolutionsPerPoke)
@@ -1890,10 +1887,14 @@ class PokeDexTab(wx.Panel):
         
         with open(frame.open_rom_name, "r+b") as rom:
             global poke_num
-            index = self.NatDexList[poke_num]
-            if index == 0:
-                return
-            else: pokedex = pokedex+(index)*LengthofPokedexEntry
+            POKE = poke_num-1
+            if POKE == -1:
+                index = 0
+            else:
+                index = self.NatDexList[POKE]
+                if index == 0:
+                    return
+                else: pokedex = pokedex+(index)*LengthofPokedexEntry
             rom.seek(pokedex)
             
             Type = self.Type.GetValue()
@@ -2067,19 +2068,23 @@ class PokeDexTab(wx.Panel):
         self.GetNationalDexOrder()
         with open(frame.open_rom_name, "r+b") as rom:
             global poke_num
-            index = self.NatDexList[poke_num]
-            if index == 0:
-                self.Height.SetValue("")
-                self.Weight.SetValue("")
-                self.Entry1.SetValue("")
-                self.Entry2.SetValue("")
-                self.Pscale.SetValue("")
-                self.Poffset.SetValue("")
-                self.Tscale.SetValue("")
-                self.Toffset.SetValue("")
-                self.Type.SetValue("")
-                return
-            else: pokedex = pokedex+(index)*LengthofPokedexEntry
+            POKE = poke_num-1
+            if POKE == -1:
+                index = 0
+            else:
+                index = self.NatDexList[POKE]
+                if index == 0:
+                    self.Height.SetValue("")
+                    self.Weight.SetValue("")
+                    self.Entry1.SetValue("")
+                    self.Entry2.SetValue("")
+                    self.Pscale.SetValue("")
+                    self.Poffset.SetValue("")
+                    self.Tscale.SetValue("")
+                    self.Toffset.SetValue("")
+                    self.Type.SetValue("")
+                    return
+                else: pokedex = pokedex+(index)*LengthofPokedexEntry
 
             rom.seek(pokedex)
             type = rom.read(12)
@@ -2126,9 +2131,6 @@ class PokeDexTab(wx.Panel):
             Pscale = int(Pscale[2:4]+Pscale[:2],16)
             self.Pscale.SetValue(str(Pscale))
             
-            #128 = -127
-            #127 = 127
-            #0 = 0
             Poffset = get_bytes_string_from_hex_string(rom.read(2))
             Poffset = int(Poffset[2:4]+Poffset[:2],16)
             Poffset = deal_with_16bit_signed_hex(Poffset)
@@ -2434,7 +2436,7 @@ class MoveTutorTab(wx.Panel):
         global poke_num
         
         with open(frame.open_rom_name, "r+b") as rom:
-            self.MoveTutorComp += (poke_num+1)*length
+            self.MoveTutorComp += (poke_num)*length
             rom.seek(self.MoveTutorComp)
             read = rom.read(length)
             self.COMP = []
@@ -2738,7 +2740,7 @@ class EggMoveTab(wx.Panel):
         self.POKES.DeleteAllItems()
         for poke in self.EGG_MOVES:
             index = self.POKES.InsertStringItem(sys.maxint, str(poke))
-            self.POKES.SetStringItem(index, 1, poke_names[poke-1])
+            self.POKES.SetStringItem(index, 1, poke_names[poke])
         
     def load_egg_moves(self):
         self.EGG_MOVES = {}
@@ -2864,7 +2866,7 @@ class MOVE_REPOINTER(wx.Dialog):
             pointer = make_pointer(offset)
             pointer = get_hex_from_string(pointer)
             global poke_num
-            offset_of_pointer = learned_moves_pointer+(poke_num+1)*4
+            offset_of_pointer = learned_moves_pointer+(poke_num)*4
             with open(frame.open_rom_name, "r+b") as rom:
                 rom.seek(offset_of_pointer)
                 rom.write(pointer)
@@ -3358,10 +3360,13 @@ class POKEDEXEntryRepointer(wx.Dialog):
                     x = (1,True)
                     start = offset+len(search)
 
-
+def OnClose(instance):
+    sys.exit()
+    
 app = wx.App(False)
 name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)
 frame = MainWindow(None, name)
+frame.Bind(wx.EVT_CLOSE, OnClose)
 
 app.MainLoop()

@@ -234,7 +234,7 @@ class SpriteTab(wx.Panel):
                             if repointer.offset == self.FrontSpritePointer: continue
                             elif repointer.offset == None: continue
                             else:
-                                rom.seek(FrontSpriteTable+(self.poke_num+1)*bytes_per_entry)
+                                rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
                                 #Write new pointer
                                 offset = repointer.offset
                                 hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
@@ -268,7 +268,7 @@ class SpriteTab(wx.Panel):
                             if repointer.offset == self.BackSpritePointer: continue
                             elif repointer.offset == None: continue
                             else:
-                                rom.seek(BackSpriteTable+(self.poke_num+1)*bytes_per_entry)
+                                rom.seek(BackSpriteTable+(self.poke_num)*bytes_per_entry)
                                 #Write new pointer
                                 offset = repointer.offset
                                 hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
@@ -302,7 +302,7 @@ class SpriteTab(wx.Panel):
                             if repointer.offset == self.FrontPalettePointer: continue
                             elif repointer.offset == None: continue
                             else:
-                                rom.seek(FrontPaletteTable+(self.poke_num+1)*bytes_per_entry)
+                                rom.seek(FrontPaletteTable+(self.poke_num)*bytes_per_entry)
                                 #Write new pointer
                                 offset = repointer.offset
                                 hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
@@ -336,7 +336,7 @@ class SpriteTab(wx.Panel):
                             if repointer.offset == self.ShinyPalettePointer: continue
                             elif repointer.offset == None: continue
                             else:
-                                rom.seek(ShinyPaletteTable+(self.poke_num+1)*bytes_per_entry)
+                                rom.seek(ShinyPaletteTable+(self.poke_num)*bytes_per_entry)
                                 #Write new pointer
                                 offset = repointer.offset
                                 hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
@@ -357,15 +357,15 @@ class SpriteTab(wx.Panel):
                     rom.seek(self.ShinyPalettePointer)
                     rom.write(GBASHINYLZ)
             #Write positions
-            rom.seek(playerytable+(self.poke_num+1)*4+1)
+            rom.seek(playerytable+(self.poke_num)*4+1)
             PlayerY = hex(self.PlayerY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
             rom.write(unhexlify(PlayerY))
             
-            rom.seek(enemyaltitudetable+(self.poke_num+1)*4+1)
+            rom.seek(enemyaltitudetable+(self.poke_num)*4+1)
             EnemyAlt = hex(self.EnemyAlt.GetValue()).rstrip("L").lstrip("0x").zfill(2)
             rom.write(unhexlify(EnemyAlt))
             
-            rom.seek(enemyytable+(self.poke_num+1)*4+1)
+            rom.seek(enemyytable+(self.poke_num)*4+1)
             EnemyY = hex(self.EnemyY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
             rom.write(unhexlify(EnemyY))
             
@@ -593,13 +593,13 @@ class SpriteTab(wx.Panel):
         bytes_per_entry = 8 ##Need to load from ini for EMERALD
         
         with open(self.rom_name, "r+b") as rom:
-            rom.seek(FrontSpriteTable+(poke_num+1)*bytes_per_entry)
+            rom.seek(FrontSpriteTable+(poke_num)*bytes_per_entry)
             self.FrontSpritePointer = read_pointer(rom.read(4))
-            rom.seek(BackSpriteTable+(poke_num+1)*bytes_per_entry)
+            rom.seek(BackSpriteTable+(poke_num)*bytes_per_entry)
             self.BackSpritePointer = read_pointer(rom.read(4))
-            rom.seek(FrontPaletteTable+(poke_num+1)*bytes_per_entry)
+            rom.seek(FrontPaletteTable+(poke_num)*bytes_per_entry)
             self.FrontPalettePointer = read_pointer(rom.read(4))
-            rom.seek(ShinyPaletteTable+(poke_num+1)*bytes_per_entry)
+            rom.seek(ShinyPaletteTable+(poke_num)*bytes_per_entry)
             self.ShinyPalettePointer = read_pointer(rom.read(4))
         
             self.GBAFrontSprite, self.OrgSizes["front"] = LZUncompress(rom, self.FrontSpritePointer, True)
@@ -621,24 +621,24 @@ class SpriteTab(wx.Panel):
             self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
             self.SBackSprite.SetBitmapLabel(self.TMPSBackSprite)
             
-            rom.seek(playerytable+(poke_num+1)*4+1)
+            rom.seek(playerytable+(poke_num)*4+1)
             PlayerY = deal_with_8bit_signed_hex(int(get_bytes_string_from_hex_string(rom.read(1)),16))
             self.PlayerY.SetValue(PlayerY)
             
-            rom.seek(enemyaltitudetable+(poke_num+1))
+            rom.seek(enemyaltitudetable+(poke_num))
             EnemyAlt = deal_with_8bit_signed_hex(int(get_bytes_string_from_hex_string(rom.read(1)),16))
             self.EnemyAlt.SetValue(EnemyAlt)
             
-            rom.seek(enemyytable+(poke_num+1)*4+1)
+            rom.seek(enemyytable+(poke_num)*4+1)
             EnemyY = deal_with_8bit_signed_hex(int(get_bytes_string_from_hex_string(rom.read(1)),16))
             self.EnemyY.SetValue(EnemyY)
             
-            rom.seek(iconspritetable+(poke_num+1)*4)
+            rom.seek(iconspritetable+(poke_num)*4)
             self.IconPointer = read_pointer(rom.read(4))
             rom.seek(self.IconPointer)
             self.GBAIcon = rom.read((32*64)/2)
             
-            rom.seek(iconpalettetable+(poke_num+1))
+            rom.seek(iconpalettetable+(poke_num))
             self.IconPalNum = int(hexlify(rom.read(1)),16)
             
             rom.seek(iconpalettes)
@@ -797,7 +797,6 @@ class SpriteTab(wx.Panel):
                     curr = self.PlayerY.GetValue()
                     curr -= 1
                     self.PlayerY.SetValue(curr)
-                    print self.PlayerY.GetValue()
                 except: pass
             elif need == "PDown":
                 try:
