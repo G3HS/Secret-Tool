@@ -183,28 +183,29 @@ class SpriteTab(wx.Panel):
         self.load_everything(self.poke_num)
     
     def RepointIcon(self, instance):
-        repointer = SpriteRepointer(self.rom_name, 
-                                                need=len(self.GBAIcon), 
-                                                repoint_what="Icon")
-        if repointer.ShowModal() == wx.ID_OK:
-            iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
-            rom.seek(iconspritetable+(self.poke_num+1)*4)
-            #Write new pointer
-            offset = repointer.offset
-            hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-            hexOffset = make_pointer(hexOffset)
-            hexOffset = unhexlify(hexOffset)
-            rom.write(hexOffset)
-            #Write new image
-            rom.seek(offset)
-            rom.write(self.GBAIcon)
-            self.IconPointer = offset
-        else:
-            ERROR = wx.MessageDialog(None, 
+        with open(self.rom_name, "r+b") as rom:
+            repointer = SpriteRepointer(rom, 
+                                        need=len(self.GBAIcon), 
+                                        repoint_what="Icon")
+            if repointer.ShowModal() == wx.ID_OK:
+                iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
+                rom.seek(iconspritetable+(self.poke_num+1)*4)
+                #Write new pointer
+                offset = repointer.offset
+                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                hexOffset = make_pointer(hexOffset)
+                hexOffset = unhexlify(hexOffset)
+                rom.write(hexOffset)
+                #Write new image
+                rom.seek(offset)
+                rom.write(self.GBAIcon)
+                self.IconPointer = offset
+            else:
+                ERROR = wx.MessageDialog(None, 
                                 "Either no offset was selected or you aborted repoint. Nothing was changed.", 
                                 'Just letting you know...', 
                                 wx.OK | wx.ICON_ERROR)
-            ERROR.ShowModal()
+                ERROR.ShowModal()
             
     def save(self):
         #Save sprites
@@ -226,9 +227,9 @@ class SpriteTab(wx.Panel):
             if self.Changes["front"] != False:
                 GBAFSLZ = LZCompress(self.GBAFrontSprite)
                 if len(GBAFSLZ) > self.OrgSizes["front"]:
-                    repointer = SpriteRepointer(self.rom_name, 
-                                                             need=len(GBAFSLZ), 
-                                                             repoint_what="Front Sprite")
+                    repointer = SpriteRepointer(rom, 
+                                                need=len(GBAFSLZ), 
+                                                repoint_what="Front Sprite")
                     while True:
                         if repointer.ShowModal() == wx.ID_OK:
                             if repointer.offset == self.FrontSpritePointer: continue
@@ -259,9 +260,9 @@ class SpriteTab(wx.Panel):
             if self.Changes["back"] != False:
                 GBABSLZ = LZCompress(self.GBABackSprite)
                 if len(GBABSLZ) > self.OrgSizes["back"]:
-                    repointer = SpriteRepointer(self.rom_name, 
-                                                             need=len(GBABSLZ), 
-                                                             repoint_what="Back Sprite")
+                    repointer = SpriteRepointer(rom, 
+                                                need=len(GBABSLZ), 
+                                                repoint_what="Back Sprite")
                     while True:
                         if repointer.ShowModal() == wx.ID_OK:
                             
@@ -293,9 +294,9 @@ class SpriteTab(wx.Panel):
                 normal = Convert25bitPalettetoGBA(self.FrontPalette)
                 GBANORMALLZ = LZCompress(normal)
                 if len(GBANORMALLZ) > self.OrgSizes["normal"]:
-                    repointer = SpriteRepointer(self.rom_name, 
-                                                             need=len(GBANORMALLZ), 
-                                                             repoint_what="Normal Palette")
+                    repointer = SpriteRepointer(rom, 
+                                                need=len(GBANORMALLZ), 
+                                                repoint_what="Normal Palette")
                     while True:
                         if repointer.ShowModal() == wx.ID_OK:
                             
@@ -327,9 +328,9 @@ class SpriteTab(wx.Panel):
                 shiny = Convert25bitPalettetoGBA(self.ShinyPalette)
                 GBASHINYLZ = LZCompress(shiny)
                 if len(GBASHINYLZ) > self.OrgSizes["shiny"]:
-                    repointer = SpriteRepointer(self.rom_name, 
-                                                             need=len(GBASHINYLZ), 
-                                                             repoint_what="Shiny Palette")
+                    repointer = SpriteRepointer(rom, 
+                                                need=len(GBASHINYLZ), 
+                                                repoint_what="Shiny Palette")
                     while True:
                         if repointer.ShowModal() == wx.ID_OK:
                             
