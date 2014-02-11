@@ -1,5 +1,5 @@
 from binascii import hexlify, unhexlify
-import wx
+import wx,math
 
 def ConvertGBAPalTo25Bit(palette):
     """
@@ -164,6 +164,8 @@ def ConvertNormalImageToGBA(image, palette=None, size=(64,64)):
     color2 = None
     for block in blocks:
         for color in block:
+            if color not in palette:
+                color = best_match(color, palette)
             if color1 == None:
                 color1 = hex(palette.index(color))[2:].zfill(1)
             else:
@@ -172,7 +174,14 @@ def ConvertNormalImageToGBA(image, palette=None, size=(64,64)):
                 color1 = None
                 color2 = None
     return (GBAImage, palette)
+
+def distance(color1, color2):
+    return math.sqrt(sum([(e1-e2)**2 for e1, e2 in zip(color1, color2)]))
     
+def best_match(sample, colors):
+    by_distance = sorted(colors, key=lambda c: distance(c, sample))
+    return by_distance[0]
+
 def ConvertNormalImageToGBAUnderPal(image, palette,size=(64,64)):
     """
     This function will take a normal wx.Image and return tuple
@@ -206,6 +215,8 @@ def ConvertNormalImageToGBAUnderPal(image, palette,size=(64,64)):
     color2 = None
     for block in blocks:
         for color in block:
+            if color not in palette:
+                color = best_match(color, palette)
             if color1 == None:
                 color1 = hex(palette.index(color))[2:].zfill(1)
             else:
