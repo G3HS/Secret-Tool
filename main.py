@@ -13,6 +13,8 @@ from cStringIO import StringIO
 
 version = 'Beta 0.91.1'
 
+sys.stderr = StringIO()
+
 OPEN = 1
 poke_num = 0
 poke_names = None
@@ -36,9 +38,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 licence = encode_per_platform(licence)
 
-class MainWindow(wx.Frame):
+class MainWindow(wx.Frame, wx.FileDropTarget):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title, size=(800,600))
+        wx.FileDropTarget.__init__(self)
+        self.SetDropTarget(self)
         self.open_rom = None
         self.open_rom_name = None
         self.rom_id = None
@@ -46,7 +50,6 @@ class MainWindow(wx.Frame):
         self.open_rom_ini = {}
         
         self.timer = None
-        sys.stderr = StringIO()
         
         self.panel = wx.Panel(self)
         self.tabbed_area = TabbedEditorArea(self.panel)
@@ -75,10 +78,18 @@ class MainWindow(wx.Frame):
         self.Show(True)
         self.set_timer()
         
+    def OnDropFiles(self, x, y, filenames):
+        filename = filenames[0]
+        self.open_rom = open(filename, "r+b")
+        self.open_rom_name = filename
+
+        self.work_with_ini()
+            
     def on_timer(self, event):
         self.set_timer()
         read = sys.stderr.getvalue()
         if read != "":
+            print read
             sys.stderr.close()
             sys.stderr = StringIO()
             ERROR = wx.MessageDialog(None, 
@@ -86,9 +97,9 @@ class MainWindow(wx.Frame):
                                 'Piped error from sys.stderr: PLEASE REPORT', 
                                 wx.OK | wx.ICON_ERROR)
             ERROR.ShowModal()
-
+            
     def set_timer(self):
-        TIMER_ID = 100  # pick a number
+        TIMER_ID = 10  # pick a number
         self.timer = wx.Timer(self, TIMER_ID)  # message will be sent to the panel
         self.timer.Start(500)  # x500 milliseconds
         wx.EVT_TIMER(self, TIMER_ID, self.on_timer)  # call the on_timer function
@@ -444,36 +455,45 @@ class StatsTab(wx.Panel):
         basic_stats_sizer = wx.GridBagSizer(3,3)
         
         basic_stats_txt = wx.StaticText(basic_stats, -1,"Base Stats:")
-        basic_stats_sizer.Add(basic_stats_txt, (0, 0), (1,2), wx.EXPAND)
+        basic_stats_sizer.Add(basic_stats_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
+        
+        self.Total_txt = wx.StaticText(basic_stats, -1,"Total: XXX")
+        basic_stats_sizer.Add(self.Total_txt, (0, 1),wx.DefaultSpan,  wx.ALL, 4)
         
         HP_txt = wx.StaticText(basic_stats, -1,"HP:")
         basic_stats_sizer.Add(HP_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.HP = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.HP.Bind(wx.EVT_TEXT, self.update_BST)
         basic_stats_sizer.Add(self.HP,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ATK_txt = wx.StaticText(basic_stats, -1,"ATK:")
         basic_stats_sizer.Add(ATK_txt, (2, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.ATK = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.ATK.Bind(wx.EVT_TEXT, self.update_BST)
         basic_stats_sizer.Add(self.ATK,(2, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         DEF_txt = wx.StaticText(basic_stats, -1,"DEF:")
         basic_stats_sizer.Add(DEF_txt, (3, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.DEF = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.DEF.Bind(wx.EVT_TEXT, self.update_BST)
         basic_stats_sizer.Add(self.DEF,(3, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         SPD_txt = wx.StaticText(basic_stats, -1,"SPD:")
         basic_stats_sizer.Add(SPD_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SPD = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.SPD.Bind(wx.EVT_TEXT, self.update_BST)
         basic_stats_sizer.Add(self.SPD,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         SpATK_txt = wx.StaticText(basic_stats, -1,"Sp. ATK:")
         basic_stats_sizer.Add(SpATK_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SpATK = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.SpATK.Bind(wx.EVT_TEXT, self.update_BST)
         basic_stats_sizer.Add(self.SpATK,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         SpDEF_txt = wx.StaticText(basic_stats, -1,"Sp. DEF:")
         basic_stats_sizer.Add(SpDEF_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SpDEF = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.SpDEF.Bind(wx.EVT_TEXT, self.update_BST)
         basic_stats_sizer.Add(self.SpDEF,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         basic_stats_sizer.SetFlexibleDirection(wx.BOTH)
@@ -485,7 +505,7 @@ class StatsTab(wx.Panel):
         evs_sizer = wx.GridBagSizer(3,3)
         
         e_txt = wx.StaticText(evs, -1,"Effort Values:")
-        evs_sizer.Add(e_txt, (0, 0), (1,2), wx.EXPAND)
+        evs_sizer.Add(e_txt, (0, 0), (1,2), wx.EXPAND, 5)
         
         e_HP_txt = wx.StaticText(evs, -1,"HP:")
         evs_sizer.Add(e_HP_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
@@ -719,6 +739,19 @@ class StatsTab(wx.Panel):
         self.reload_stuff()
         self.load_stats_into_boxes()
     
+    def update_BST(self, instance):
+        try:
+            total = 0
+            total += int(self.HP.GetValue(), 0)
+            total += int(self.ATK.GetValue(), 0)
+            total += int(self.DEF.GetValue(), 0)
+            total += int(self.SPD.GetValue(), 0)
+            total += int(self.SpATK.GetValue(), 0)
+            total += int(self.SpDEF.GetValue(), 0)
+            self.Total_txt.SetLabel("Total: "+str(total))
+        
+        except:
+            self.Total_txt.SetLabel("BST: ???")
     def update_HATCH_steps(self, *args):
         txt = self.HATCH.GetValue()
         try: 

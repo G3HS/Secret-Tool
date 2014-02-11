@@ -21,7 +21,7 @@ class SpriteTab(wx.Panel):
         self.IconPalNum = 0
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.generate_UI(self.poke_num)
-
+        self.PYGFLAG = False
         self.SetSizer(self.sizer)
 
     def generate_UI(self, poke_num):
@@ -150,7 +150,7 @@ class SpriteTab(wx.Panel):
         self.AniIcon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         IconImageSizer.Add(self.AniIcon, 0, wx.EXPAND | wx.ALL, 5)
         
-        IconRepoint = Button(IconPanel, 55, "Repoint Icon")
+        IconRepoint = Button(IconPanel, 65, "Repoint Icon")
         self.Bind(wx.EVT_BUTTON, self.RepointIcon, id=65)
         IconPanelSizer.Add(IconRepoint, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -182,9 +182,9 @@ class SpriteTab(wx.Panel):
         
         self.load_everything(self.poke_num)
     
-    def RepointIcon(self):
+    def RepointIcon(self, instance):
         repointer = SpriteRepointer(self.rom_name, 
-                                                need=len(GBAFSLZ), 
+                                                need=len(self.GBAIcon), 
                                                 repoint_what="Icon")
         if repointer.ShowModal() == wx.ID_OK:
             iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
@@ -693,7 +693,15 @@ class SpriteTab(wx.Panel):
     def PositionEditor(self, instance):
         #origin for pokeback is (40,48)
         #origin for pokefront is (144,8)
+        if self.PYGFLAG == True:
+            self.timer.Stop()
+            running = False
+            pygame.quit()
+            self.PYGFLAG = False
+            return
+        self.PYGFLAG = True
         pygame.init()
+        pygame.event.set_blocked(pygame.QUIT)
         self.TMPFrontSprite.SaveFile(os.path.join("Resources","PokeFront.png"), wx.BITMAP_TYPE_PNG)
         self.TMPBackSprite.SaveFile(os.path.join("Resources","PokeBack.png"), wx.BITMAP_TYPE_PNG)
         
@@ -762,8 +770,8 @@ class SpriteTab(wx.Panel):
         
         self.screen.blit(self.PYGBG,pygame.Rect(0,0,240,160))
         if alt > 0:
-            self.screen.blit(self.PYGPokeBack,self.shadow_rect)
-        self.screen.blit(self.shadow,PokeFrontRect)
+            self.screen.blit(self.shadow,self.shadow_rect)
+        self.screen.blit(self.PYGPokeBack,PokeFrontRect)
         self.screen.blit(self.PYGPokeBack,PokeBackRect)
         self.screen.blit(self.PYGTEXTBOX,pygame.Rect(0,0,240,160))
         pygame.display.flip()
@@ -783,11 +791,7 @@ class SpriteTab(wx.Panel):
         need_update = []
         pygame.event.pump()
         keys = pygame.key.get_pressed()
-        for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    pygame.quit()
-                    self.timer.Stop()
+           
         for map in self.Mappings:
             if keys[map[0]]:
                 need_update.append(map[1])
@@ -828,9 +832,10 @@ class SpriteTab(wx.Panel):
                     curr -= 1
                     self.EnemyAlt.SetValue(curr)
                 except: pass
-            
+        
         self.UpdatePosition()
-                
+        return
+        
     def UpdatePosition(self):
         try:
             alt = self.EnemyAlt.GetValue()
