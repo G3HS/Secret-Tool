@@ -920,25 +920,24 @@ class SpriteRepointer(wx.Dialog):
     def OnSearch(self, *args):
         self.OFFSETS.Clear()
         search = "\xff"*self.num
-        with open(self.rom, "r+b") as rom:
-            rom.seek(0)
-            read = rom.read()
+        rom.seek(0)
+        read = rom.read()
+        x = (0,True)
+        start = 7602176
+        for n in range(5):
+            if x[1] == None:
+                break
             x = (0,True)
-            start = 7602176
-            for n in range(5):
-                if x[1] == None:
-                    break
-                x = (0,True)
-                while x[0] != 1:
-                    offset = read.find(search, start)
-                    if offset == -1:
-                        x = (1,None)
-                    if offset%4 != 0:
-                        start = offset+1
-                        continue
-                    if read[offset-1] != "\xFF":
-                        start = offset+1
-                        continue
-                    self.OFFSETS.Append(hex(offset))
-                    x = (1,True)
-                    start = offset+len(search)
+            while x[0] != 1:
+                offset = read.find(search, start)
+                if offset == -1:
+                    x = (1,None)
+                if offset%4 != 0:
+                    start = offset+1
+                    continue
+                if read[offset-1] != "\xFF":
+                    start = offset+1
+                    continue
+                self.OFFSETS.Append(hex(offset))
+                x = (1,True)
+                start = offset+len(search)
