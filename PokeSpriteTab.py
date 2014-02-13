@@ -107,6 +107,19 @@ class SpriteTab(wx.Panel):
         PositionPanel.SetSizer(PositionPanelSizer)
         self.sizer.Add(PositionPanel, 0, wx.EXPAND | wx.ALL, 5)
         
+        FrameHBox = wx.BoxSizer(wx.HORIZONTAL)
+        PositionPanelSizer.Add(FrameHBox, 0, wx.EXPAND | wx.ALL, 5)
+        
+        Frame_txt = wx.StaticText(PositionPanel, -1,"Sprite Frame:")
+        FrameHBox.Add(Frame_txt, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5)
+        self.Frames = wx.SpinCtrl(PositionPanel, -1,style=wx.TE_CENTRE, size=(100,-1))
+        self.Frames.Bind(wx.EVT_TEXT, self.ReloadShownSprites)
+        FrameHBox.Add(self.Frames, 0, wx.EXPAND | wx.ALL, 5)
+        
+        lnH = wx.StaticLine(PositionPanel, -1, style=wx.LI_HORIZONTAL)
+        lnH.SetSize((2,200))
+        PositionPanelSizer.Add(lnH, 0, wx.EXPAND | wx.ALL, 5)
+        
         PositionEntrySizer = wx.GridBagSizer(3,3)
         PositionPanelSizer.Add(PositionEntrySizer, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -181,7 +194,7 @@ class SpriteTab(wx.Panel):
             self.IconColorButtons.append(button)
         
         self.load_everything(self.poke_num)
-    
+        
     def RepointIcon(self, instance):
         with open(self.rom_name, "r+b") as rom:
             repointer = SpriteRepointer(rom, 
@@ -225,7 +238,10 @@ class SpriteTab(wx.Panel):
         overwrite = self.cb.IsChecked()
         with open(self.rom_name, "r+b") as rom:
             if self.Changes["front"] != False:
-                GBAFSLZ = LZCompress(self.GBAFrontSprite)
+                GBAFrontSprite = ""
+                for sprite in self.GBAFrontSpriteFrames:
+                    GBAFrontSprite += sprite
+                GBAFSLZ = LZCompress(GBAFrontSprite)
                 if len(GBAFSLZ) > self.OrgSizes["front"]:
                     repointer = SpriteRepointer(rom, 
                                                 need=len(GBAFSLZ), 
@@ -258,7 +274,10 @@ class SpriteTab(wx.Panel):
                     rom.write(GBAFSLZ)
                                 
             if self.Changes["back"] != False:
-                GBABSLZ = LZCompress(self.GBABackSprite)
+                GBABackSprite = ""
+                for sprite in self.GBABackSpriteFrames:
+                    GBABackSprite += sprite
+                GBABSLZ = LZCompress(GBABackSprite)
                 if len(GBABSLZ) > self.OrgSizes["back"]:
                     repointer = SpriteRepointer(rom, 
                                                 need=len(GBABSLZ), 
@@ -399,6 +418,13 @@ class SpriteTab(wx.Panel):
     
     def edit_color(self, instance):
         instance = instance.GetEventObject()
+        
+        frame = self.Frames.GetValue()
+        if len(self.FrontPalette) < (frame+1)*16:
+            start = 0
+        else:
+            start = frame*16
+        
         color_number = instance.Id
         dlg = wx.ColourDialog(self)
         dlg.GetColourData().SetChooseFull(True)
@@ -407,10 +433,10 @@ class SpriteTab(wx.Panel):
         else: return
         dlg.Destroy()
         if color_number < 16:
-            self.FrontPalette[color_number] = data.GetColour()
+            self.FrontPalette[start+color_number] = data.GetColour()
             self.Changes["normal"]=True
         else:
-            self.ShinyPalette[color_number-16] = data.GetColour()
+            self.ShinyPalette[start+(color_number-16)] = data.GetColour()
             self.Changes["shiny"]=True
         self.ReloadShownSprites()
     
@@ -462,11 +488,18 @@ class SpriteTab(wx.Panel):
             self.Icons.SetBitmapLabel(self.TMPIcon)
             self.ReloadShownSprites()
     
-    def ReloadShownSprites(self):
-        self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSprite,self.FrontPalette)
-        self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSprite,self.FrontPalette)
-        self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSprite,self.ShinyPalette)
-        self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSprite,self.ShinyPalette)
+    def ReloadShownSprites(self, *args):
+        frame = self.Frames.GetValue()
+        if len(self.FrontPalette) < (frame+1)*16:
+            start = 0
+            stop = 16
+        else:
+            start = frame*16
+            stop = (frame+1)*16
+        self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.FrontPalette[start:stop])
+        self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.FrontPalette[start:stop])
+        self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.ShinyPalette[start:stop])
+        self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.ShinyPalette[start:stop])
         
         self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
         self.BackSprite.SetBitmapLabel(self.TMPBackSprite)
@@ -476,9 +509,9 @@ class SpriteTab(wx.Panel):
         self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
         self.Icons.SetBitmapLabel(self.TMPIcon)
         
-        for num, color in enumerate(self.FrontPalette):
+        for num, color in enumerate(self.FrontPalette[start:stop]):
             self.ColorButtons[num].SetBackgroundColour(color)
-        for num, color in enumerate(self.ShinyPalette):
+        for num, color in enumerate(self.ShinyPalette[start:stop]):
             self.ColorButtons[num+16].SetBackgroundColour(color)
         for num, color in enumerate(self.IconPals[self.IconPalNum]):
             self.IconColorButtons[num].SetBackgroundColour(color)
@@ -495,6 +528,14 @@ class SpriteTab(wx.Panel):
         open_dialog = wx.FileDialog(self, message="Open a sprite...", 
                                                         defaultDir=self.lastPath, style=wx.OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
+            frame = self.Frames.GetValue()
+            if len(self.FrontPalette) < (frame+1)*16:
+                start = 0
+                stop = 16
+            else:
+                start = frame*16
+                stop = (frame+1)*16
+            
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
@@ -514,23 +555,23 @@ class SpriteTab(wx.Panel):
             sprite_number = instance.Id
             
             if sprite_number == 56:
-                self.GBAFrontSprite = gbaversion
-                self.FrontPalette = palette
+                self.GBAFrontSpriteFrames[frame] = gbaversion
+                self.FrontPalette[start:stop] = palette
                 self.Changes["front"]=True
                 self.Changes["normal"]=True
             elif sprite_number == 57:
-                self.GBABackSprite = gbaversion
-                self.FrontPalette = palette
+                self.GBABackSpriteFrames[frame] = gbaversion
+                self.FrontPalette[start:stop] = palette
                 self.Changes["back"]=True
                 self.Changes["normal"]=True
             elif sprite_number == 58:
-                self.GBAFrontSprite = gbaversion
-                self.ShinyPalette = palette
+                self.GBAFrontSpriteFrames[frame] = gbaversion
+                self.ShinyPalette[start:stop] = palette
                 self.Changes["front"]=True
                 self.Changes["shiny"]=True
             elif sprite_number == 59:
-                self.GBABackSprite = gbaversion
-                self.ShinyPalette = palette
+                self.GBABackSpriteFrames[frame] = gbaversion
+                self.ShinyPalette[start:stop] = palette
                 self.Changes["back"]=True
                 self.Changes["shiny"]=True
             self.ReloadShownSprites()
@@ -539,6 +580,14 @@ class SpriteTab(wx.Panel):
         open_dialog = wx.FileDialog(self, message="Open a sprite sheet...", 
                                                         defaultDir=self.lastPath, style=wx.OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
+            frame = self.Frames.GetValue()
+            if len(self.FrontPalette) < (frame+1)*16:
+                start = 0
+                stop = 16
+            else:
+                start = frame*16
+                stop = (frame+1)*16
+            
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
@@ -565,10 +614,10 @@ class SpriteTab(wx.Panel):
             front = frontback.copy().crop((0, 0, 64, 64))
             back = frontback.copy().crop((64, 0, 128, 64))
             wxfront = PilImageToWxImage(front)
-            self.GBAFrontSprite, self.FrontPalette = ConvertNormalImageToGBA(wxfront)
+            self.GBAFrontSpriteFrames[frame], self.FrontPalette[start:stop] = ConvertNormalImageToGBA(wxfront)
             wxback = PilImageToWxImage(back)
-            self.GBABackSprite, tmp = ConvertNormalImageToGBAUnderPal(wxback, self.FrontPalette)
-            self.ShinyPalette = GetShinyPalette(front.convert("RGB"), shiny.convert("RGB"), self.FrontPalette)
+            self.GBABackSpriteFrames[frame], tmp = ConvertNormalImageToGBAUnderPal(wxback, self.FrontPalette[start:stop])
+            self.ShinyPalette[start:stop] = GetShinyPalette(front.convert("RGB"), shiny.convert("RGB"), self.FrontPalette[start:stop])
             self.ReloadShownSprites()
             self.Changes["front"]=True
             self.Changes["back"]=True
@@ -602,19 +651,31 @@ class SpriteTab(wx.Panel):
             self.FrontPalettePointer = read_pointer(rom.read(4))
             rom.seek(ShinyPaletteTable+(poke_num)*bytes_per_entry)
             self.ShinyPalettePointer = read_pointer(rom.read(4))
-        
+            
             self.GBAFrontSprite, self.OrgSizes["front"] = LZUncompress(rom, self.FrontSpritePointer, True)
             self.GBABackSprite, self.OrgSizes["back"] = LZUncompress(rom, self.BackSpritePointer, True)
             FrontPalette, self.OrgSizes["normal"] = LZUncompress(rom, self.FrontPalettePointer, True)
             ShinyPalette, self.OrgSizes["shiny"] = LZUncompress(rom, self.ShinyPalettePointer, True)
             
+            self.GBAFrontSpriteFrames = []
+            self.GBABackSpriteFrames = []
+            
+            NumberOfFrames = len(self.GBAFrontSprite)/2048
+            self.Frames.SetRange(0,NumberOfFrames-1)
+            for x in range(NumberOfFrames):
+                self.GBAFrontSpriteFrames.append(self.GBAFrontSprite[x*2048:(x+1)*2048])
+                self.GBABackSpriteFrames.append(self.GBABackSprite[x*2048:(x+1)*2048])
+            
+            del self.GBAFrontSprite
+            del self.GBABackSprite
+            
             self.FrontPalette = ConvertGBAPalTo25Bit(FrontPalette)
             self.ShinyPalette = ConvertGBAPalTo25Bit(ShinyPalette)
             
-            self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSprite,self.FrontPalette)
-            self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSprite,self.FrontPalette)
-            self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSprite,self.ShinyPalette)
-            self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSprite,self.ShinyPalette)
+            self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[0],self.FrontPalette)
+            self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[0],self.FrontPalette)
+            self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[0],self.ShinyPalette)
+            self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[0],self.ShinyPalette)
             self.Refresh()
             
             self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
@@ -662,10 +723,13 @@ class SpriteTab(wx.Panel):
             self.SetIconTimer(1)
             
         for num, color in enumerate(self.FrontPalette):
+            if num > 15: break
             self.ColorButtons[num].SetBackgroundColour(color)
         for num, color in enumerate(self.ShinyPalette):
+            if num > 15: break
             self.ColorButtons[num+16].SetBackgroundColour(color)
         for num, color in enumerate(self.IconPals[self.IconPalNum]):
+            if num > 15: break
             self.IconColorButtons[num].SetBackgroundColour(color)
         nums = []
         for n in range(numiconpalettes):
@@ -921,8 +985,8 @@ class SpriteRepointer(wx.Dialog):
     def OnSearch(self, *args):
         self.OFFSETS.Clear()
         search = "\xff"*self.num
-        rom.seek(0)
-        read = rom.read()
+        self.rom.seek(0)
+        read = self.rom.read()
         x = (0,True)
         start = 7602176
         for n in range(5):

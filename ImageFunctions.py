@@ -60,7 +60,7 @@ def Convert25bitPalettetoGBA(palette):
         bytes = unhexlify(hexColor)
         bytes = bytes[1]+bytes[0]
         GBAPal += bytes
-    for i in range(32-len(GBAPal)):
+    for i in range(len(palette)*2-len(GBAPal)):
         GBAPal += "\x00"
     return GBAPal
     
@@ -147,9 +147,9 @@ def ConvertNormalImageToGBA(image, palette=None, size=(64,64)):
             block_num -= width/8
             for y in range(width/8):
                 for z in range(8):
-                    color = (int(hexlify(data[:1]),16),
+                    color = [int(hexlify(data[:1]),16),
                                   int(hexlify(data[1:2]),16),
-                                  int(hexlify(data[2:3]),16))
+                                  int(hexlify(data[2:3]),16)]
                     if dontmap == False:
                         if color not in palette:
                             palette.append(color)
@@ -173,7 +173,12 @@ def ConvertNormalImageToGBA(image, palette=None, size=(64,64)):
                 GBAImage += unhexlify(color2+color1)
                 color1 = None
                 color2 = None
-    return (GBAImage, palette)
+    while len(palette) < 16:
+        palette.append((0,0,0))
+    ListPalette = []
+    for color in palette:
+        ListPalette.append([color[0],color[1],color[2]])
+    return (GBAImage, ListPalette)
 
 def distance(color1, color2):
     return math.sqrt(sum([(e1-e2)**2 for e1, e2 in zip(color1, color2)]))
@@ -234,12 +239,25 @@ def GetShinyPalette(normal, shiny, normal_palette):
     Just pass it the normal and shiny images,
      along with the normal palette.
     """
-       
     palette = []
     norm = list(normal.getdata())
     shin = list(shiny.getdata())
+    misses = False
     for pixel in normal_palette:
-        index = norm.index(pixel)
-        palette.append(shin[index])
+        px = (pixel[0],pixel[1],pixel[2])
+        try: 
+            index = norm.index(px)
+            palette.append([shin[index][0],shin[index][1],shin[index][2]])
+        except:
+            misses = True
+    if misses:
+        for color in shin:
+            if color not in palette:
+                if len(palette) < 16:
+                    palette.append([color[0],color[1],color[2]])
+                else:
+                    break
+    while len(palette) < 16:
+        palette.append([0,0,0])
     return palette
         

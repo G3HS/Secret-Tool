@@ -13,8 +13,6 @@ from cStringIO import StringIO
 
 version = 'Beta 0.91.1'
 
-sys.stderr = StringIO()
-
 OPEN = 1
 poke_num = 0
 poke_names = None
@@ -59,24 +57,19 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.Layout()
         
         self.CreateStatusBar() # A Statusbar in the bottom of the window
-
         # Setting up the menu.
         filemenu= wx.Menu()
-
         # wx.ID_ABOUT and wx.ID_EXIT are standard IDs provided by wxWidgets.
         filemenu.Append(OPEN, "&Open"," Open a ROM.")
         filemenu.AppendSeparator()
         filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
-        
         self.Bind(wx.EVT_MENU, self.open_file, id=OPEN)
         self.Bind(wx.EVT_MENU, self.ABOUT, id=wx.ID_ABOUT)
-        
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
         self.Show(True)
-        self.set_timer()
         
         
     def OnDropFiles(self, x, y, filenames):
@@ -136,8 +129,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             self.open_rom_name = filename
 
             self.work_with_ini()
-            
-
+           
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
         #If yes, load it's custom ini. If no, create its ini.
@@ -267,9 +259,11 @@ class PokemonDataEditor(wx.Panel):
                 poke_names = self.poke_names
                 self.Pokes = wx.ComboBox(self, -1, choices=self.poke_names, 
                                 value=self.poke_names[0],
-                                style=wx.SUNKEN_BORDER,
+                                style=wx.SUNKEN_BORDER|wx.TE_PROCESS_ENTER,
                                 pos=(0, 0), size=(150, -1))
                 self.Pokes.Bind(wx.EVT_COMBOBOX, self.on_change_poke)
+                self.Pokes.Bind(wx.EVT_TEXT_ENTER, self.SearchForPoke)
+                
                 global poke_num
                 poke_num = 0
                 
@@ -305,6 +299,13 @@ class PokemonDataEditor(wx.Panel):
             self.sizer.Add(open, 1, wx.EXPAND|wx.ALL, 200)
             self.SetSizer(self.sizer)
         self.Layout()
+        
+    def SearchForPoke(self,instance):
+        instance = instance.GetEventObject()
+        index = instance.FindString(instance.GetValue())
+        if index != -1:
+            instance.SetSelection(index)
+        self.on_change_poke(instance)
         
     def OnOpen(self, instance):
         frame.open_file()
@@ -1817,6 +1818,13 @@ class PokeDexTab(wx.Panel):
         self.Entry2 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
         DEX_Sizer.Add(self.Entry2, 0, wx.ALL, 5)
         
+        gamecode = frame.Config.get(frame.rom_id, "gamecode")
+        
+        if gamecode == "BPRE":
+            FixNameBug = Button(DEX, 1, "Fix 'Dex Not Displaying Names Properly")
+            self.Bind(wx.EVT_BUTTON, self.OnFixNameBug, id=1)
+            DEX_Sizer.Add(FixNameBug, 1, wx.BOTTOM|wx.ALIGN_CENTER, 110)
+        
         ##This is the Height and Weight Section
         
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -1915,6 +1923,13 @@ class PokeDexTab(wx.Panel):
         TScaleBoxRight.Add(self.TScale_px, 0, wx.TOP, 5)
         
         self.LoadEverything()
+        
+    def OnFixNameBug(self,instance):
+        with open(frame.open_rom_name, "r+b") as rom:
+            rom.seek(0x10583C)
+            rom.write("\xFF")
+            rom.seek(0x105856)
+            rom.write("\xFF")
         
     def save(self):
         pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
@@ -2217,6 +2232,7 @@ class PokeDexTab(wx.Panel):
                 tmp = get_bytes_string_from_hex_string(tmp)
                 tmp = int(tmp, 16)
                 self.NatDexList.append(tmp)
+                
     def ChangePscale(self, instance):
         try: value = int(self.Pscale.GetValue(),0)
         except:
@@ -3411,5 +3427,6 @@ if len(sys.argv) > 1:
     frame.open_rom = open(file, "r+b")
     frame.open_rom_name = file
     frame.work_with_ini()
-
+sys.stderr = StringIO()
+frame.set_timer()
 app.MainLoop()
