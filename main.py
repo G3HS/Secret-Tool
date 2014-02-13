@@ -298,7 +298,16 @@ class PokemonDataEditor(wx.Panel):
                 
                 self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 2)
                 self.SetSizer(self.sizer)
+        else:
+            self.sizer = wx.BoxSizer(wx.VERTICAL)
+            open = Button(self, 1, "Open Rom")
+            self.Bind(wx.EVT_BUTTON, self.OnOpen, id=1)
+            self.sizer.Add(open, 1, wx.EXPAND|wx.ALL, 200)
+            self.SetSizer(self.sizer)
         self.Layout()
+        
+    def OnOpen(self, instance):
+        frame.open_file()
         
     def OnExpandPokes(self, instance):
         Expander = PokemonExpander(frame.open_rom_name)
@@ -3397,7 +3406,7 @@ name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)
 frame = MainWindow(None, name)
 frame.Bind(wx.EVT_CLOSE, OnClose)
-if len(sys.argv) >= 1:
+if len(sys.argv) > 1:
     file = sys.argv[1]
     frame.open_rom = open(file, "r+b")
     frame.open_rom_name = file
