@@ -35,13 +35,13 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
-
 licence = encode_per_platform(licence)
 
 class MainWindow(wx.Frame, wx.FileDropTarget):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title, size=(800,600))
         wx.FileDropTarget.__init__(self)
+            
         self.SetDropTarget(self)
         self.open_rom = None
         self.open_rom_name = None
@@ -77,6 +77,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
         self.Show(True)
         self.set_timer()
+        
         
     def OnDropFiles(self, x, y, filenames):
         filename = filenames[0]
@@ -195,7 +196,6 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         continue
                     else:
                         self.rom_id = x
-                        
                         #Write new rom_id to rom.
                         byte_rom_id = get_hex_from_string(self.rom_id)
                         self.open_rom.write(byte_rom_id)
@@ -214,7 +214,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         y = True
         self.open_rom.close()
         self.reload_all_tabs()
-        frame.SetTitle("Gen III Hacking Suite"+" ~ "+self.Config.get(self.rom_id, "name")+" ~ "+self.open_rom.name)
+        self.SetTitle("Gen III Hacking Suite"+" ~ "+self.Config.get(self.rom_id, "name")+" ~ "+self.open_rom.name)
             
     def reload_all_tabs(self):
         try:    self.tabbed_area.Destroy()
@@ -3397,5 +3397,10 @@ name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)
 frame = MainWindow(None, name)
 frame.Bind(wx.EVT_CLOSE, OnClose)
+if len(sys.argv) >= 1:
+    file = sys.argv[1]
+    frame.open_rom = open(file, "r+b")
+    frame.open_rom_name = file
+    frame.work_with_ini()
 
 app.MainLoop()
