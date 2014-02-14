@@ -222,9 +222,6 @@ class SpriteTab(wx.Panel):
             
     def save(self):
         #Save sprites
-        gamecode = self.config.get(self.rom_id, "gamecode")
-        if gamecode[:3] == "BPR": 
-            frontspriteanimations = int(self.config.get(self.rom_id, "frontspriteanimations"), 0)
         FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
         BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
         FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)
@@ -244,82 +241,36 @@ class SpriteTab(wx.Panel):
                 GBAFrontSprite = ""
                 for sprite in self.GBAFrontSpriteFrames:
                     GBAFrontSprite += sprite
-                if gamecode[:3] == "BPR": 
-                    MainFrame = LZCompress(self.GBAFrontSpriteFrames[0])
                 GBAFSLZ = LZCompress(GBAFrontSprite)
                 if len(GBAFSLZ) > self.OrgSizes["front"]:
-                    if gamecode[:3] == "BPR":
-                        repointer = SpriteRepointer(rom, 
-                                                            need=len(GBAFSLZ+MainFrame), 
-                                                            repoint_what="Front Sprite")
-                        while True:
-                            if repointer.ShowModal() == wx.ID_OK:
-                                if repointer.offset == self.FrontSpritePointer: continue
-                                elif repointer.offset == None: continue
-                                else:
-                                    rom.seek(frontspriteanimations+(self.poke_num)*bytes_per_entry)
-                                    #Write new pointer
-                                    offset = repointer.offset
-                                    hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                    hexOffset = make_pointer(hexOffset)
-                                    hexOffset = unhexlify(hexOffset)
-                                    rom.write(hexOffset)
-                                    #Clear old image
-                                    if overwrite == True:
-                                        rom.seek(self.FrontSpritePointer)
-                                        
-                                        for x in range(self.OrgSizes["front"]):
-                                            rom.write("\xFF")
-                                    #Write new image
-                                    rom.seek(offset)
-                                    rom.write(GBAFSLZ)
-                                    self.OrgSizes["front"] = len(GBAFSLZ)
-                                    #Write Main Frame
-                                    CurrentOffset = rom.tell()
-                                    while CurrentOffset%4 != 0:
-                                        CurrentOffset += 1
-                                    HexCurrentOffset = hex(CurrentOffset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                    HexCurrentOffset = make_pointer(HexCurrentOffset)
-                                    HexCurrentOffset = unhexlify(HexCurrentOffset)
-                                    rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
-                                    rom.write(HexCurrentOffset)
-                                    rom.seek(CurrentOffset)
-                                    rom.write(MainFrame)
-                                    break
-                    else:
-                        repointer = SpriteRepointer(rom, 
-                                                                need=len(GBAFSLZ), 
-                                                                repoint_what="Front Sprite")
-                        while True:
-                            if repointer.ShowModal() == wx.ID_OK:
-                                if repointer.offset == self.FrontSpritePointer: continue
-                                elif repointer.offset == None: continue
-                                else:
-                                    rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
-                                    #Write new pointer
-                                    offset = repointer.offset
-                                    hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                    hexOffset = make_pointer(hexOffset)
-                                    hexOffset = unhexlify(hexOffset)
-                                    rom.write(hexOffset)
-                                    #Clear old image
-                                    if overwrite == True:
-                                        rom.seek(self.FrontSpritePointer)
-                                        
-                                        for x in range(self.OrgSizes["front"]):
-                                            rom.write("\xFF")
-                                    #Write new image
-                                    rom.seek(offset)
-                                    rom.write(GBAFSLZ)
-                                    self.OrgSizes["front"] = len(GBAFSLZ)
-                                    break
+                    repointer = SpriteRepointer(rom, 
+                                                        need=len(GBAFSLZ), 
+                                                        repoint_what="Front Sprite")
+                    while True:
+                        if repointer.ShowModal() == wx.ID_OK:
+                            if repointer.offset == self.FrontSpritePointer: continue
+                            elif repointer.offset == None: continue
+                            else:
+                                rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
+                                #Write new pointer
+                                offset = repointer.offset
+                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                hexOffset = make_pointer(hexOffset)
+                                hexOffset = unhexlify(hexOffset)
+                                rom.write(hexOffset)
+                                #Clear old image
+                                if overwrite == True:
+                                    rom.seek(self.FrontSpritePointer)
+                                    for x in range(self.OrgSizes["front"]):
+                                        rom.write("\xFF")
+                                #Write new image
+                                rom.seek(offset)
+                                rom.write(GBAFSLZ)
+                                self.OrgSizes["front"] = len(GBAFSLZ)
+                                break
                 else:
                     rom.seek(self.FrontSpritePointer)
                     rom.write(GBAFSLZ)
-                    if gamecode[:3] == "BPR":
-                        rom.seek(frontspriteanimations+(self.poke_num)*bytes_per_entry)
-                        rom.seek(read_pointer(rom.read(4)))
-                        rom.write(MainFrame)
                     
             if self.Changes["back"] != False:
                 GBABackSprite = ""
@@ -560,9 +511,9 @@ class SpriteTab(wx.Panel):
             self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.ShinyPalette[start:stop])
         
             self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
-            self.BackSprite.SetBitmapLabel(wx.EmptyBitmap(64,64))
+            self.BackSprite.SetBitmapLabel(wx.EmptyBitmapRGBA(64,64,alpha=255))
             self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
-            self.SBackSprite.SetBitmapLabel(wx.EmptyBitmap(64,64))
+            self.SBackSprite.SetBitmapLabel(wx.EmptyBitmapRGBA(64,64,alpha=255))
             
             self.LoadAllButton.SetLabel("Load 64x64 Front Frame. Shiny Will Be Auto Done.")
             
@@ -648,8 +599,6 @@ class SpriteTab(wx.Panel):
             else:
                 start = frame*16
                 stop = (frame+1)*16
-            
-            
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
@@ -710,11 +659,7 @@ class SpriteTab(wx.Panel):
         self.Changes = {"front":False, "back":False, "normal":False, "shiny":False}
         self.poke_num = poke_num
         
-        gamecode = self.config.get(self.rom_id, "gamecode")
-        if gamecode[:3] == "BPR": 
-            FrontSpriteTable = int(self.config.get(self.rom_id, "frontspriteanimations"), 0)
-        else: 
-            FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
+        FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
         BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
         FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)
         ShinyPaletteTable = int(self.config.get(self.rom_id, "ShinyPaletteTable"), 0)

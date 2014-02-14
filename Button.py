@@ -30,13 +30,13 @@ class ComboBox(wx.ComboBox):
         for item in items:
             if item.startswith(currentText) or item.startswith(currentText.upper()) or item.startswith(currentText.lower()):
                 index = self.FindString(item)
-                self.SetSelection(index)
+                wx.CallAfter(self.SetSelection,index)
                 cmd = wx.CommandEvent(wx.EVT_COMBOBOX.evtType[0])
                 cmd.SetEventObject(self) 
                 cmd.SetId(self.GetId())
                 self.GetEventHandler().ProcessEvent(cmd) 
-                self.SetInsertionPoint(len(currentText))
-                self.SetMark(len(currentText), len(item))
+                wx.CallAfter(self.SetInsertionPoint,len(currentText))
+                wx.CallAfter(self.SetMark,len(currentText), len(item))
                 break
                 
     def SearchOnHitEnter(self, instance):

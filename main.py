@@ -11,7 +11,7 @@ from PokeSpriteTab import *
 from ExpandPokes import *
 from cStringIO import StringIO
 
-version = 'Beta 0.99'
+version = 'Beta 0.99.1'
 
 OPEN = 1
 poke_num = 0
@@ -69,6 +69,11 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
+        image = wx.Image(os.path.join("Resources","IconTiny.png"), wx.BITMAP_TYPE_PNG).ConvertToBitmap() 
+        icon = wx.EmptyIcon() 
+        icon.CopyFromBitmap(image) 
+        self.SetIcon(icon)
+        
         self.Show(True)
         
     def OnDropFiles(self, x, y, filenames):
@@ -271,7 +276,7 @@ class PokemonDataEditor(wx.Panel):
                 poke_names = self.poke_names
                 self.Pokes = wx.ComboBox(self, -1, choices=self.poke_names, 
                                 value=self.poke_names[0],
-                                style=wx.SUNKEN_BORDER|wx.TE_PROCESS_ENTER,
+                                style=wx.SUNKEN_BORDER,
                                 pos=(0, 0), size=(150, -1))
                 self.Pokes.Bind(wx.EVT_COMBOBOX, self.on_change_poke)
                 self.Pokes.Bind(wx.EVT_CHAR, self.EvtChar)
@@ -320,7 +325,7 @@ class PokemonDataEditor(wx.Panel):
             self.ignoreEvtText = True
         event.Skip()
         
-    def SearchWhileTyping(self, *args):
+    def SearchWhileTyping(self, event=None):
         if self.ignoreEvtText:
             self.ignoreEvtText = False
             return
@@ -329,12 +334,14 @@ class PokemonDataEditor(wx.Panel):
         for item in items:
             if item.startswith(currentText) or item.startswith(currentText.upper()) or item.startswith(currentText.lower()):
                 index = self.Pokes.FindString(item)
-                self.Pokes.SetSelection(index)
-                self.Pokes.SetInsertionPoint(len(currentText))
-                self.Pokes.SetMark(len(currentText), len(item))
+                wx.CallAfter(self.Pokes.SetSelection,index)
+                wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentText))
+                wx.CallAfter(self.Pokes.SetMark,len(currentText),len(item))
                 break
-                
-    def SearchOnEnter(self, instance):
+        if event is not None:
+            event.Skip()
+            
+    def SearchOnEnter(self, event=None):
         index = self.Pokes.FindString(self.Pokes.GetValue())
         if index != -1:
             self.Pokes.SetSelection(index)
@@ -350,7 +357,8 @@ class PokemonDataEditor(wx.Panel):
         cmd.SetEventObject(self.Pokes) 
         cmd.SetId(self.Pokes.GetId())
         self.Pokes.GetEventHandler().ProcessEvent(cmd) 
-        
+        if event is not None:
+            event.Skip()
     def OnOpen(self, instance):
         frame.open_file()
         
