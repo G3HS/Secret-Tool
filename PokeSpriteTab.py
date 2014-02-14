@@ -34,9 +34,9 @@ class SpriteTab(wx.Panel):
         spritePanel.SetSizer(SpritesAndPals)
         SpritesAndPals.Add(spritePanelSizer, 0, wx.EXPAND | wx.ALL, 0)
         
-        LoadAllButton = Button(spritePanel, 60, "Load 256x64 Sheet")
+        self.LoadAllButton = Button(spritePanel, 60, "Load 256x64 Sheet")
         self.Bind(wx.EVT_BUTTON, self.LoadSheetSprite, id=60)
-        SpritesAndPals.Add(LoadAllButton, 0, wx.EXPAND | wx.ALL, 6)
+        SpritesAndPals.Add(self.LoadAllButton, 0, wx.EXPAND | wx.ALL, 6)
         
         self.cb = wx.CheckBox(spritePanel, -1, 'Fill sprites with 0xFF on repoint?', (10, 10))
         self.cb.SetValue(True)
@@ -167,7 +167,7 @@ class SpriteTab(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.RepointIcon, id=65)
         IconPanelSizer.Add(IconRepoint, 0, wx.EXPAND | wx.ALL, 5)
         
-        self.IconPalChoice = wx.ComboBox(IconPanel, -1, choices=[],
+        self.IconPalChoice = ComboBox(IconPanel, -1, choices=[],
                                             style=wx.SUNKEN_BORDER, size=(60, -1))
         self.IconPalChoice.Bind(wx.EVT_COMBOBOX, self.SwapIconPal)
         IconPanelSizer.Add(self.IconPalChoice, 0, wx.EXPAND | wx.ALL, 5)
@@ -222,6 +222,9 @@ class SpriteTab(wx.Panel):
             
     def save(self):
         #Save sprites
+        gamecode = self.config.get(self.rom_id, "gamecode")
+        if gamecode[:3] == "BPR": 
+            frontspriteanimations = int(self.config.get(self.rom_id, "frontspriteanimations"), 0)
         FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
         BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
         FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)
@@ -234,49 +237,95 @@ class SpriteTab(wx.Panel):
         iconpalettes = int(self.config.get(self.rom_id, "iconpalettes"), 0)
         numiconpalettes = int(self.config.get(self.rom_id, "numiconpalettes"), 0)
         
-        bytes_per_entry = 8 ##Need to load from ini for EMERALD
+        bytes_per_entry = 8
         overwrite = self.cb.IsChecked()
         with open(self.rom_name, "r+b") as rom:
             if self.Changes["front"] != False:
                 GBAFrontSprite = ""
                 for sprite in self.GBAFrontSpriteFrames:
                     GBAFrontSprite += sprite
+                if gamecode[:3] == "BPR": 
+                    MainFrame = LZCompress(self.GBAFrontSpriteFrames[0])
                 GBAFSLZ = LZCompress(GBAFrontSprite)
                 if len(GBAFSLZ) > self.OrgSizes["front"]:
-                    repointer = SpriteRepointer(rom, 
-                                                need=len(GBAFSLZ), 
-                                                repoint_what="Front Sprite")
-                    while True:
-                        if repointer.ShowModal() == wx.ID_OK:
-                            if repointer.offset == self.FrontSpritePointer: continue
-                            elif repointer.offset == None: continue
-                            else:
-                                rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
-                                #Write new pointer
-                                offset = repointer.offset
-                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                hexOffset = make_pointer(hexOffset)
-                                hexOffset = unhexlify(hexOffset)
-                                rom.write(hexOffset)
-                                #Clear old image
-                                if overwrite == True:
-                                    rom.seek(self.FrontSpritePointer)
-                                    
-                                    for x in range(self.OrgSizes["front"]):
-                                        rom.write("\xFF")
-                                #Write new image
-                                rom.seek(offset)
-                                rom.write(GBAFSLZ)
-                                self.OrgSizes["front"] = len(GBAFSLZ)
-                                break
+                    if gamecode[:3] == "BPR":
+                        repointer = SpriteRepointer(rom, 
+                                                            need=len(GBAFSLZ+MainFrame), 
+                                                            repoint_what="Front Sprite")
+                        while True:
+                            if repointer.ShowModal() == wx.ID_OK:
+                                if repointer.offset == self.FrontSpritePointer: continue
+                                elif repointer.offset == None: continue
+                                else:
+                                    rom.seek(frontspriteanimations+(self.poke_num)*bytes_per_entry)
+                                    #Write new pointer
+                                    offset = repointer.offset
+                                    hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                    hexOffset = make_pointer(hexOffset)
+                                    hexOffset = unhexlify(hexOffset)
+                                    rom.write(hexOffset)
+                                    #Clear old image
+                                    if overwrite == True:
+                                        rom.seek(self.FrontSpritePointer)
+                                        
+                                        for x in range(self.OrgSizes["front"]):
+                                            rom.write("\xFF")
+                                    #Write new image
+                                    rom.seek(offset)
+                                    rom.write(GBAFSLZ)
+                                    self.OrgSizes["front"] = len(GBAFSLZ)
+                                    #Write Main Frame
+                                    CurrentOffset = rom.tell()
+                                    while CurrentOffset%4 != 0:
+                                        CurrentOffset += 1
+                                    HexCurrentOffset = hex(CurrentOffset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                    HexCurrentOffset = make_pointer(HexCurrentOffset)
+                                    HexCurrentOffset = unhexlify(HexCurrentOffset)
+                                    rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
+                                    rom.write(HexCurrentOffset)
+                                    rom.seek(CurrentOffset)
+                                    rom.write(MainFrame)
+                                    break
+                    else:
+                        repointer = SpriteRepointer(rom, 
+                                                                need=len(GBAFSLZ), 
+                                                                repoint_what="Front Sprite")
+                        while True:
+                            if repointer.ShowModal() == wx.ID_OK:
+                                if repointer.offset == self.FrontSpritePointer: continue
+                                elif repointer.offset == None: continue
+                                else:
+                                    rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
+                                    #Write new pointer
+                                    offset = repointer.offset
+                                    hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                    hexOffset = make_pointer(hexOffset)
+                                    hexOffset = unhexlify(hexOffset)
+                                    rom.write(hexOffset)
+                                    #Clear old image
+                                    if overwrite == True:
+                                        rom.seek(self.FrontSpritePointer)
+                                        
+                                        for x in range(self.OrgSizes["front"]):
+                                            rom.write("\xFF")
+                                    #Write new image
+                                    rom.seek(offset)
+                                    rom.write(GBAFSLZ)
+                                    self.OrgSizes["front"] = len(GBAFSLZ)
+                                    break
                 else:
                     rom.seek(self.FrontSpritePointer)
                     rom.write(GBAFSLZ)
-                                
+                    if gamecode[:3] == "BPR":
+                        rom.seek(frontspriteanimations+(self.poke_num)*bytes_per_entry)
+                        rom.seek(read_pointer(rom.read(4)))
+                        rom.write(MainFrame)
+                    
             if self.Changes["back"] != False:
                 GBABackSprite = ""
                 for sprite in self.GBABackSpriteFrames:
-                    GBABackSprite += sprite
+                    if sprite != False:
+                        GBABackSprite += sprite
                 GBABSLZ = LZCompress(GBABackSprite)
                 if len(GBABSLZ) > self.OrgSizes["back"]:
                     repointer = SpriteRepointer(rom, 
@@ -496,16 +545,27 @@ class SpriteTab(wx.Panel):
         else:
             start = frame*16
             stop = (frame+1)*16
-        self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.FrontPalette[start:stop])
-        self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.FrontPalette[start:stop])
-        self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.ShinyPalette[start:stop])
-        self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.ShinyPalette[start:stop])
+        if self.GBABackSpriteFrames[frame] != False:
+            self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.FrontPalette[start:stop])
+            self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.FrontPalette[start:stop])
+            self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.ShinyPalette[start:stop])
+            self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.ShinyPalette[start:stop])
+            self.LoadAllButton.SetLabel("Load 256x64 Sheet")
+            self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
+            self.BackSprite.SetBitmapLabel(self.TMPBackSprite)
+            self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
+            self.SBackSprite.SetBitmapLabel(self.TMPSBackSprite)
+        else:
+            self.TMPFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.FrontPalette[start:stop])
+            self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.ShinyPalette[start:stop])
         
-        self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
-        self.BackSprite.SetBitmapLabel(self.TMPBackSprite)
-        self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
-        self.SBackSprite.SetBitmapLabel(self.TMPSBackSprite)
-        
+            self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
+            self.BackSprite.SetBitmapLabel(wx.EmptyBitmap(64,64))
+            self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
+            self.SBackSprite.SetBitmapLabel(wx.EmptyBitmap(64,64))
+            
+            self.LoadAllButton.SetLabel("Load 64x64 Front Frame. Shiny Will Be Auto Done.")
+            
         self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
         self.Icons.SetBitmapLabel(self.TMPIcon)
         
@@ -525,17 +585,21 @@ class SpriteTab(wx.Panel):
         self.IconBottom = wx.BitmapFromImage(self.IconBottom)
     
     def LoadSingleSprite(self, instance):
+        frame = self.Frames.GetValue()
+        if len(self.FrontPalette) < (frame+1)*16:
+            start = 0
+            stop = 16
+        else:
+            start = frame*16
+            stop = (frame+1)*16
+        instance = instance.GetEventObject()
+        sprite_number = instance.Id
+        if sprite_number == 57 or sprite_number == 59:
+            if self.GBABackSpriteFrames[frame] == False:
+                return
         open_dialog = wx.FileDialog(self, message="Open a sprite...", 
                                                         defaultDir=self.lastPath, style=wx.OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
-            frame = self.Frames.GetValue()
-            if len(self.FrontPalette) < (frame+1)*16:
-                start = 0
-                stop = 16
-            else:
-                start = frame*16
-                stop = (frame+1)*16
-            
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
@@ -550,9 +614,6 @@ class SpriteTab(wx.Panel):
                 else: converted = raw
             image = PilImageToWxImage(converted)
             gbaversion, palette = ConvertNormalImageToGBA(image)
-            
-            instance = instance.GetEventObject()
-            sprite_number = instance.Id
             
             if sprite_number == 56:
                 self.GBAFrontSpriteFrames[frame] = gbaversion
@@ -588,47 +649,72 @@ class SpriteTab(wx.Panel):
                 start = frame*16
                 stop = (frame+1)*16
             
+            
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
-            if raw.size != (256,64):
-                raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 256x64.")
-            front = raw.copy().crop((0, 0, 64, 64))
-            shiny = raw.copy().crop((64, 0, 128, 64))
-            back = raw.copy().crop((128, 0, 192, 64))
-            frontback = Image.new("RGB", (128,64))
-            frontback.paste(front, (0,0))
-            frontback.paste(back, (64,0))
-            if frontback.mode != "P":
-                frontback = frontback.convert("P", palette=Image.ADAPTIVE, colors=16)
+            if self.GBABackSpriteFrames[frame] == False:
+                if raw.size != (64,64):
+                    raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 64x64.")
             else:
-                if len(frontback.getcolors()) > 16:
-                    tmp = frontback.convert("RGB")
-                    frontback = tmp.convert("P", palette=Image.ADAPTIVE, colors=16)
-            if shiny.mode != "P":
-                shiny = shiny.convert("P", palette=Image.ADAPTIVE, colors=16)
-            else:
-                if len(shiny.getcolors()) > 16:
-                    tmp = shiny.convert("RGB")
-                    shiny = tmp.convert("P", palette=Image.ADAPTIVE, colors=16)
-            front = frontback.copy().crop((0, 0, 64, 64))
-            back = frontback.copy().crop((64, 0, 128, 64))
-            wxfront = PilImageToWxImage(front)
-            self.GBAFrontSpriteFrames[frame], self.FrontPalette[start:stop] = ConvertNormalImageToGBA(wxfront)
-            wxback = PilImageToWxImage(back)
-            self.GBABackSpriteFrames[frame], tmp = ConvertNormalImageToGBAUnderPal(wxback, self.FrontPalette[start:stop])
-            self.ShinyPalette[start:stop] = GetShinyPalette(front.convert("RGB"), shiny.convert("RGB"), self.FrontPalette[start:stop])
-            self.ReloadShownSprites()
-            self.Changes["front"]=True
-            self.Changes["back"]=True
-            self.Changes["normal"]=True
-            self.Changes["shiny"]=True
+                if raw.size != (256,64):
+                    raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 256x64.")
+            if self.GBABackSpriteFrames[frame] != False:
+                front = raw.copy().crop((0, 0, 64, 64))
+                shiny = raw.copy().crop((64, 0, 128, 64))
+                back = raw.copy().crop((128, 0, 192, 64))
+                frontback = Image.new("RGB", (128,64))
+                frontback.paste(front, (0,0))
+                frontback.paste(back, (64,0))
+                if frontback.mode != "P":
+                    frontback = frontback.convert("P", palette=Image.ADAPTIVE, colors=16)
+                else:
+                    if len(frontback.getcolors()) > 16:
+                        tmp = frontback.convert("RGB")
+                        frontback = tmp.convert("P", palette=Image.ADAPTIVE, colors=16)
+                if shiny.mode != "P":
+                    shiny = shiny.convert("P", palette=Image.ADAPTIVE, colors=16)
+                else:
+                    if len(shiny.getcolors()) > 16:
+                        tmp = shiny.convert("RGB")
+                        shiny = tmp.convert("P", palette=Image.ADAPTIVE, colors=16)
+                front = frontback.copy().crop((0, 0, 64, 64))
+                back = frontback.copy().crop((64, 0, 128, 64))
+                wxfront = PilImageToWxImage(front)
+                self.GBAFrontSpriteFrames[frame], self.FrontPalette[start:stop] = ConvertNormalImageToGBA(wxfront)
+                wxback = PilImageToWxImage(back)
+                self.GBABackSpriteFrames[frame], tmp = ConvertNormalImageToGBAUnderPal(wxback, self.FrontPalette[start:stop])
+                
+                self.ShinyPalette[start:stop] = GetShinyPalette(front.convert("RGB"), shiny.convert("RGB"), self.FrontPalette[start:stop])
+                self.ReloadShownSprites()
+                self.Changes["front"]=True
+                self.Changes["back"]=True
+                self.Changes["normal"]=True
+                self.Changes["shiny"]=True
             
+            else:
+                front = raw.copy().crop((0, 0, 64, 64))
+                if front.mode != "P":
+                    front = front.convert("P", palette=Image.ADAPTIVE, colors=16)
+                else:
+                    if len(front.getcolors()) > 16:
+                        tmp = front.convert("RGB")
+                        front = tmp.convert("P", palette=Image.ADAPTIVE, colors=16)
+                wxfront = PilImageToWxImage(front)
+                self.GBAFrontSpriteFrames[frame],  tmp = ConvertNormalImageToGBAUnderPal(wxfront,self.FrontPalette[start:stop])
+                self.ReloadShownSprites()
+                self.Changes["front"]=True
+                
     def load_everything(self, poke_num):
+        self.Frames.SetValue(0)
         self.Changes = {"front":False, "back":False, "normal":False, "shiny":False}
         self.poke_num = poke_num
         
-        FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
+        gamecode = self.config.get(self.rom_id, "gamecode")
+        if gamecode[:3] == "BPR": 
+            FrontSpriteTable = int(self.config.get(self.rom_id, "frontspriteanimations"), 0)
+        else: 
+            FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
         BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
         FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)
         ShinyPaletteTable = int(self.config.get(self.rom_id, "ShinyPaletteTable"), 0)
@@ -640,7 +726,7 @@ class SpriteTab(wx.Panel):
         iconpalettes = int(self.config.get(self.rom_id, "iconpalettes"), 0)
         numiconpalettes = int(self.config.get(self.rom_id, "numiconpalettes"), 0)
         
-        bytes_per_entry = 8 ##Need to load from ini for EMERALD
+        bytes_per_entry = 8
         
         with open(self.rom_name, "r+b") as rom:
             rom.seek(FrontSpriteTable+(poke_num)*bytes_per_entry)
@@ -664,7 +750,10 @@ class SpriteTab(wx.Panel):
             self.Frames.SetRange(0,NumberOfFrames-1)
             for x in range(NumberOfFrames):
                 self.GBAFrontSpriteFrames.append(self.GBAFrontSprite[x*2048:(x+1)*2048])
-                self.GBABackSpriteFrames.append(self.GBABackSprite[x*2048:(x+1)*2048])
+                if len(self.GBABackSprite)/2048 < x+1:
+                    self.GBABackSpriteFrames.append(False)
+                else:
+                    self.GBABackSpriteFrames.append(self.GBABackSprite[x*2048:(x+1)*2048])
             
             del self.GBAFrontSprite
             del self.GBABackSprite

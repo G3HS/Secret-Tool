@@ -1,7 +1,7 @@
 ﻿# -*- coding: utf-8 -*- 
 #venv pyi-env-name
 from __future__ import division
-import wx, os, binascii, ConfigParser, sys, textwrap
+import wx, os, binascii, ConfigParser, sys, textwrap, platform
 from baseconv import *
 from module_locator import *
 from rom_insertion_operations import *
@@ -11,7 +11,7 @@ from PokeSpriteTab import *
 from ExpandPokes import *
 from cStringIO import StringIO
 
-version = 'Beta 0.91.1'
+version = 'Beta 0.99'
 
 OPEN = 1
 poke_num = 0
@@ -60,10 +60,10 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         # Setting up the menu.
         filemenu= wx.Menu()
         # wx.ID_ABOUT and wx.ID_EXIT are standard IDs provided by wxWidgets.
-        filemenu.Append(OPEN, "&Open"," Open a ROM.")
+        filemenu.Append(wx.ID_OPEN, "&Open"," Open a ROM.")
         filemenu.AppendSeparator()
         filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
-        self.Bind(wx.EVT_MENU, self.open_file, id=OPEN)
+        self.Bind(wx.EVT_MENU, self.open_file, id=wx.ID_OPEN)
         self.Bind(wx.EVT_MENU, self.ABOUT, id=wx.ID_ABOUT)
         # Creating the menubar.
         menuBar = wx.MenuBar()
@@ -71,12 +71,13 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
         self.Show(True)
         
-        
     def OnDropFiles(self, x, y, filenames):
         filename = filenames[0]
         self.open_rom = open(filename, "r+b")
         self.open_rom_name = filename
-
+        pathfile = open("LastOpenedRom.txt", "w+")
+        pathfile.write(filename+"\n"+p+"\n")
+        pathfile.close()
         self.work_with_ini()
             
     def on_timer(self, event):
@@ -117,17 +118,28 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         wx.AboutBox(info)
         
     def open_file(self, *args):
-        
+        p = platform.system()
         if self.open_rom:
             directory = os.path.dirname(self.open_rom.name)
-        else: directory = os.getcwd()
-        open_dialog = wx.FileDialog(self, message="Open a rom...", 
-                                                        defaultDir=directory, style=wx.OPEN)
+        else:
+            try:
+                pathfile = open("LastOpenedRom.txt", "r+")
+                directory = pathfile.readline().rstrip("\n")
+                plat = pathfile.readline().rstrip("\n")
+                if plat != p:
+                    raise AttributeError("Path is for a different system.")
+            except:
+                directory = os.getcwd()
+        open_dialog = wx.FileDialog(None, message="Open a rom...", 
+                                                        defaultDir=directory, style=wx.FD_OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
             self.open_rom_name = filename
-
+            pathfile = open("LastOpenedRom.txt", "w+")
+            pathfile.write(filename+"\n"+p+"\n")
+            pathfile.close()
+            open_dialog.Destroy()
             self.work_with_ini()
            
     def work_with_ini(self):
@@ -262,7 +274,10 @@ class PokemonDataEditor(wx.Panel):
                                 style=wx.SUNKEN_BORDER|wx.TE_PROCESS_ENTER,
                                 pos=(0, 0), size=(150, -1))
                 self.Pokes.Bind(wx.EVT_COMBOBOX, self.on_change_poke)
-                self.Pokes.Bind(wx.EVT_TEXT_ENTER, self.SearchForPoke)
+                self.Pokes.Bind(wx.EVT_CHAR, self.EvtChar)
+                self.Pokes.Bind(wx.EVT_TEXT_ENTER, self.SearchOnEnter)
+                self.Pokes.Bind(wx.EVT_TEXT, self.SearchWhileTyping)
+                self.ignoreEvtText = False
                 
                 global poke_num
                 poke_num = 0
@@ -294,18 +309,47 @@ class PokemonDataEditor(wx.Panel):
                 self.SetSizer(self.sizer)
         else:
             self.sizer = wx.BoxSizer(wx.VERTICAL)
-            open = Button(self, 1, "Open Rom")
-            self.Bind(wx.EVT_BUTTON, self.OnOpen, id=1)
+            open = Button(self, 100, "Open Rom")
+            self.Bind(wx.EVT_BUTTON, self.OnOpen, id=100)
             self.sizer.Add(open, 1, wx.EXPAND|wx.ALL, 200)
             self.SetSizer(self.sizer)
         self.Layout()
         
-    def SearchForPoke(self,instance):
-        instance = instance.GetEventObject()
-        index = instance.FindString(instance.GetValue())
+    def EvtChar(self, event):
+        if event.GetKeyCode() == 8:
+            self.ignoreEvtText = True
+        event.Skip()
+        
+    def SearchWhileTyping(self, *args):
+        if self.ignoreEvtText:
+            self.ignoreEvtText = False
+            return
+        currentText = self.Pokes.GetValue()
+        items = self.Pokes.GetItems()
+        for item in items:
+            if item.startswith(currentText) or item.startswith(currentText.upper()) or item.startswith(currentText.lower()):
+                index = self.Pokes.FindString(item)
+                self.Pokes.SetSelection(index)
+                self.Pokes.SetInsertionPoint(len(currentText))
+                self.Pokes.SetMark(len(currentText), len(item))
+                break
+                
+    def SearchOnEnter(self, instance):
+        index = self.Pokes.FindString(self.Pokes.GetValue())
         if index != -1:
-            instance.SetSelection(index)
-        self.on_change_poke(instance)
+            self.Pokes.SetSelection(index)
+        else:
+            index = self.Pokes.FindString(self.Pokes.GetValue().upper())
+            if index != -1:
+                self.Pokes.SetSelection(index)
+            else:
+                index = self.Pokes.FindString(self.Pokes.GetValue().lower())
+                if index != -1:
+                    self.Pokes.SetSelection(index)
+        cmd = wx.CommandEvent(wx.EVT_COMBOBOX.evtType[0])
+        cmd.SetEventObject(self.Pokes) 
+        cmd.SetId(self.Pokes.GetId())
+        self.Pokes.GetEventHandler().ProcessEvent(cmd) 
         
     def OnOpen(self, instance):
         frame.open_file()
@@ -328,6 +372,7 @@ class PokemonDataEditor(wx.Panel):
                                 'Data Error', 
                                 wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
+    
     def get_pokemon_names(self):
         offset = int(frame.Config.get(frame.rom_id, "PokeNames"),0)
         with open(frame.open_rom_name, "r+b") as rom:
@@ -355,6 +400,7 @@ class PokemonDataEditor(wx.Panel):
         self.poke_names = self.get_pokemon_names()
         global poke_names
         poke_names = self.poke_names
+        self.Pokes.Clear()
         self.Pokes.SetItems(self.poke_names)
         global poke_num
         self.Pokes.SetSelection(poke_num)
@@ -585,7 +631,7 @@ class StatsTab(wx.Panel):
         level_up_list = level_up_tmp.split(",")
         LEVEL_txt = wx.StaticText(assorted, -1,"Level-Up Rate:")
         assorted_sizer.Add(LEVEL_txt, (3, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.LEVEL = wx.ComboBox(assorted, -1, choices=level_up_list,
+        self.LEVEL = ComboBox(assorted, -1, choices=level_up_list,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         assorted_sizer.Add(self.LEVEL, (3, 1), wx.DefaultSpan,  wx.ALL, 4)
         
@@ -594,13 +640,13 @@ class StatsTab(wx.Panel):
         
         EGG1_txt = wx.StaticText(assorted, -1,"Egg Group 1:")
         assorted_sizer.Add(EGG1_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.EGG1 = wx.ComboBox(assorted, -1, choices=egg_groups,
+        self.EGG1 = ComboBox(assorted, -1, choices=egg_groups,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         assorted_sizer.Add(self.EGG1, (4, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         EGG2_txt = wx.StaticText(assorted, -1,"Egg Group 2:")
         assorted_sizer.Add(EGG2_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.EGG2 = wx.ComboBox(assorted, -1, choices=egg_groups,
+        self.EGG2 = ComboBox(assorted, -1, choices=egg_groups,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         assorted_sizer.Add(self.EGG2, (5, 1), wx.DefaultSpan,  wx.ALL, 4)
         
@@ -626,13 +672,13 @@ class StatsTab(wx.Panel):
         
         TYPE1_txt = wx.StaticText(types, -1,"Type 1:")
         types_sizer.Add(TYPE1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.TYPE1 = wx.ComboBox(types, -1, choices=list_of_types,
+        self.TYPE1 = ComboBox(types, -1, choices=list_of_types,
                                 style=wx.SUNKEN_BORDER, size=(80, -1))
         types_sizer.Add(self.TYPE1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         TYPE2_txt = wx.StaticText(types, -1,"Type 2:")
         types_sizer.Add(TYPE2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.TYPE2 = wx.ComboBox(types, -1, choices=list_of_types,
+        self.TYPE2 = ComboBox(types, -1, choices=list_of_types,
                                 style=wx.SUNKEN_BORDER, size=(80, -1))
         types_sizer.Add(self.TYPE2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
@@ -652,13 +698,13 @@ class StatsTab(wx.Panel):
         
         ABILITY1_txt = wx.StaticText(abilities, -1,"Ability 1:")
         abilities_sizer.Add(ABILITY1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.ABILITY1 = wx.ComboBox(abilities, -1, choices=abilities_list,
+        self.ABILITY1 = ComboBox(abilities, -1, choices=abilities_list,
                                 style=wx.SUNKEN_BORDER, size=(150, -1))
         abilities_sizer.Add(self.ABILITY1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ABILITY2_txt = wx.StaticText(abilities, -1,"Ability 2:")
         abilities_sizer.Add(ABILITY2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.ABILITY2 = wx.ComboBox(abilities, -1, choices=abilities_list,
+        self.ABILITY2 = ComboBox(abilities, -1, choices=abilities_list,
                                 style=wx.SUNKEN_BORDER, size=(150, -1))
         abilities_sizer.Add(self.ABILITY2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
@@ -679,13 +725,13 @@ class StatsTab(wx.Panel):
         ITEM_NAMES = items_list
         ITEM1_txt = wx.StaticText(items, -1,"Item 1:")
         items_sizer.Add(ITEM1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.ITEM1 = wx.ComboBox(items, -1, choices=items_list,
+        self.ITEM1 = ComboBox(items, -1, choices=items_list,
                                  style=wx.SUNKEN_BORDER, size=(160, -1))
         items_sizer.Add(self.ITEM1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         ITEM2_txt = wx.StaticText(items, -1,"Item 2:")
         items_sizer.Add(ITEM2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.ITEM2 = wx.ComboBox(items, -1, choices=items_list,
+        self.ITEM2 = ComboBox(items, -1, choices=items_list,
                                 style=wx.SUNKEN_BORDER, size=(160, -1))
         items_sizer.Add(self.ITEM2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
@@ -721,7 +767,7 @@ class StatsTab(wx.Panel):
 
         COLOR_txt = wx.StaticText(run_rate_color, -1,"Color:")
         run_rate_color_sizer.Add(COLOR_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.COLOR = wx.ComboBox(run_rate_color, -1, choices=colors_list,
+        self.COLOR = ComboBox(run_rate_color, -1, choices=colors_list,
                                 style=wx.SUNKEN_BORDER, size=(90, -1))
         run_rate_color_sizer.Add(self.COLOR, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
@@ -968,7 +1014,7 @@ class StatsTab(wx.Panel):
             ABILITY1 = hex(int(self.ABILITY1.GetSelection()))[2:]
             if len(ABILITY1) == 1:
                 ABILITY1 = "0"+ABILITY1 
-            
+                
             ABILITY2 = hex(int(self.ABILITY2.GetSelection()))[2:]
             if len(ABILITY2) == 1:
                 ABILITY2 = "0"+ABILITY2 
@@ -1091,7 +1137,7 @@ class MovesTab(wx.Panel):
         editing_box = wx.BoxSizer(wx.HORIZONTAL)
 
         
-        self.ATTACK = wx.ComboBox(learned_moves, -1, choices=self.MOVES_LIST,
+        self.ATTACK = ComboBox(learned_moves, -1, choices=self.MOVES_LIST,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         editing_box.Add(self.ATTACK, 0, wx.EXPAND | wx.ALL, 2)
         
@@ -1544,7 +1590,7 @@ class EvoTab(wx.Panel):
         editor_area_a.Add(method_txt, 0, wx.EXPAND | wx.ALL, 5)
         
         EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
-        self.method = wx.ComboBox(EVO, -1, choices=EvolutionMethods,
+        self.method = ComboBox(EVO, -1, choices=EvolutionMethods,
                                             style=wx.SUNKEN_BORDER, size=(100, -1))
         self.method.Bind(wx.EVT_COMBOBOX, self.change_method)
         editor_area_a.Add(self.method, 0, wx.EXPAND | wx.ALL, 5)
@@ -1552,7 +1598,7 @@ class EvoTab(wx.Panel):
         self.arg_txt = wx.StaticText(EVO, -1, "Argument:")
         editor_area_b.Add(self.arg_txt, 0, wx.EXPAND | wx.ALL, 5)
         
-        self.arg = wx.ComboBox(EVO, -1, choices=[],
+        self.arg = ComboBox(EVO, -1, choices=[],
                                             style=wx.SUNKEN_BORDER, size=(100, -1))
         editor_area_b.Add(self.arg, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -1560,7 +1606,7 @@ class EvoTab(wx.Panel):
         editor_area_c.Add(poke_txt, 0, wx.EXPAND | wx.ALL, 5)
         
         global poke_names
-        self.poke = wx.ComboBox(EVO, -1, choices=poke_names,
+        self.poke = ComboBox(EVO, -1, choices=poke_names,
                                                style=wx.SUNKEN_BORDER, size=(100, -1))
         editor_area_c.Add(self.poke, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2404,7 +2450,7 @@ class MoveTutorTab(wx.Panel):
         TutorMovesButtons = wx.BoxSizer(wx.VERTICAL)
         TutorMovesSizer.Add(TutorMovesButtons, 0, wx.EXPAND | wx.ALL, 5)
         global MOVES_LIST
-        self.ATTACK = wx.ComboBox(TutorMoves, -1, choices=MOVES_LIST,
+        self.ATTACK = ComboBox(TutorMoves, -1, choices=MOVES_LIST,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         TutorMovesButtons.Add(self.ATTACK, 0, wx.EXPAND | wx.ALL, 2)
         
@@ -2574,7 +2620,7 @@ class EggMoveTab(wx.Panel):
         
         global poke_names
         names_buttons_vbox = wx.BoxSizer(wx.VERTICAL)
-        self.POKE_NAME = wx.ComboBox(self, -1, choices=poke_names,
+        self.POKE_NAME = ComboBox(self, -1, choices=poke_names,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         names_buttons_vbox.Add(self.POKE_NAME, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2605,7 +2651,7 @@ class EggMoveTab(wx.Panel):
         
         moves_butons_vbox = wx.BoxSizer(wx.VERTICAL)
         global MOVES_LIST
-        self.MOVE_NAME = wx.ComboBox(self, -1, choices=MOVES_LIST,
+        self.MOVE_NAME = ComboBox(self, -1, choices=MOVES_LIST,
                                 style=wx.SUNKEN_BORDER, size=(100, -1))
         moves_butons_vbox.Add(self.MOVE_NAME, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -3073,7 +3119,7 @@ class NumberofEvosChanger(wx.Dialog):
         
         self.choices = ["4","5","8","16","32"]
         
-        self.NewNumberChoices = wx.ComboBox(pnl, -1, choices=self.choices,
+        self.NewNumberChoices = ComboBox(pnl, -1, choices=self.choices,
                                                     style=wx.SUNKEN_BORDER, size=(100, -1))
         vbox.Add(self.NewNumberChoices, 0, wx.EXPAND | wx.ALL, 5)
         
