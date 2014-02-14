@@ -10,8 +10,9 @@ from Button import *
 from PokeSpriteTab import *
 from ExpandPokes import *
 from cStringIO import StringIO
-
-version = 'Beta 0.99.1'
+import requests, json, webbrowser
+version = 'Beta 0.99.2'
+versionNumber = "v0.99.2"
 
 OPEN = 1
 poke_num = 0
@@ -69,10 +70,19 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
-        image = wx.Image(os.path.join("Resources","IconTiny.png"), wx.BITMAP_TYPE_PNG).ConvertToBitmap() 
+        p = platform.system()
+        if p == "Windows":
+            iconImage = os.path.join("Resources","IconTiny.png")
+        else:
+            iconImage = os.path.join("Resources","Icon.png")
+        image = wx.Image(iconImage, wx.BITMAP_TYPE_PNG).ConvertToBitmap() 
         icon = wx.EmptyIcon() 
         icon.CopyFromBitmap(image) 
         self.SetIcon(icon)
+        
+        self.Config = ConfigParser.ConfigParser()
+        ini = os.path.join(self.path,"PokeRoms.ini")
+        self.Config.read(ini)
         
         self.Show(True)
         
@@ -3470,6 +3480,23 @@ class POKEDEXEntryRepointer(wx.Dialog):
 
 def OnClose(instance):
     sys.exit()
+
+def OnUpdateTimer(instance):
+    Message = "An update is available for this suite:\n\n"
+    Message += "Version: "+latestRelease["name"]+"\n\n"
+    Message += "Updates:\n"+latestRelease["body"]+"\n\n"
+    if latestRelease["prerelease"] == True:
+        Message += "Please note that this is a prerelease and may not work properly.\n\n"
+    Message +="Would you like to update?"
+    UpdateDialog = wx.MessageDialog(None,Message, 
+                                                        "Update is available...", wx.YES_NO)
+    
+    global timer
+    timer.Stop()
+    del timer
+    if UpdateDialog.ShowModal() == wx.ID_YES:
+        webbrowser.open("https://github.com/thekaratekid552/Secret-Tool/releases")
+        frame.Destroy()
     
 app = wx.App(False)
 name = "POK\xe9MON Gen III Hacking Suite"
@@ -3481,6 +3508,19 @@ if len(sys.argv) > 1:
     frame.open_rom = open(file, "r+b")
     frame.open_rom_name = file
     frame.work_with_ini()
+
+
+r = requests.get('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
+latestRelease = r.json()[0]
+
+CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
+
+if latestRelease["tag_name"] != versionNumber:
+    if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
+        timer = wx.Timer(frame, 99)
+        timer.Start(500)
+        wx.EVT_TIMER(frame, 99, OnUpdateTimer)
+    
 sys.stderr = StringIO()
 frame.set_timer()
 app.MainLoop()
