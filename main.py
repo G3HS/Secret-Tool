@@ -11,8 +11,8 @@ from PokeSpriteTab import *
 from ExpandPokes import *
 from cStringIO import StringIO
 import requests, json, webbrowser
-version = 'Beta 0.99.2'
-versionNumber = "v0.99.2"
+version = 'Beta 0.99.1'
+versionNumber = "v0.99.1"
 
 OPEN = 1
 poke_num = 0
@@ -197,7 +197,24 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                     else:
                         ERROR.Destroy()
                         self.Destroy()
-                
+                else:
+                    game_code_offset = int("AC",16)
+                    self.open_rom.seek(game_code_offset)
+                    game_code = self.open_rom.read(4)
+                    ini_gamecode = self.Config.get(self.rom_id, "gamecode")
+                    if ini_gamecode != game_code:
+                        ERROR = wx.MessageDialog(None,
+                            "The game code of this rom is {0} however its rom id, {1}, tells me that the I should load a section of ini with gamecode {2}. Logically, if these don't match, I will be trying to load from the wrong offsets. Would you like to continue loading? Click 'yes' if you know that the gamecode should be different since you changed it yourself. Click 'no' to reset the rom id and create a new ini section for this rom.".format(game_code,self.rom_id,ini_gamecode), 
+                            'Error', 
+                            wx.YES_NO | wx.ICON_ERROR)
+                        code = ERROR.ShowModal()
+                        if code == wx.ID_NO:
+                            self.open_rom.seek(rom_id_offset)
+                            self.open_rom.write("\xff\xff")
+                            self.work_with_ini()
+                        else:
+                            ERROR.Destroy()
+                            self.Destroy()
             else:
                 game_code_offset = int("AC",16)
                 self.open_rom.seek(game_code_offset)
@@ -826,6 +843,7 @@ class StatsTab(wx.Panel):
         
         except:
             self.Total_txt.SetLabel("BST: ???")
+    
     def update_HATCH_steps(self, *args):
         txt = self.HATCH.GetValue()
         try: 
@@ -935,12 +953,18 @@ class StatsTab(wx.Panel):
                 SpDEF = "00"
             elif len(SpDEF) == 1:
                 SpDEF = "0"+SpDEF
-                 
-            TYPE1 = hex(int(self.TYPE1.GetSelection()))[2:]
+            
+            tmp = self.TYPE1.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            TYPE1 = hex(int(tmp))[2:]
             if len(TYPE1) == 1:
                 TYPE1 = "0"+TYPE1
-                 
-            TYPE2 = hex(int(self.TYPE2.GetSelection()))[2:]
+            
+            tmp = self.TYPE2.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            TYPE2 = hex(int(tmp))[2:]
             if len(TYPE2) == 1:
                 TYPE2 = "0"+TYPE2
             
@@ -978,15 +1002,20 @@ class StatsTab(wx.Panel):
                     evs_bin = evs_bin+ev
             evs_hex = hex(int(evs_bin, 2))[2:].zfill(4)
             
-            
-            ITEM1 = hex(int(self.ITEM1.GetSelection()))[2:]
+            tmp = self.ITEM1.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            ITEM1 = hex(int(tmp))[2:]
             ITEM1_len = len(ITEM1)
             if ITEM1_len < 4:
                 for n in range(4-ITEM1_len):
                     ITEM1 = "0"+ITEM1
             ITEM1 = ITEM1[2:]+ITEM1[:2] #Flip the bytes around.
 
-            ITEM2 = hex(int(self.ITEM2.GetSelection()))[2:]
+            tmp = self.ITEM2.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            ITEM2 = hex(int(tmp))[2:]
             ITEM2_len = len(ITEM2)
             if ITEM2_len < 4:
                 for n in range(4-ITEM2_len):
@@ -1017,23 +1046,38 @@ class StatsTab(wx.Panel):
             elif len(FRIEND) == 1:
                 FRIEND = "0"+FRIEND
             
-            LEVEL = hex(int(self.LEVEL.GetSelection()))[2:]
+            tmp = self.LEVEL.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            LEVEL = hex(int(tmp))[2:]
             if len(LEVEL) == 1:
                 LEVEL = "0"+LEVEL          
-                
-            EGG1 = hex(int(self.EGG1.GetSelection())+1)[2:]
+            
+            tmp = self.EGG1.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            EGG1 = hex(int(tmp)+1)[2:]
             if len(EGG1) == 1:
                 EGG1 = "0"+EGG1 
-                
-            EGG2 = hex(int(self.EGG2.GetSelection())+1)[2:]
+            
+            tmp = self.EGG2.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            EGG2 = hex(int(tmp)+1)[2:]
             if len(EGG2) == 1:
                 EGG2 = "0"+EGG2 
             
-            ABILITY1 = hex(int(self.ABILITY1.GetSelection()))[2:]
+            tmp = self.ABILITY1.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            ABILITY1 = hex(int(tmp))[2:]
             if len(ABILITY1) == 1:
                 ABILITY1 = "0"+ABILITY1 
-                
-            ABILITY2 = hex(int(self.ABILITY2.GetSelection()))[2:]
+            
+            tmp = self.ABILITY2.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            ABILITY2 = hex(int(tmp))[2:]
             if len(ABILITY2) == 1:
                 ABILITY2 = "0"+ABILITY2 
                 
@@ -1044,8 +1088,11 @@ class StatsTab(wx.Panel):
                 RUNRATE = "00"
             elif len(RUNRATE) == 1:
                 RUNRATE = "0"+RUNRATE
-                
-            COLOR = hex(int(self.COLOR.GetSelection()))[2:]
+            
+            tmp = self.COLOR.GetSelection()
+            if tmp == -1:
+                tmp = 1
+            COLOR = hex(int(tmp))[2:]
             if len(COLOR) == 1:
                 COLOR = "0"+COLOR
                 
@@ -1065,7 +1112,7 @@ class StatsTab(wx.Panel):
             
         except:
             ERROR = wx.MessageDialog(None, 
-                                'One of your entries contains in the stats tab contains bad data.', 
+                                'One of your entries contains in the stats tab contains bad data. No stats have been saved.', 
                                 'Data Error', 
                                 wx.OK | wx.ICON_ERROR)
             ERROR.ShowModal()
@@ -1430,7 +1477,7 @@ class MovesTab(wx.Panel):
             try:
                 index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
             except:
-                sys.stderr.write("Moves have not been fully loaded because there was an error. Either not enough moves were loaded due to a bad number in the ini or the learned move data offset is bad/corrupted. The error occurred trying to read move #{0}. The current number of moves is: {1}.".format(move, len(self.MOVES_LIST)))
+                sys.stderr.write("Moves have not been fully loaded because there was an error. Either not enough moves were loaded due to a bad number in the ini or the learned move data offset is bad/corrupted. The error occurred trying to read move #{0}. The current number of moves is: {1}.\n--------------------------------------------------\n\n".format(move, len(self.MOVES_LIST)-1))
                 return
             self.MOVESET.SetStringItem(index, 1, str(level))
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
@@ -1788,9 +1835,7 @@ class EvoTab(wx.Panel):
         EvolutionTable = int(frame.Config.get(frame.rom_id, "EvolutionTable"), 0)
         EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
         LengthOfOneEntry = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
-        
         EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
-        
         global poke_num
         self.offset = EvolutionTable+(poke_num)*(LengthOfOneEntry*EvolutionsPerPoke)
         with open(frame.open_rom_name, "r+b") as rom:
@@ -1832,7 +1877,6 @@ class EvoTab(wx.Panel):
     def save(self):
         hex_string = ""
         LengthOfOneEntry = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
-        
         for evo in self.evos:
             tmp = ""
             for arg in evo:

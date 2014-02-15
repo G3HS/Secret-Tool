@@ -116,9 +116,13 @@ class SpriteTab(wx.Panel):
         self.Frames.Bind(wx.EVT_TEXT, self.ReloadShownSprites)
         FrameHBox.Add(self.Frames, 0, wx.EXPAND | wx.ALL, 5)
         
+        self.SeperateFrames = wx.CheckBox(PositionPanel, -1, 'Repoint Frames Seperately?', (10, 10))
+        self.SeperateFrames.SetValue(True)
+        PositionPanelSizer.Add(self.SeperateFrames, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        
         lnH = wx.StaticLine(PositionPanel, -1, style=wx.LI_HORIZONTAL)
         lnH.SetSize((2,200))
-        PositionPanelSizer.Add(lnH, 0, wx.EXPAND | wx.ALL, 5)
+        PositionPanelSizer.Add(lnH, 0, wx.EXPAND | wx.ALL, 20)
         
         PositionEntrySizer = wx.GridBagSizer(3,3)
         PositionPanelSizer.Add(PositionEntrySizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -201,10 +205,17 @@ class SpriteTab(wx.Panel):
                                         need=len(self.GBAIcon), 
                                         repoint_what="Icon")
             if repointer.ShowModal() == wx.ID_OK:
-                iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
-                rom.seek(iconspritetable+(self.poke_num+1)*4)
-                #Write new pointer
                 offset = repointer.offset
+                if offset == None:
+                    ERROR = wx.MessageDialog(None, 
+                                "No offset was selected and nothing has been changed.", 
+                                'Just letting you know...', 
+                                wx.OK | wx.ICON_ERROR)
+                    ERROR.ShowModal()
+                    return
+                iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
+                rom.seek(iconspritetable+(self.poke_num)*4)
+                #Write new pointer
                 hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
                 hexOffset = make_pointer(hexOffset)
                 hexOffset = unhexlify(hexOffset)
@@ -215,13 +226,16 @@ class SpriteTab(wx.Panel):
                 self.IconPointer = offset
             else:
                 ERROR = wx.MessageDialog(None, 
-                                "Either no offset was selected or you aborted repoint. Nothing was changed.", 
+                                "You have aborted repoint. Nothing was changed.", 
                                 'Just letting you know...', 
                                 wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
             
     def save(self):
         #Save sprites
+        if not self.SeperateFrames.IsChecked():
+            self.SaveTogether()
+            return
         FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
         BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
         FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)
@@ -236,6 +250,7 @@ class SpriteTab(wx.Panel):
         
         bytes_per_entry = 8
         overwrite = self.cb.IsChecked()
+        
         with open(self.rom_name, "r+b") as rom:
             if self.Changes["front"] != False:
                 GBAFrontSprite = ""
@@ -389,6 +404,113 @@ class SpriteTab(wx.Panel):
             EnemyY = hex(self.EnemyY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
             rom.write(unhexlify(EnemyY))
             
+            #Write all things Icon
+            rom.seek(self.IconPointer)
+            rom.write(self.GBAIcon)
+            
+            pals = ""
+            for pal in self.IconPals:
+                tmp = Convert25bitPalettetoGBA(pal)
+                pals += tmp
+            rom.seek(iconpalettes)
+            rom.write(pals)
+    
+    def SaveTogether(self):
+        FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
+        BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
+        FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)
+        ShinyPaletteTable = int(self.config.get(self.rom_id, "ShinyPaletteTable"), 0)
+        enemyytable = int(self.config.get(self.rom_id, "enemyytable"), 0)
+        playerytable = int(self.config.get(self.rom_id, "playerytable"), 0)
+        enemyaltitudetable = int(self.config.get(self.rom_id, "enemyaltitudetable"), 0)
+        iconspritetable = int(self.config.get(self.rom_id, "iconspritetable"), 0)
+        iconpalettetable = int(self.config.get(self.rom_id, "iconpalettetable"), 0)
+        iconpalettes = int(self.config.get(self.rom_id, "iconpalettes"), 0)
+        numiconpalettes = int(self.config.get(self.rom_id, "numiconpalettes"), 0)
+        
+        bytes_per_entry = 8
+        overwrite = self.cb.IsChecked()
+        
+        RepointList = []
+        with open(self.rom_name, "r+b") as rom:
+            if self.Changes["front"] != False:
+                GBAFrontSprite = ""
+                for sprite in self.GBAFrontSpriteFrames:
+                    GBAFrontSprite += sprite
+                GBAFSLZ = LZCompress(GBAFrontSprite)
+                if len(GBAFSLZ) > self.OrgSizes["front"]:
+                    RepointList.append((GBAFSLZ,FrontSpriteTable,self.FrontSpritePointer,"front"))
+                else:
+                    rom.seek(self.FrontSpritePointer)
+                    rom.write(GBAFSLZ)
+            if self.Changes["back"] != False:
+                GBABackSprite = ""
+                for sprite in self.GBABackSpriteFrames:
+                    if sprite != False:
+                        GBABackSprite += sprite
+                GBABSLZ = LZCompress(GBABackSprite)
+                if len(GBABSLZ) > self.OrgSizes["back"]:
+                    RepointList.append((GBABSLZ,BackSpriteTable,self.BackSpritePointer,"back"))
+                else:
+                    rom.seek(self.BackSpritePointer)
+                    rom.write(GBABSLZ)
+            if self.Changes["normal"] != False:
+                normal = Convert25bitPalettetoGBA(self.FrontPalette)
+                GBANORMALLZ = LZCompress(normal)
+                if len(GBANORMALLZ) > self.OrgSizes["normal"]:
+                    RepointList.append((GBANORMALLZ,FrontPaletteTable,self.FrontPalettePointer,"normal"))
+                else:
+                    rom.seek(self.FrontPalettePointer)
+                    rom.write(GBANORMALLZ)
+            if self.Changes["shiny"] != False:
+                shiny = Convert25bitPalettetoGBA(self.ShinyPalette)
+                GBASHINYLZ = LZCompress(shiny)
+                if len(GBASHINYLZ) > self.OrgSizes["shiny"]:
+                    RepointList.append((GBASHINYLZ,ShinyPaletteTable,self.ShinyPalettePointer,"shiny"))
+                else:
+                    rom.seek(self.ShinyPalettePointer)
+                    rom.write(GBASHINYLZ)
+            Length = ""
+            for x in RepointList:
+                Length += x[0]
+            repointer = SpriteRepointer(rom,need=len(Length)+16,repoint_what="Sprites")
+            while True:
+                if repointer.ShowModal() == wx.ID_OK:
+                    if repointer.offset == None: continue
+                    else:
+                        start = repointer.offset
+                        for sprite in RepointList:
+                            rom.seek(sprite[1]+(self.poke_num)*bytes_per_entry)
+                            #Write new pointer
+                            hexOffset = hex(start+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                            hexOffset = make_pointer(hexOffset)
+                            hexOffset = unhexlify(hexOffset)
+                            rom.write(hexOffset)
+                            #Clear old image
+                            if overwrite == True:
+                                rom.seek(sprite[2])
+                                for x in range(self.OrgSizes[sprite[3]]):
+                                    rom.write("\xFF")
+                            #Write new image
+                            rom.seek(start)
+                            rom.write(sprite[0])
+                            start = rom.tell()
+                            while start%4:
+                                start += 1
+                            self.OrgSizes[sprite[3]] = len(sprite[0])
+                        break
+            #Write positions
+            rom.seek(playerytable+(self.poke_num)*4+1)
+            PlayerY = hex(self.PlayerY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
+            rom.write(unhexlify(PlayerY))
+            
+            rom.seek(enemyaltitudetable+(self.poke_num)*4+1)
+            EnemyAlt = hex(self.EnemyAlt.GetValue()).rstrip("L").lstrip("0x").zfill(2)
+            rom.write(unhexlify(EnemyAlt))
+            
+            rom.seek(enemyytable+(self.poke_num)*4+1)
+            EnemyY = hex(self.EnemyY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
+            rom.write(unhexlify(EnemyY))
             #Write all things Icon
             rom.seek(self.IconPointer)
             rom.write(self.GBAIcon)
@@ -969,7 +1091,11 @@ class SpriteRepointer(wx.Dialog):
     def InitUI(self):
         vbox = wx.BoxSizer(wx.VERTICAL)
         
-        txt = wx.StaticText(self, -1, self.repoint+" needs to be repointed.\n\n",style=wx.TE_CENTRE)
+        if self.repoint[-1:] == "s":
+            RepointWhat = self.repoint+" need to be repointed.\n\n"
+        else:
+            RepointWhat = self.repoint+" needs to be repointed.\n\n"
+        txt = wx.StaticText(self, -1, RepointWhat ,style=wx.TE_CENTRE)
         vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
         
         txt2 = wx.StaticText(self, -1, "Please choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.",style=wx.TE_CENTRE)
