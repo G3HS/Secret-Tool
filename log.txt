@@ -1,2 +1,0 @@
-Here is the traceback data:  File "main.py", line 3590, in <module>
-    obj = response.read().json()
