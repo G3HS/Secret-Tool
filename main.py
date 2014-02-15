@@ -2240,7 +2240,8 @@ class PokeDexTab(wx.Panel):
                 self.OriginalEntry2Len = len(entry2)
                 entry2 = convert_ascii_and_poke(entry2, "to_poke")
                 self.Entry2.SetValue(entry2)
-            else: self.Entry2.SetValue("-Unused in FR, LG, and E-")
+            else: 
+                self.Entry2.Disable()
             
             if DexType != "E": rom.seek(pokedex+26)
             else: rom.seek(pokedex+22)
