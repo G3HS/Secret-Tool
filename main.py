@@ -10,9 +10,11 @@ from Button import *
 from PokeSpriteTab import *
 from ExpandPokes import *
 from cStringIO import StringIO
-import requests, json, webbrowser
-version = 'Beta 0.9A.0'
-versionNumber = "v0.9A.0"
+import json, webbrowser
+import traceback
+import urllib2
+version = 'Beta 0.9A.1'
+versionNumber = "v0.9A.1"
 
 OPEN = 1
 poke_num = 0
@@ -3576,10 +3578,11 @@ if len(sys.argv) > 1:
     frame.work_with_ini()
 
 try:
-    r = requests.get('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
-    obj = r.json()
+    r = urllib2.Request('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
+    response = urllib2.urlopen(r)
+    obj = response.read()
+    obj = json.loads(obj)
     latestRelease = obj[0]
-
     CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
 
     if latestRelease["tag_name"] != versionNumber:
@@ -3587,9 +3590,8 @@ try:
             timer = wx.Timer(frame, 99)
             timer.Start(500)
             wx.EVT_TIMER(frame, 99, OnUpdateTimer)
-except:
-    pass
-    
+except: pass
+
 sys.stderr = StringIO()
 frame.set_timer()
 app.MainLoop()
