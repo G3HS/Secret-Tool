@@ -1,2 +1,2 @@
-/home/roger/Downloads/1636__Pokemon__Cyan.gba
-Linux
+C:\Documents and Settings\Roger.IPOD\Desktop\Pokemon Fire Red_test.gba
+Windows

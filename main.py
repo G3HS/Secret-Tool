@@ -11,8 +11,8 @@ from PokeSpriteTab import *
 from ExpandPokes import *
 from cStringIO import StringIO
 import requests, json, webbrowser
-version = 'Beta 0.99.1'
-versionNumber = "v0.99.1"
+version = 'Beta 0.9A.0'
+versionNumber = "v0.9A.0"
 
 OPEN = 1
 poke_num = 0
@@ -40,7 +40,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title, size=(800,600))
         wx.FileDropTarget.__init__(self)
-            
+        
         self.SetDropTarget(self)
         self.open_rom = None
         self.open_rom_name = None
@@ -115,17 +115,38 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         wx.EVT_TIMER(self, TIMER_ID, self.on_timer)  # call the on_timer function
 
     def ABOUT(self, *args):
+        iconImage = os.path.join("Resources","Icon.png")
+        image = wx.Image(iconImage, wx.BITMAP_TYPE_PNG).ConvertToBitmap() 
+        icon = wx.EmptyIcon() 
+        icon.CopyFromBitmap(image) 
         
-        info = wx.AboutDialogInfo()
         global description
+        global versionNumber
+        
+        try:
+            global obj
+            downloads = None
+            for x in obj:
+                if x["tag_name"] == versionNumber:
+                    downloads = x['assets'][0]['download_count']
+            if downloads != None:
+                D = description + "\n\nThis version has been downloaded {0} times around the world.".format(downloads)
+            else:
+                D = description
+        except:
+            D = description
+            
+        info = wx.AboutDialogInfo()
         global licence
         name = 'POK\xe9MON Gen III Hacking Suite'
         name = encode_per_platform(name)
         info.SetName(name)
+        info.SetIcon(icon)
         global version
         info.SetVersion(version)
-        info.SetDescription(description)
+        info.SetDescription(D)
         info.SetCopyright('(C) 2014 karatekid552')
+        info.SetArtists(["MrDollSteak"])
         #info.SetWebSite('')
         info.SetLicence(licence)
         #info.AddDocWriter('')
@@ -303,7 +324,7 @@ class PokemonDataEditor(wx.Panel):
                 poke_names = self.poke_names
                 self.Pokes = wx.ComboBox(self, -1, choices=self.poke_names, 
                                 value=self.poke_names[0],
-                                style=wx.SUNKEN_BORDER,
+                                style=wx.SUNKEN_BORDER|wx.TE_PROCESS_ENTER,
                                 pos=(0, 0), size=(150, -1))
                 self.Pokes.Bind(wx.EVT_COMBOBOX, self.on_change_poke)
                 self.Pokes.Bind(wx.EVT_CHAR, self.EvtChar)
@@ -386,6 +407,7 @@ class PokemonDataEditor(wx.Panel):
         self.Pokes.GetEventHandler().ProcessEvent(cmd) 
         if event is not None:
             event.Skip()
+            
     def OnOpen(self, instance):
         frame.open_file()
         
@@ -3527,6 +3549,9 @@ def OnClose(instance):
     sys.exit()
 
 def OnUpdateTimer(instance):
+    global timer
+    timer.Stop()
+    del timer
     Message = "An update is available for this suite:\n\n"
     Message += "Version: "+latestRelease["name"]+"\n\n"
     Message += "Updates:\n"+latestRelease["body"]+"\n\n"
@@ -3535,10 +3560,6 @@ def OnUpdateTimer(instance):
     Message +="Would you like to update?"
     UpdateDialog = wx.MessageDialog(None,Message, 
                                                         "Update is available...", wx.YES_NO)
-    
-    global timer
-    timer.Stop()
-    del timer
     if UpdateDialog.ShowModal() == wx.ID_YES:
         webbrowser.open("https://github.com/thekaratekid552/Secret-Tool/releases")
         frame.Destroy()
@@ -3554,17 +3575,20 @@ if len(sys.argv) > 1:
     frame.open_rom_name = file
     frame.work_with_ini()
 
+try:
+    r = requests.get('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
+    obj = r.json()
+    latestRelease = obj[0]
 
-r = requests.get('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
-latestRelease = r.json()[0]
+    CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
 
-CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
-
-if latestRelease["tag_name"] != versionNumber:
-    if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
-        timer = wx.Timer(frame, 99)
-        timer.Start(500)
-        wx.EVT_TIMER(frame, 99, OnUpdateTimer)
+    if latestRelease["tag_name"] != versionNumber:
+        if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
+            timer = wx.Timer(frame, 99)
+            timer.Start(500)
+            wx.EVT_TIMER(frame, 99, OnUpdateTimer)
+except:
+    pass
     
 sys.stderr = StringIO()
 frame.set_timer()

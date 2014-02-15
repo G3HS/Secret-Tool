@@ -196,7 +196,6 @@ class SpriteTab(wx.Panel):
             elif n > 7:
                 IconPalBoxRight.Add(button, 0, wx.EXPAND | wx.ALL, 5)
             self.IconColorButtons.append(button)
-        
         self.load_everything(self.poke_num)
         
     def RepointIcon(self, instance):
