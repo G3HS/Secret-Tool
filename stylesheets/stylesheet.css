@@ -149,6 +149,12 @@ header a.button {
   top: 0;
   background: transparent url(../images/github-button.png) 0 0 no-repeat;
 }
+header a.icon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: transparent url(http://i1322.photobucket.com/albums/u563/karatekid552/0QIkbfy_zpsa62d2ad6.png) 0 0 no-repeat;
+}
 aside a.button {
   width: 138px;
   padding-left: 64px;
