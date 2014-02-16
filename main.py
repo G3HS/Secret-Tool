@@ -451,15 +451,16 @@ class PokemonDataEditor(wx.Panel):
     
     def on_change_poke(self, event):
         global poke_num
-        autosavepokeswhenswitching = frame.Config.get(frame.rom_id, "autosavepokeswhenswitching")
+        tmp_num = self.Pokes.GetSelection()
+        autosavepokeswhenswitching = frame.Config.get("ALL", "autosavepokeswhenswitching")
         if autosavepokeswhenswitching:
             self.OnSave()
-        poke_num = self.Pokes.GetSelection()
+        poke_num = tmp_num
         self.Poke_Name.SetValue(self.poke_names[poke_num])
         
         self.tabbed_area.reload_tab_data()
         
-    def OnSave(self, event):
+    def OnSave(self, *args):
         self.tabbed_area.stats.save()
         self.save_new_poke_name()
         self.poke_names = self.get_pokemon_names()
@@ -3584,7 +3585,7 @@ if len(sys.argv) > 1:
     frame.work_with_ini()
 
 try:
-    checkforupdates = frame.Config.get(frame.rom_id, "checkforupdates")
+    checkforupdates = frame.Config.get("ALL", "checkforupdates")
     if checkforupdates:
         r = urllib2.Request('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
         response = urllib2.urlopen(r)
