@@ -164,7 +164,7 @@ header a.button {
   background: transparent url(../images/github-button.png) 0 0 no-repeat;
 }
 header a.icon {
-  position: absolute;
+  position: relative;
   right: 0;
   top: 0;
   background: transparent url(http://i1322.photobucket.com/albums/u563/karatekid552/0QIkbfy_zpsa62d2ad6.png) 0 0 no-repeat;
