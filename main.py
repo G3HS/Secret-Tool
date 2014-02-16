@@ -126,7 +126,10 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         global versionNumber
         
         try:
-            global obj
+            r = urllib2.Request('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
+            response = urllib2.urlopen(r)
+            obj = response.read()
+            obj = json.loads(obj)
             downloads = None
             for x in obj:
                 if x["tag_name"] == versionNumber:
@@ -448,6 +451,9 @@ class PokemonDataEditor(wx.Panel):
     
     def on_change_poke(self, event):
         global poke_num
+        autosavepokeswhenswitching = frame.Config.get(frame.rom_id, "autosavepokeswhenswitching")
+        if autosavepokeswhenswitching:
+            self.OnSave()
         poke_num = self.Pokes.GetSelection()
         self.Poke_Name.SetValue(self.poke_names[poke_num])
         
@@ -3578,18 +3584,20 @@ if len(sys.argv) > 1:
     frame.work_with_ini()
 
 try:
-    r = urllib2.Request('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
-    response = urllib2.urlopen(r)
-    obj = response.read()
-    obj = json.loads(obj)
-    latestRelease = obj[0]
-    CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
+    checkforupdates = frame.Config.get(frame.rom_id, "checkforupdates")
+    if checkforupdates:
+        r = urllib2.Request('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
+        response = urllib2.urlopen(r)
+        obj = response.read()
+        obj = json.loads(obj)
+        latestRelease = obj[0]
+        CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
 
-    if latestRelease["tag_name"] != versionNumber:
-        if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
-            timer = wx.Timer(frame, 99)
-            timer.Start(500)
-            wx.EVT_TIMER(frame, 99, OnUpdateTimer)
+        if latestRelease["tag_name"] != versionNumber:
+            if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
+                timer = wx.Timer(frame, 99)
+                timer.Start(500)
+                wx.EVT_TIMER(frame, 99, OnUpdateTimer)
 except: pass
 
 sys.stderr = StringIO()
