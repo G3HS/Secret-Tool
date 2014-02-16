@@ -143,6 +143,20 @@ a.button small {
   display: block;
   font-size: 11px;
 }
+a.icon {
+  width: 128px;
+  height: 128px;
+  line-height: 1.2;
+  font-size: 23px;
+  color: #fff;
+  padding-left: 68px;
+  padding-top: 22px;
+  font-family: 'Architects Daughter', 'Helvetica Neue', Helvetica, Arial, serif; 
+}
+a.icon small {
+  display: block;
+  font-size: 11px;
+}
 header a.button {
   position: absolute;
   right: 0;
