@@ -13,8 +13,8 @@ from cStringIO import StringIO
 import json, webbrowser
 import traceback
 import urllib2
-version = 'Beta 0.9A.1'
-versionNumber = "v0.9A.1"
+version = 'Beta 0.9B.0'
+versionNumber = "v0.9B.0"
 
 OPEN = 1
 poke_num = 0
@@ -23,19 +23,12 @@ MOVES_LIST = None
 ITEM_NAMES = None
 returned_offset = None
 
-description = textwrap.fill("POK\xe9MON Gen III Hacking Suite was developed to enable better cross-platform POK\xe9MON  Rom Hacking by removing the need for the .NET framework.  It was also created in order to be more adaptable to more advanced hacking techniques that change some boundaries, like the number of POK\xe9MON. In the past, these changes rendered some very necessary tools useless and which made using these new limits difficult.", 90)
+description = textwrap.fill("POK\xe9MON Gen III Hacking Suite was developed to enable better cross-platform POK\xe9MON  Rom Hacking by removing the need for the .NET framework.  It was also created in order to be more adaptable to more advanced hacking techniques that change some boundaries, like the number of POK\xe9MON. In the past, these changes rendered some very necessary tools useless and which made using these new limits difficult.", 110)
 
 description = encode_per_platform(description)
 
-licence = """The MIT License (MIT)
+licence = textwrap.fill("""The MIT License (MIT)""",90)+"\n\n\n"+textwrap.fill("""Copyright (c) 2014 karatekid552""",90)+"\n\n\n"+textwrap.fill("""Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:""",90)+"\n\n"+textwrap.fill("""The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.""",90)+"\n\n"+textwrap.fill("""THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.""",70)
 
-Copyright (c) 2014 karatekid552
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."""
 licence = encode_per_platform(licence)
 
 class MainWindow(wx.Frame, wx.FileDropTarget):
@@ -152,7 +145,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         info.SetDescription(D)
         info.SetCopyright('(C) 2014 karatekid552')
         info.SetArtists(["MrDollSteak"])
-        #info.SetWebSite('')
+        info.SetWebSite('http://thekaratekid552.github.io/Secret-Tool/')
         info.SetLicence(licence)
         #info.AddDocWriter('')
 
@@ -172,7 +165,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             except:
                 directory = os.getcwd()
         open_dialog = wx.FileDialog(None, message="Open a rom...", 
-                                                        defaultDir=directory, style=wx.FD_OPEN)
+                                    defaultDir=directory, 
+                                    style=wx.FD_OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
@@ -182,7 +176,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             pathfile.close()
             open_dialog.Destroy()
             self.work_with_ini()
-           
+
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
         #If yes, load it's custom ini. If no, create its ini.
@@ -344,21 +338,27 @@ class PokemonDataEditor(wx.Panel):
                 self.Poke_Name = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(150,-1))
                 self.Poke_Name.SetValue(self.poke_names[0])
                 
+                savetab = Button(self, 3, "Save Tab")
+                self.Bind(wx.EVT_BUTTON, self.OnSaveTab, id=3)
+                
                 save = Button(self, 1, "Save All")
                 self.Bind(wx.EVT_BUTTON, self.OnSave, id=1)
                 self.sizer = wx.BoxSizer(wx.VERTICAL)
                 self.sizer_top = wx.BoxSizer(wx.HORIZONTAL)
                 
-                self.sizer_top.Add(self.Pokes, 0, wx.ALL, 5)
-                self.sizer_top.Add(Change_Name, 0, wx.ALL, 5)
-                self.sizer_top.Add(self.Poke_Name, 0, wx.ALL, 5)
-                self.sizer_top.Add(save, 0, wx.LEFT, 20)
+                self.sizer_top.Add(self.Pokes, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+                self.sizer_top.Add(Change_Name, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT, 5)
+                self.sizer_top.Add(self.Poke_Name, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+                self.sizer_top.Add(savetab, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+                self.sizer_top.Add(save, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
                 
                 gamecode = frame.Config.get(frame.rom_id, "gamecode")
                 if gamecode == "BPRE":
-                    ExpandPokes = Button(self, 2, "Expand Number of 'MONs")
+                    ExpandPokesTxt = "Expand POK\xe9MON"
+                    ExpandPokesTxt = encode_per_platform(ExpandPokesTxt)
+                    ExpandPokes = Button(self, 2, ExpandPokesTxt)
                     self.Bind(wx.EVT_BUTTON, self.OnExpandPokes, id=2)
-                    self.sizer_top.Add(ExpandPokes, 0, wx.LEFT, 20)
+                    self.sizer_top.Add(ExpandPokes, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
                 
                 self.sizer.Add(self.sizer_top, 0, wx.ALL, 2)
                 self.tabbed_area = DataEditingTabs(self)
@@ -372,7 +372,12 @@ class PokemonDataEditor(wx.Panel):
             self.sizer.Add(open, 1, wx.EXPAND|wx.ALL, 200)
             self.SetSizer(self.sizer)
         self.Layout()
-        
+    
+    def OnSaveTab(self, event):
+        current = self.tabbed_area.GetSelection()
+        currentobj = self.tabbed_area.GetPage(current)
+        currentobj.save()
+    
     def EvtChar(self, event):
         if event.GetKeyCode() == 8:
             self.ignoreEvtText = True
@@ -453,7 +458,7 @@ class PokemonDataEditor(wx.Panel):
         global poke_num
         tmp_num = self.Pokes.GetSelection()
         autosavepokeswhenswitching = frame.Config.get("ALL", "autosavepokeswhenswitching")
-        if autosavepokeswhenswitching:
+        if autosavepokeswhenswitching == "True":
             self.OnSave()
         poke_num = tmp_num
         self.Poke_Name.SetValue(self.poke_names[poke_num])
@@ -512,7 +517,7 @@ class DataEditingTabs(wx.Notebook):
         
         
         self.sprites = SpriteTab(self, rom=frame.open_rom_name, 
-                                                 config=frame.Config, rom_id=frame.rom_id)
+                                 config=frame.Config, rom_id=frame.rom_id)
         
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
@@ -2974,7 +2979,7 @@ class EggMoveTab(wx.Panel):
                             
                         
 #############################################################
-##----------------------------------------Extra Dialogues-------------------------------##
+##---------------------Extra Dialogues---------------------##
 #############################################################
 
 class MOVE_REPOINTER(wx.Dialog):
@@ -3561,6 +3566,10 @@ def OnUpdateTimer(instance):
     global timer
     timer.Stop()
     del timer
+    global latestRelease
+    global LatestGoodBuild
+    if UseDevBuild == False:
+        latestRelease = LatestGoodBuild
     Message = "An update is available for this suite:\n\n"
     Message += "Version: "+latestRelease["name"]+"\n\n"
     Message += "Updates:\n"+latestRelease["body"]+"\n\n"
@@ -3586,19 +3595,35 @@ if len(sys.argv) > 1:
 
 try:
     checkforupdates = frame.Config.get("ALL", "checkforupdates")
-    if checkforupdates:
+    if checkforupdates == "True":
         r = urllib2.Request('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
         response = urllib2.urlopen(r)
         obj = response.read()
         obj = json.loads(obj)
         latestRelease = obj[0]
+        LatestGoodBuild = None
+        timer = None
+        UseDevBuild = False
+        for x in obj:
+            if x["prerelease"] != True:
+                LatestGoodBuild = x
+                break
+                
         CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
 
         if latestRelease["tag_name"] != versionNumber:
             if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
+                UseDevBuild = True
                 timer = wx.Timer(frame, 99)
                 timer.Start(500)
                 wx.EVT_TIMER(frame, 99, OnUpdateTimer)
+        if not timer:
+            if LatestGoodBuild:
+                if LatestGoodBuild["tag_name"] != versionNumber:
+                    UseDevBuild = False
+                    timer = wx.Timer(frame, 99)
+                    timer.Start(500)
+                    wx.EVT_TIMER(frame, 99, OnUpdateTimer)
 except: pass
 
 sys.stderr = StringIO()
