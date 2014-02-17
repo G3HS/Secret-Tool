@@ -466,6 +466,7 @@ class PokemonDataEditor(wx.Panel):
         self.tabbed_area.reload_tab_data()
         
     def OnSave(self, *args):
+        gamecode = frame.Config.get(frame.rom_id, "gamecode")
         self.tabbed_area.stats.save()
         self.save_new_poke_name()
         self.poke_names = self.get_pokemon_names()
@@ -478,7 +479,8 @@ class PokemonDataEditor(wx.Panel):
         self.tabbed_area.moves.save()
         self.tabbed_area.egg_moves.save()
         self.tabbed_area.evo.save()
-        self.tabbed_area.tutor.save()
+        if gamecode[:3] == "AXV" or gamecode[:3] == "AXP":  pass
+        else:  self.tabbed_area.tutor.save()
         self.tabbed_area.dex.save()
         self.tabbed_area.sprites.save()
         
@@ -512,7 +514,9 @@ class DataEditingTabs(wx.Notebook):
         self.moves = MovesTab(self)
         self.evo = EvoTab(self)
         self.dex = PokeDexTab(self)
-        self.tutor = MoveTutorTab(self)
+        gamecode = frame.Config.get(frame.rom_id, "gamecode")
+        if gamecode[:3] == "AXV" or gamecode[:3] == "AXP":  pass
+        else:  self.tutor = MoveTutorTab(self)
         self.egg_moves = EggMoveTab(self)
         
         
@@ -525,7 +529,9 @@ class DataEditingTabs(wx.Notebook):
         dex_name = "POK\xe9Dex"
         dex_name = encode_per_platform(dex_name)
         self.AddPage(self.dex, dex_name)
-        self.AddPage(self.tutor, "Move Tutor")
+        
+        if gamecode[:3] == "AXV" or gamecode[:3] == "AXP":  pass
+        else:   self.AddPage(self.tutor, "Move Tutor")
         self.AddPage(self.egg_moves, "Egg Moves")
         self.AddPage(self.sprites, "Sprites")
         
@@ -550,7 +556,9 @@ class DataEditingTabs(wx.Notebook):
         self.moves.load_everything()
         self.evo.load_everything()
         self.dex.LoadEverything()
-        self.tutor.load_everything()
+        gamecode = frame.Config.get(frame.rom_id, "gamecode")
+        if gamecode[:3] == "AXV" or gamecode[:3] == "AXP":  pass
+        else: self.tutor.load_everything()
         global poke_num
         self.sprites.load_everything(poke_num=poke_num)
         
@@ -2173,7 +2181,7 @@ class PokeDexTab(wx.Panel):
             
             if self.OriginalEntry2Len != None:
             
-                entry1 = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
+                entry2 = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
            
                 if self.OriginalEntry2Len < len(entry2):
                     self.OriginalEntry2Len = len(entry2)
@@ -2197,7 +2205,7 @@ class PokeDexTab(wx.Panel):
                 else: need_overwrite = False
 
                 rom.seek(self.entry2_offset)
-                rom.write(entry1+"\xff\xff")
+                rom.write(entry2+"\xff\xff")
                 
                 rom.seek(0,1)
                 check = rom.read(1)
@@ -2495,8 +2503,8 @@ class MoveTutorTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
+        
         self.gamecode = frame.Config.get(frame.rom_id, "gamecode")
-        if self.gamecode[:3] == "AXV" or self.gamecode[:3] == "AXP": return
         self.GenerateUI()
         
         self.SetSizer(self.sizer)
@@ -2613,7 +2621,6 @@ class MoveTutorTab(wx.Panel):
             self.load_everything()
         
     def load_everything(self):
-        if self.gamecode[:3] == "AXV" or self.gamecode[:3] == "AXP": return
         global MOVES_LIST
         self.get_comp_data()
         self.CompList.DeleteAllItems()
