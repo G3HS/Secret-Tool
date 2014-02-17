@@ -13,7 +13,7 @@ from cStringIO import StringIO
 import json, webbrowser
 import traceback
 import urllib2
-version = 'Beta 0.9B.1'
+version = 'Beta 0.9B.2'
 versionNumber = "v0.9B.2"
 
 OPEN = 1
