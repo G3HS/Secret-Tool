@@ -70,7 +70,7 @@ class SpriteTab(wx.Panel):
         PalettePanelSizer = wx.BoxSizer(wx.VERTICAL)
         PalettePanel.SetSizer(PalettePanelSizer)
         SpritesAndPals.Add(PalettePanel, 0, wx.EXPAND | wx.ALL, 5)
-       
+        
         PalettesSizer = wx.BoxSizer(wx.HORIZONTAL)
         PalettePanelSizer.Add(PalettesSizer, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -197,6 +197,11 @@ class SpriteTab(wx.Panel):
                 IconPalBoxRight.Add(button, 0, wx.EXPAND | wx.ALL, 5)
             self.IconColorButtons.append(button)
         self.load_everything(self.poke_num)
+        PalettePanel.Layout()
+        spritePanel.Layout()
+        PositionPanel.Layout()
+        IconPanel.Layout()
+        self.Layout()
         
     def RepointIcon(self, instance):
         with open(self.rom_name, "r+b") as rom:
@@ -282,6 +287,7 @@ class SpriteTab(wx.Panel):
                                 rom.write(GBAFSLZ)
                                 self.OrgSizes["front"] = len(GBAFSLZ)
                                 break
+                        else: return
                 else:
                     rom.seek(self.FrontSpritePointer)
                     rom.write(GBAFSLZ)
@@ -319,6 +325,7 @@ class SpriteTab(wx.Panel):
                                 rom.write(GBABSLZ)
                                 self.OrgSizes["back"] = len(GBABSLZ)
                                 break
+                        else: return
                 else:
                     rom.seek(self.BackSpritePointer)
                     rom.write(GBABSLZ)
@@ -353,6 +360,7 @@ class SpriteTab(wx.Panel):
                                 rom.write(GBANORMALLZ)
                                 self.OrgSizes["normal"] = len(GBANORMALLZ)
                                 break
+                        else: return
                 else:
                     rom.seek(self.FrontPalettePointer)
                     rom.write(GBANORMALLZ)
@@ -387,6 +395,7 @@ class SpriteTab(wx.Panel):
                                 rom.write(GBASHINYLZ)
                                 self.OrgSizes["shiny"] = len(GBASHINYLZ)
                                 break
+                        else: return
                 else:
                     rom.seek(self.ShinyPalettePointer)
                     rom.write(GBASHINYLZ)
@@ -498,6 +507,7 @@ class SpriteTab(wx.Panel):
                                 start += 1
                             self.OrgSizes[sprite[3]] = len(sprite[0])
                         break
+                else: return
             #Write positions
             rom.seek(playerytable+(self.poke_num)*4+1)
             PlayerY = hex(self.PlayerY.GetValue()).rstrip("L").lstrip("0x").zfill(2)

@@ -13,8 +13,8 @@ from cStringIO import StringIO
 import json, webbrowser
 import traceback
 import urllib2
-version = 'Beta 0.9B.0'
-versionNumber = "v0.9B.0"
+version = 'Beta 0.9B.1'
+versionNumber = "v0.9B.2"
 
 OPEN = 1
 poke_num = 0
@@ -78,7 +78,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.Config = ConfigParser.ConfigParser()
         ini = os.path.join(self.path,"PokeRoms.ini")
         self.Config.read(ini)
-        
+        self.panel.Layout()
+        self.Layout()
         self.Show(True)
         
     def OnDropFiles(self, x, y, filenames):
@@ -2143,6 +2144,7 @@ class PokeDexTab(wx.Panel):
                             else:
                                 need_overwrite = False
                             break
+                    else: return
             else: need_overwrite = False
             
             rom.seek(self.entry1_offset)
@@ -2202,6 +2204,7 @@ class PokeDexTab(wx.Panel):
                                 else:
                                     need_overwrite = False
                                 break
+                        else: return
                 else: need_overwrite = False
 
                 rom.seek(self.entry2_offset)
@@ -2740,9 +2743,10 @@ class EggMoveTab(wx.Panel):
 
         
         poke_names_vbox = wx.BoxSizer(wx.VERTICAL)
-        self.POKES = wx.ListCtrl(self, -1, style=wx.LC_REPORT, size=(200,400))
-        self.POKES.InsertColumn(0, '#', width=50)
-        self.POKES.InsertColumn(1, 'Name', width=140)
+        self.POKES = wx.ListCtrl(self, -1, style=wx.LC_REPORT, size=(230,400))
+        self.POKES.InsertColumn(0, '#', width=40)
+        self.POKES.InsertColumn(1, 'HEX', width=50)
+        self.POKES.InsertColumn(2, 'Name', width=120)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelectPoke,  self.POKES)
         poke_names_vbox.Add(self.POKES, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -2750,9 +2754,10 @@ class EggMoveTab(wx.Panel):
         
         
         moves_vbox = wx.BoxSizer(wx.VERTICAL)
-        self.MOVES = wx.ListCtrl(self, -1, style=wx.LC_REPORT, size=(200,400))
-        self.MOVES.InsertColumn(0, '#', width=50)
-        self.MOVES.InsertColumn(1, 'Name', width=140)
+        self.MOVES = wx.ListCtrl(self, -1, style=wx.LC_REPORT, size=(230,400))
+        self.MOVES.InsertColumn(0, '#', width=40)
+        self.MOVES.InsertColumn(1, 'HEX', width=50)
+        self.MOVES.InsertColumn(2, 'Name', width=120)
         moves_vbox.Add(self.MOVES, 0, wx.EXPAND | wx.ALL, 5)
         
         moves_butons_vbox = wx.BoxSizer(wx.VERTICAL)
@@ -2785,7 +2790,6 @@ class EggMoveTab(wx.Panel):
         
     def save(self):
         string = ""
-        global NewEggOffset
         NewEggOffset = hex(self.OFFSET)[2:].zfill(6)
         for poke, moveset in self.EGG_MOVES.iteritems():
             number = int("0x4E20", 0)
@@ -2800,24 +2804,18 @@ class EggMoveTab(wx.Panel):
         self.string_to_be_written = get_hex_from_string(string)
         length = len(string)
         if length > self.original_length:
-            need = int(length/2)
-            self.repoint = EGG_MOVE_REPOINTER(parent=None, need=need)
-            self.repoint.Bind(wx.EVT_CLOSE, self.repoint_done)
-            self.repoint.Show()
-        else: self.save_part2()
-        
-    def repoint_done(self, *args):
-        self.repoint.Destroy()
-        global NewEggOffset
-        if self.OFFSET == NewEggOffset:
-            self.save()
-        else: self.save_part2()
-        
-    def save_part2(self, *args):
-        global NewEggOffset
+            self.repoint = EGG_MOVE_REPOINTER(parent=None, need=int(length/2))
+            while True:
+                if self.repoint.ShowModal() == wx.ID_OK:
+                    Offset = self.repoint.NewEggOffset
+                    self.repoint.Destroy()
+                    if self.OFFSET == Offset: continue
+                    else: 
+                        NewEggOffset = Offset
+                        break
+                else: return
         offset = int(NewEggOffset,16)+int("8000000",16)
         offset = hex(offset)[2:].zfill(8)
-        
         with open(frame.open_rom_name, "r+b") as rom:
             NewEggOffset_pointer_form = make_pointer(offset)
             if NewEggOffset != hex(self.OFFSET)[2:].zfill(6):
@@ -2846,12 +2844,14 @@ class EggMoveTab(wx.Panel):
             
             for move in self.EGG_MOVES[selection]:
                 index = self.MOVES.InsertStringItem(sys.maxint, str(move))
-                self.MOVES.SetStringItem(index, 1, MOVES_LIST[move])
+                HexMove = hex(move)
+                HexMove = HexMove[:2]+HexMove[2:].upper()
+                self.MOVES.SetStringItem(index, 1, HexMove)
+                self.MOVES.SetStringItem(index, 2, MOVES_LIST[move])
     
     def OnAddPoke(self, *args):
         sel = self.POKE_NAME.GetSelection()
         if sel != -1:
-            sel += 1
             if sel not in self.EGG_MOVES:
                 self.EGG_MOVES[sel] = []
                 self.LoadPOKESList()
@@ -2946,7 +2946,10 @@ class EggMoveTab(wx.Panel):
         self.POKES.DeleteAllItems()
         for poke in self.EGG_MOVES:
             index = self.POKES.InsertStringItem(sys.maxint, str(poke))
-            self.POKES.SetStringItem(index, 1, poke_names[poke])
+            HexPoke = hex(poke)
+            HexPoke = HexPoke[:2]+HexPoke[2:].upper()
+            self.POKES.SetStringItem(index, 1, HexPoke)
+            self.POKES.SetStringItem(index, 2, poke_names[poke])
         
     def load_egg_moves(self):
         self.EGG_MOVES = {}
@@ -3130,18 +3133,18 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, need, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
-        
+        self.NewEggOffset = None
         self.num = need
         self.InitUI()
         self.OnSearch()
-        self.SetTitle("Repoint")
+        self.SetTitle("Repoint Egg Moves")
 
     def InitUI(self):
 
         pnl = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        txt2 = wx.StaticText(pnl, -1, "Please choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.",style=wx.TE_CENTRE)
+        txt2 = wx.StaticText(pnl, -1, "Egg Moves need to be repointed.\n\n\nPlease choose an offset to repoint to or specify\na manual offset. If a manual offset is specified,\nthe list choice will be ignored.\nNOTE: Manual offsets will NOT be checked for\nfree space availability.",style=wx.TE_CENTRE)
         vbox.Add(txt2, 0, wx.EXPAND | wx.ALL, 5)
         
         self.OFFSETS = wx.ListBox(pnl, -1)
@@ -3165,7 +3168,7 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
     def OnSubmit(self, *args):
         sel = self.OFFSETS.GetSelection()
         offset = self.MANUAL.GetValue()
-        global NewEggOffset
+        
         if offset != "":
             if len(offset) > 6:
                 check = offset[-7:-6]
@@ -3174,11 +3177,12 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
                 else:
                     check = ""
                 offset = check+offset[-6:].zfill(6)
-            NewEggOffset = offset
+            self.NewEggOffset = offset
+            self.EndModal(wx.ID_OK)
         elif sel != -1:
             new_offset = self.OFFSETS.GetString(sel)[2:]
-            NewEggOffset = new_offset
-            self.OnClose()
+            self.NewEggOffset = new_offset
+            self.EndModal(wx.ID_OK)
         
     def OnSearch(self, *args):
         self.OFFSETS.Clear()
@@ -3203,9 +3207,6 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
                     x = (1,True)
                     start = offset+len(search)
                 
-    def OnClose(self, *args):
-        self.Close()
-
 class NumberofEvosChanger(wx.Dialog):
     def __init__(self, parent=None, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
