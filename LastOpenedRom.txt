@@ -1,2 +1,2 @@
-C:\Documents and Settings\Roger.IPOD\Desktop\Pokemon Ruby_.gba
-Windows
+/home/roger/Documents/Pokemon Fire Red_test.gba
+Linux

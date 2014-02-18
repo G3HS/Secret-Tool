@@ -236,10 +236,10 @@ class SpriteTab(wx.Panel):
                 ERROR.ShowModal()
             
     def save(self):
-        #Save sprites
         if not self.SeperateFrames.IsChecked():
             self.SaveTogether()
             return
+        #Save sprites
         FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
         BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
         FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)

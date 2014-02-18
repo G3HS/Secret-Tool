@@ -117,7 +117,107 @@ def ConvertGBAImageToNormal(image, palette, size=(64,64)):
     img = wx.ImageFromData(size[0], size[1], data)
     bitmap = wx.BitmapFromImage(img)
     return bitmap
+
+def ConvertGBAFootprintToNormal(footprint,size=(16,16)):
+    """
+    This will take a GBA footprint in the form of a byte string
+    like "\xff\xe0\x22..." and convert it to a normal RGB image.
     
+    Because GBA images are stored in 8x8 tiles, there are a lot of
+    loops in the function.:P
+    """
+    palette = [(200,200,255),(0,0,0)]
+    indexed_image = []
+    binary = ""
+    for n in footprint:
+        binary += bin(int(hexlify(n),16)).lstrip("0b").rstrip("L").zfill(8)[::-1]
+    image = unhexlify(binary)
+    for c in image:
+        pixels = hexlify(c)
+        pixela = int(pixels[0],16)
+        pixelb = int(pixels[1],16)
+        indexed_image.append(pixela)
+        indexed_image.append(pixelb)
+    width = size[0]
+    height = size[1]
+    NumOfBlocks = (width/8) * (height/8)
+    blocks = []
+    n = 0
+    for z in range(NumOfBlocks):
+        tmp_list = indexed_image[n:n+64]
+        blocks.append(tmp_list)
+        n += 64
+    image_data = []
+    b = 0
+    a = 0
+    row = 0
+    for x in range(height/8):
+        for y in range(8):
+            b = row
+            for z in range(width/8):
+                r = 0
+                for w in range(8):
+                    image_data.append(blocks[b][a+r])
+                    r += 1
+                b += 1
+            a += 8
+        a = 0
+        row += width/8
+    img_data = []
+    for pixel in image_data:
+        img_data.append(palette[pixel][0]) #Append Red
+        img_data.append(palette[pixel][1]) #Append Green
+        img_data.append(palette[pixel][2]) #Append Blue
+
+    data = ""
+    for color in img_data:
+        data += unhexlify(hex(color)[2:].zfill(2))
+    img = wx.ImageFromData(size[0], size[1], data)
+    img = img.Scale(64, 64)
+    bitmap = wx.BitmapFromImage(img)
+    return bitmap
+
+def ConvertNormalFootPrintToGBA(image):
+    """
+    This function will take a normal wx.Image and return a gba footprint.
+    Image must be already 2 colors and have dimensions of 16x16.
+    """
+    data = image.GetData()
+    height = 16
+    width = 16
+    blocks = []
+    block_num = width/8
+    for w in range(height/8):
+        for x in range(8):
+            block_num -= width/8
+            for y in range(width/8):
+                for z in range(8):
+                    color = [int(hexlify(data[:1]),16),
+                                  int(hexlify(data[1:2]),16),
+                                  int(hexlify(data[2:3]),16)]
+                    try: blocks[block_num]
+                    except: blocks.append([])
+                    blocks[block_num].append(color)
+                    data = data[3:]
+                block_num += 1
+        block_num += width/8
+    GBAImage = ""
+    for block in blocks:
+        counter = 0
+        for x in range(8): #Per row
+            binary = ""
+            for x in range(8):
+                if block[counter] == [255,255,255]:
+                    binary += "0"
+                else:
+                    binary += "1"
+                counter += 1
+            binary = binary[::-1]
+            integer = int(binary,2)
+            hexteger  = hex(integer).lstrip("0x").rstrip("L").zfill(2)
+            GBAImage += unhexlify(hexteger)
+    return GBAImage
+
 def ConvertNormalImageToGBA(image, palette=None, size=(64,64)):
     """
     This function will take a normal wx.Image and return tuple

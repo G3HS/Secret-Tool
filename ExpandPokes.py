@@ -699,16 +699,16 @@ class PokemonExpander(wx.Dialog):
         txt2 = wx.StaticText(self, -1, "Please choose an offset to repoint to or specify a manual offset. If a manual offset is\nspecified, the list choice will be ignored.\n",style=wx.TE_CENTRE)
         vbox.Add(txt2, 0,  wx.ALL | wx.ALIGN_CENTER, 5)
         
-        self.OFFSETS = wx.ListBox(self, -1, size=(250,150))
+        self.OFFSETS = wx.ListBox(self, -1, size=(250,75))
         self.OFFSETS.Bind(wx.EVT_LISTBOX, self.GetOffset)
         vbox.Add(self.OFFSETS, 0,  wx.ALL | wx.ALIGN_CENTER, 5)
         
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         manual_txt = wx.StaticText(self, -1, "Manual Offset: 0x",style=wx.TE_CENTRE)
-        hbox.Add(manual_txt, 0, wx.LEFT|wx.TOP|wx.BOTTOM| wx.ALIGN_CENTER, 5)
+        hbox.Add(manual_txt, 0, wx.ALL|wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
         self.MANUAL = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
         self.MANUAL.Bind(wx.EVT_TEXT, self.GetOffset)
-        hbox.Add(self.MANUAL, 0, wx.RIGHT|wx.TOP|wx.BOTTOM | wx.ALIGN_CENTER, 5)
+        hbox.Add(self.MANUAL, 0, wx.ALL|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
         vbox.Add(hbox, 0, wx.ALL|wx.ALIGN_CENTER, 0)
         
         RAM_Head = wx.StaticText(self, -1, "\nPlease choose provide a RAM offset for the seen/caught flags.\nIf you don't know what this is, don't change it.\n",style=wx.TE_CENTRE)
@@ -716,17 +716,23 @@ class PokemonExpander(wx.Dialog):
         
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         RAM_txt = wx.StaticText(self, -1, "RAM Offset: 0x",style=wx.TE_CENTRE)
-        hbox2.Add(RAM_txt, 0, wx.LEFT|wx.TOP|wx.BOTTOM| wx.ALIGN_CENTER, 5)
+        hbox2.Add(RAM_txt, 0, wx.ALL|wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
         self.RAM = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
         self.RAM.SetValue("0203c400")
         self.RAM.Bind(wx.EVT_TEXT, self.GetOffset)
-        hbox2.Add(self.RAM, 0, wx.RIGHT|wx.TOP|wx.BOTTOM| wx.ALIGN_CENTER, 5)
+        hbox2.Add(self.RAM, 0, wx.ALL|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
         vbox.Add(hbox2, 0, wx.ALL|wx.ALIGN_CENTER, 0)
         
         self.NumDexEntries.SetValue(387)
         
+        bottom = wx.BoxSizer(wx.HORIZONTAL)
+        vbox.Add(bottom, 0, wx.EXPAND | wx.ALL, 0)
+        
+        txt3 = wx.StaticText(self, -1, "\n\nA huge credit goes to DoesntKnowHowToPlay, who\ndiscovered how this can be done and wrote a tutorial\nabout it. Drop him a thank you if you really like it!",style=wx.TE_CENTRE)
+        bottom.Add(txt3, 0, wx.EXPAND | wx.ALL, 5)
+        
         OK = self.CreateButtonSizer(wx.OK)
-        vbox.Add(OK, 0, wx.EXPAND | wx.ALL, 10)
+        bottom.Add(OK, 0, wx.ALL|wx.ALIGN_RIGHT|wx.ALIGN_BOTTOM, 5)
         
         self.SetSizerAndFit(vbox)
         self.Fit()

@@ -9,6 +9,7 @@ from CheckListCtrl import *
 from Button import *
 from PokeSpriteTab import *
 from ExpandPokes import *
+from BaseRepointer import *
 from cStringIO import StringIO
 import json, webbrowser
 import traceback
@@ -54,16 +55,21 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         
         self.CreateStatusBar() # A Statusbar in the bottom of the window
         # Setting up the menu.
-        filemenu= wx.Menu()
+        filemenu = wx.Menu()
+        helpmenu = wx.Menu()
         # wx.ID_ABOUT and wx.ID_EXIT are standard IDs provided by wxWidgets.
         filemenu.Append(wx.ID_OPEN, "&Open"," Open a ROM.")
-        filemenu.AppendSeparator()
-        filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
+        help_ID = wx.ID_NEW
+        helpmenu.Append(help_ID, "&Documentation"," Open documentation. Requires a pdf reader.")
+        helpmenu.AppendSeparator()
+        helpmenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
         self.Bind(wx.EVT_MENU, self.open_file, id=wx.ID_OPEN)
+        self.Bind(wx.EVT_MENU, self.Help, id=help_ID)
         self.Bind(wx.EVT_MENU, self.ABOUT, id=wx.ID_ABOUT)
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
+        menuBar.Append(helpmenu,"&Help")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
         p = platform.system()
         if p == "Windows":
@@ -81,7 +87,17 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.panel.Layout()
         self.Layout()
         self.Show(True)
-        
+    
+    def Help(self, event):
+        import subprocess
+        docs = os.path.join(os.getcwd(),"G3HS_Documentation.pdf")
+        if sys.platform == 'linux2':
+            subprocess.call(["xdg-open", docs])
+        elif sys.platform.startswith('darwin'):
+            subprocess.call(["open", docs])
+        else:
+            os.startfile(docs)
+    
     def OnDropFiles(self, x, y, filenames):
         filename = filenames[0]
         self.open_rom = open(filename, "r+b")
@@ -1940,7 +1956,7 @@ class PokeDexTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        
+        self.lastPath = None
         self.OriginalEntry1Len = None
         self.OriginalEntry2Len = None
         
@@ -1972,11 +1988,26 @@ class PokeDexTab(wx.Panel):
         DEX_Sizer.Add(self.Entry2, 0, wx.ALL, 5)
         
         gamecode = frame.Config.get(frame.rom_id, "gamecode")
-        
+        MAIN
         if gamecode == "BPRE":
             FixNameBug = Button(DEX, 1, "Fix 'Dex Not Displaying Names Properly")
             self.Bind(wx.EVT_BUTTON, self.OnFixNameBug, id=1)
-            DEX_Sizer.Add(FixNameBug, 1, wx.BOTTOM|wx.ALIGN_CENTER, 110)
+            DEX_Sizer.Add(FixNameBug, 1, wx.ALL|wx.ALIGN_TOP, 5)
+        
+        #Footprints
+        FootHBox = wx.BoxSizer(wx.HORIZONTAL)
+        DEX_Sizer.Add(FootHBox, 0, wx.ALL, 5)
+        
+        FootTxt = wx.StaticText(DEX, -1,"Footprint:")
+        FootHBox.Add(FootTxt, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER, 5)
+        
+        self.FootPrint = wx.BitmapButton(DEX,3,wx.EmptyBitmap(64,64), size=(76,76))
+        self.Bind(wx.EVT_BUTTON, self.OnFoot, id=self.FootPrint.Id)
+        FootHBox.Add(self.FootPrint, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        RepointFeets = Button(DEX, 4, "Repoint Footprint")
+        self.Bind(wx.EVT_BUTTON, self.OnRepointFeet, id=RepointFeets.Id)
+        FootHBox.Add(RepointFeets, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         
         ##This is the Height and Weight Section
         
@@ -2076,7 +2107,62 @@ class PokeDexTab(wx.Panel):
         TScaleBoxRight.Add(self.TScale_px, 0, wx.TOP, 5)
         
         self.LoadEverything()
+    
+    def OnRepointFeet(self, *args):
+        global poke_num
+        with open(frame.open_rom_name, "r+b") as rom:
+            repoint = Repointer(frame.open_rom_name, frame, 32, "Footprint")
+            if repoint.ShowModal() == wx.ID_OK:
+                    offset = repoint.offset
+                    if offset == None:
+                        ERROR = wx.MessageDialog(None, 
+                                    "No offset was selected and nothing has been changed.", 
+                                    'Just letting you know...', 
+                                    wx.OK | wx.ICON_ERROR)
+                        ERROR.ShowModal()
+                        return
+                    footprints = int(frame.Config.get(frame.rom_id, "footprints"), 0)
+                    rom.seek(footprints+(poke_num)*4)
+                    #Write new pointer
+                    hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                    hexOffset = make_pointer(hexOffset)
+                    hexOffset = unhexlify(hexOffset)
+                    rom.write(hexOffset)
+                    #Write new image
+                    rom.seek(offset)
+                    rom.write(self.GBAPrint)
+                    self.FootPrintOffset = offset
+                
+            else:
+                ERROR = wx.MessageDialog(None, 
+                                "You have aborted repoint. Nothing was changed.", 
+                                'Just letting you know...', 
+                                wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+            
+    def OnFoot(self, *args):
+        if not self.lastPath: self.lastPath = os.getcwd()
         
+        open_dialog = wx.FileDialog(self, message="Open a footprint (16x16)...", 
+                                    defaultDir=self.lastPath, style=wx.OPEN)
+        if open_dialog.ShowModal() == wx.ID_OK:
+            filename = open_dialog.GetPath()
+            self.lastPath = os.path.dirname(filename)
+            raw = Image.open(filename)
+            if raw.size != (16,16):
+                raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 16x16.")
+            if raw.mode != "1":
+                converted = raw.convert("1")
+            else:
+                if len(raw.getcolors()) > 2:
+                    tmp = raw.convert("RGB")
+                    converted = raw.convert("1")
+                else: converted = raw
+            image = PilImageToWxImage(converted)
+            self.GBAPrint = ConvertNormalFootPrintToGBA(image)
+            bitmap = ConvertGBAFootprintToNormal(self.GBAPrint)
+            self.FootPrint.SetBitmapLabel(bitmap)
+            
     def OnFixNameBug(self,instance):
         with open(frame.open_rom_name, "r+b") as rom:
             rom.seek(0x10583C)
@@ -2267,12 +2353,17 @@ class PokeDexTab(wx.Panel):
             Toffset = deal_with_16bit_signed_hex(Toffset, method="backward")
             Toffset = Toffset[2:4]+Toffset[:2]
             rom.write(get_hex_from_string(Toffset))
-        
+            
+            #Write the FEETS
+            rom.seek(self.FootPrintOffset)
+            rom.write(self.GBAPrint)
+            
     def LoadEverything(self):
         pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
         LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
         DexType = frame.Config.get(frame.rom_id, "DexType")
-
+        footprints = int(frame.Config.get(frame.rom_id, "footprints"), 0)
+        
         self.GetNationalDexOrder()
         with open(frame.open_rom_name, "r+b") as rom:
             global poke_num
@@ -2353,7 +2444,15 @@ class PokeDexTab(wx.Panel):
             Toffset = int(Toffset[2:4]+Toffset[:2],16)
             Toffset = deal_with_16bit_signed_hex(Toffset)
             self.Toffset.SetValue(str(Toffset))
-        
+            
+            #Footprints
+            rom.seek(footprints+poke_num*4)
+            self.FootPrintOffset = read_pointer(rom.read(4))
+            rom.seek(self.FootPrintOffset)
+            self.GBAPrint = rom.read(32)
+            bitmap = ConvertGBAFootprintToNormal(self.GBAPrint)
+            self.FootPrint.SetBitmapLabel(bitmap)
+            
     def GetNationalDexOrder(self):
         NationalDexOrder = int(frame.Config.get(frame.rom_id, "NationalDexOrder"), 0)
         numofnondexpokesbetweencelebiandtreeko = int(frame.Config.get(frame.rom_id, "numofnondexpokesbetweencelebiandtreeko"), 0)
@@ -2790,6 +2889,7 @@ class EggMoveTab(wx.Panel):
         
     def save(self):
         string = ""
+        eggmovelimit = int(frame.Config.get(frame.rom_id, "eggmovelimit"), 0)
         NewEggOffset = hex(self.OFFSET)[2:].zfill(6)
         for poke, moveset in self.EGG_MOVES.iteritems():
             number = int("0x4E20", 0)
@@ -2812,6 +2912,12 @@ class EggMoveTab(wx.Panel):
                     if self.OFFSET == Offset: continue
                     else: 
                         NewEggOffset = Offset
+                        with open(frame.open_rom_name, "r+b") as rom:
+                            rom.seek(eggmovelimit)
+                            writeLength = (length/2-3)
+                            writeLength = hex(writeLength).lstrip("0x").rstrip("L").zfill(8)
+                            writeLength = get_hex_from_string(writeLength)[::-1]
+                            rom.write(writeLength)
                         break
                 else: return
         offset = int(NewEggOffset,16)+int("8000000",16)
@@ -3003,7 +3109,6 @@ class MOVE_REPOINTER(wx.Dialog):
         self.SetTitle("Repoint")
         
     def InitUI(self):
-
         pnl = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
@@ -3140,7 +3245,6 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
         self.SetTitle("Repoint Egg Moves")
 
     def InitUI(self):
-
         pnl = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
@@ -3242,9 +3346,9 @@ class NumberofEvosChanger(wx.Dialog):
         
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         manual_txt = wx.StaticText(pnl, -1, "Manual Offset: 0x",style=wx.TE_CENTRE)
-        hbox.Add(manual_txt, 0, wx.EXPAND | wx.LEFT|wx.TOP|wx.BOTTOM, 5)
+        hbox.Add(manual_txt, 0, wx.ALL | wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
         self.MANUAL = wx.TextCtrl(pnl, -1,style=wx.TE_CENTRE, size=(100,-1))
-        hbox.Add(self.MANUAL, 0, wx.EXPAND | wx.RIGHT|wx.TOP|wx.BOTTOM, 5)
+        hbox.Add(self.MANUAL, 0, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
         vbox.Add(hbox, 0, wx.EXPAND | wx.ALL, 0)
         
         SUBMIT = Button(pnl, 2, "Submit")
@@ -3261,14 +3365,16 @@ class NumberofEvosChanger(wx.Dialog):
     def OnSubmit(self, *args):
         sel = self.OFFSETS.GetSelection()
         _offset_ = self.MANUAL.GetValue()
-        
         new_number = self.NewNumberChoices.GetSelection()
         new_number = int(self.choices[new_number])
-        
         EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
-        
-        if new_number == EvolutionsPerPoke: return
-        
+        if new_number == EvolutionsPerPoke: 
+            ComeOn = wx.MessageDialog(self, 
+                                "Look, you are supposed to change the number of evolutions. Haha, everyone makes mistakes. I would pick a different number.", 
+                                "What's the purpose?",
+                                wx.OK)
+            ComeOn.ShowModal()
+            return
         if _offset_ != "":
             if len(_offset_) > 6:
                 check = _offset_[-7:-6]
@@ -3306,14 +3412,10 @@ class NumberofEvosChanger(wx.Dialog):
                     split += "\x00"*(LengthOfOneEntry)*(new_number-EvolutionsPerPoke)
                     table.append(split)
                     entiretable = entiretable[LengthOfOneEntry*EvolutionsPerPoke:]
-            
-            int_offset = _offset_[-6:]
-            int_offset = int(int_offset, 16)
+            int_offset = int(_offset_, 16)
             rom.seek(int_offset)
             for entry in table:
                 rom.write(entry)
-        
-        
         ##write new pointers.
         EvolutionTablePointers = []
         list_pointers = frame.Config.get(frame.rom_id, "EvolutionTablePointers").split(",")
@@ -3321,25 +3423,22 @@ class NumberofEvosChanger(wx.Dialog):
         for offset in list_pointers:
             EvolutionTablePointers.append(int(offset, 0))
         
-        _offset_ = int(_offset_,16)+int("8000000",16)
-        _offset_ = hex(_offset_)[2:].zfill(8)
+        _offset_ = int(_offset_,16)+0x8000000
+        _offset_ = hex(_offset_).lstrip("0x").rstrip("L").zfill(8)
         
         pointer = make_pointer(_offset_)
-        
         pointer = get_hex_from_string(pointer)
         
         with open(frame.open_rom_name, "r+b") as rom:
             for offset in EvolutionTablePointers:
                 rom.seek(offset)
                 rom.write(pointer)
-            
-            
         ##Ammend the ini
         
-        _offset_ = int(_offset_,16)-int("8000000",16)
-        _offset_ = hex(_offset_)[2:]
+        _offset_ = int(_offset_,16)-0x8000000
+        _offset_ = hex(_offset_).rstrip("L")
         
-        frame.Config.set(frame.rom_id, "EvolutionTable", "0x"+_offset_)
+        frame.Config.set(frame.rom_id, "EvolutionTable", _offset_)
         frame.Config.set(frame.rom_id, "EvolutionsPerPoke", str(new_number))
         
         ini = os.path.join(frame.path,"PokeRoms.ini")
@@ -3352,10 +3451,7 @@ class NumberofEvosChanger(wx.Dialog):
             rom.seek(EvolutionTable)
             for n in range(readlength):
                 rom.write("\xFF")
-            
-        
         ##Adjust the rom for the new table
-        
         change1 = [] #-> lsl r0, r6, #0x1 (70 00)
         tmp = frame.Config.get(frame.rom_id, "OffsetsToChangeTolslr0r60x1").split(",")
         for offset in tmp:
@@ -3616,9 +3712,7 @@ try:
             if x["prerelease"] != True:
                 LatestGoodBuild = x
                 break
-                
         CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
-
         if latestRelease["tag_name"] != versionNumber:
             if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
                 UseDevBuild = True

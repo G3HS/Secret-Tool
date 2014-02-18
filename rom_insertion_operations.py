@@ -86,6 +86,7 @@ def get_hex_from_string(string):
     try: return binascii.unhexlify(string)
     except:
         return None
+    
 def get_bytes_string_from_hex_string(string):
     """
     Take a UTF-8 string and convert it to a hex string.
