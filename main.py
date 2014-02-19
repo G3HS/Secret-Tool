@@ -11,6 +11,7 @@ from PokeSpriteTab import *
 from ExpandPokes import *
 from BaseRepointer import *
 from cStringIO import StringIO
+from EmailError import *
 import json, webbrowser
 import traceback
 import urllib2
@@ -115,11 +116,25 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             sys.stderr.close()
             sys.stderr = StringIO()
             ERROR = wx.MessageDialog(None, 
-                                "ERROR:\n\n"+read, 
+                                "ERROR:\n\n"+read+"\n\nWould you like to report this error?", 
                                 'Piped error from sys.stderr: PLEASE REPORT', 
+                                wx.YES_NO | wx.ICON_ERROR)
+            if ERROR.ShowModal() == wx.ID_YES:
+                emailer = EmailError(self, read)
+                if emailer.ShowModal() == wx.ID_OK:
+                    try: emailer.SendCrashReport()
+                    except: 
+                        ERROR = wx.MessageDialog(None, 
+                                "Report could not be sent.", 
+                                'Connection Error', 
                                 wx.OK | wx.ICON_ERROR)
-            ERROR.ShowModal()
-            
+                        ERROR.ShowModal()
+                        return
+                    Finally = wx.MessageDialog(None, 
+                                "Report sent successfully. Thank you and have a great day.\n\nThe exact report that was sent was:\n------------------\n"+emailer.Report+"\n------------------", 
+                                'Report Sent!', 
+                                wx.OK | wx.ICON_INFORMATION)
+                    Finally.ShowModal()
     def set_timer(self):
         TIMER_ID = 10  # pick a number
         self.timer = wx.Timer(self, TIMER_ID)  # message will be sent to the panel

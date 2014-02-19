@@ -1,0 +1,53 @@
+import wx
+import smtplib
+from email.mime.text import MIMEText
+import time
+
+
+class EmailError(wx.Dialog):
+    def __init__(self, parent=None, error=None, *args, **kw):
+        wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle()|wx.STAY_ON_TOP|wx.RESIZE_BORDER|wx.OK|wx.ICON_ERROR)
+        self.Error = error
+        self.Report = error
+        
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        txt = wx.StaticText(self, -1, "You have requested that this crash report be sent.\nCan you please provide any more details?",style=wx.TE_CENTRE)
+        vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        Entry = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_MULTILINE, size=(400,100))
+        Entry.Bind(wx.EVT_TEXT, self.GetInfo)
+        vbox.Add(Entry, 0, wx.ALL, 5)
+        
+        OK = self.CreateButtonSizer(wx.OK)
+        vbox.Add(OK, 0, wx.EXPAND | wx.ALL, 5)
+        
+        txt3 = wx.StaticText(self, -1, "All reports are completely anonymous.\nHave no fear, they only help karatekid552 fix bugs.",style=wx.TE_CENTRE)
+        vbox.Add(txt3, 0, wx.EXPAND | wx.ALL, 15)
+        
+        self.SetSizerAndFit(vbox)
+        self.Fit()
+        self.SetMinSize(self.GetEffectiveMinSize())
+        
+    def GetInfo(self, instance):
+        instance = instance.GetEventObject()
+        self.Report = self.Error+"\n\nMessage:\n"+instance.GetValue()
+    
+    def SendCrashReport(self):
+        #I know this is blatent. Just don't abuse my trusting.
+        address = "G3HSCrashReports@gmail.com"
+        password = "OneToolToRuleThemAll"
+        ErrorTime = time.strftime("%H:%M:%S")+" "+time.strftime("%d/%m/%Y")
+        msg = MIMEText(self.Report)
+        msg["Subject"] = "Error at "+ErrorTime
+        msg["From"] = address
+        msg["To"] = address
+        
+        server = smtplib.SMTP('smtp.gmail.com:587')
+        server.ehlo()
+        server.starttls()
+        server.login(address,password)
+        server.sendmail(address,address,msg.as_string())
+        server.quit()
+        
