@@ -26,9 +26,17 @@ class ComboBox(wx.ComboBox):
             self.ignoreEvtText = False
             return
         currentText = self.GetValue()
+        MarkRange = self.GetMark()
+        currentType = currentText[:MarkRange[0]+1]
         items = self.GetItems()
+        if self.FindString(currentType) != -1:
+            index = self.FindString(currentType)
+            wx.CallAfter(self.SetSelection,index)
+            wx.CallAfter(self.SetInsertionPoint,len(currentType))
+            return
+        
         for item in items:
-            if item.startswith(currentText) or item.startswith(currentText.upper()) or item.startswith(currentText.lower()):
+            if item.startswith(currentText) or item.upper().startswith(currentText.upper()) or item.lower().startswith(currentText.lower()):
                 index = self.FindString(item)
                 wx.CallAfter(self.SetSelection,index)
                 cmd = wx.CommandEvent(wx.EVT_COMBOBOX.evtType[0])

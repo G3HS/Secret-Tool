@@ -338,6 +338,16 @@ class PokemonDataEditor(wx.Panel):
                 self.poke_names = self.get_pokemon_names()
                 global poke_names
                 poke_names = self.poke_names
+                nums = []
+                for x in range(len(self.poke_names)):
+                    nums.append(hex(x).rstrip("L"))
+                self.Nums = wx.ComboBox(self, -1, choices=nums, 
+                                value="0x0",
+                                style=wx.SUNKEN_BORDER|wx.TE_PROCESS_ENTER,
+                                pos=(0, 0), size=(80, -1))
+                self.Nums.Bind(wx.EVT_COMBOBOX, self.on_change_num)
+                self.Nums.Bind(wx.EVT_TEXT_ENTER, self.ChangeNumOnEnter)
+                
                 self.Pokes = wx.ComboBox(self, -1, choices=self.poke_names, 
                                 value=self.poke_names[0],
                                 style=wx.SUNKEN_BORDER|wx.TE_PROCESS_ENTER,
@@ -351,7 +361,7 @@ class PokemonDataEditor(wx.Panel):
                 global poke_num
                 poke_num = 0
                 
-                Change_Name = wx.StaticText(self, -1, "Change Name:")
+                #Change_Name = wx.StaticText(self, -1, "Rename:")
                 self.Poke_Name = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(150,-1))
                 self.Poke_Name.SetValue(self.poke_names[0])
                 
@@ -363,8 +373,9 @@ class PokemonDataEditor(wx.Panel):
                 self.sizer = wx.BoxSizer(wx.VERTICAL)
                 self.sizer_top = wx.BoxSizer(wx.HORIZONTAL)
                 
+                self.sizer_top.Add(self.Nums, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
                 self.sizer_top.Add(self.Pokes, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
-                self.sizer_top.Add(Change_Name, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT, 5)
+                #self.sizer_top.Add(Change_Name, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT, 5)
                 self.sizer_top.Add(self.Poke_Name, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
                 self.sizer_top.Add(savetab, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
                 self.sizer_top.Add(save, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
@@ -390,6 +401,26 @@ class PokemonDataEditor(wx.Panel):
             self.SetSizer(self.sizer)
         self.Layout()
     
+    def on_change_num(self, *args):
+        currentNum = self.Nums.GetSelection()
+        wx.CallAfter(self.Pokes.SetSelection,currentNum)
+        wx.CallAfter(self.on_change_poke)
+    
+    def ChangeNumOnEnter(self, *args):
+        index = self.Nums.FindString(self.Nums.GetValue())
+        if index != -1:
+            self.Nums.SetSelection(index)
+        else:
+            index = self.Nums.FindString(self.Nums.GetValue().upper())
+            if index != -1:
+                self.Nums.SetSelection(index)
+            else:
+                index = self.Nums.FindString(self.Nums.GetValue().lower())
+                if index != -1:
+                    self.Nums.SetSelection(index)
+                else: return
+        self.on_change_num()
+    
     def OnSaveTab(self, event):
         current = self.tabbed_area.GetSelection()
         currentobj = self.tabbed_area.GetPage(current)
@@ -405,9 +436,16 @@ class PokemonDataEditor(wx.Panel):
             self.ignoreEvtText = False
             return
         currentText = self.Pokes.GetValue()
+        MarkRange = self.Pokes.GetMark()
+        currentType = currentText[:MarkRange[0]+1]
         items = self.Pokes.GetItems()
+        if self.Pokes.FindString(currentType) != -1:
+            index = self.Pokes.FindString(currentType)
+            wx.CallAfter(self.Pokes.SetSelection,index)
+            wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentType))
+            return
         for item in items:
-            if item.startswith(currentText) or item.startswith(currentText.upper()) or item.startswith(currentText.lower()):
+            if item.startswith(currentText) or item.upper().startswith(currentText.upper()) or item.lower().startswith(currentText.lower()):
                 index = self.Pokes.FindString(item)
                 wx.CallAfter(self.Pokes.SetSelection,index)
                 wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentText))
@@ -471,7 +509,7 @@ class PokemonDataEditor(wx.Panel):
                 names.append(name[0])
             return names
     
-    def on_change_poke(self, event):
+    def on_change_poke(self, *args):
         global poke_num
         tmp_num = self.Pokes.GetSelection()
         autosavepokeswhenswitching = frame.Config.get("ALL", "autosavepokeswhenswitching")
@@ -479,7 +517,7 @@ class PokemonDataEditor(wx.Panel):
             self.OnSave()
         poke_num = tmp_num
         self.Poke_Name.SetValue(self.poke_names[poke_num])
-        
+        self.Nums.SetSelection(tmp_num)
         self.tabbed_area.reload_tab_data()
         
     def OnSave(self, *args):
@@ -946,8 +984,8 @@ class StatsTab(wx.Panel):
         self.e_ATK.SetValue(str(d["EVS"][2]))
         self.e_DEF.SetValue(str(d["EVS"][1]))
         self.e_SPD.SetValue(str(d["EVS"][0]))
-        self.e_SpATK.SetValue(str(d["EVS"][6]))
-        self.e_SpDEF.SetValue(str(d["EVS"][7]))
+        self.e_SpATK.SetValue(str(d["EVS"][7]))
+        self.e_SpDEF.SetValue(str(d["EVS"][6]))
         
         self.ITEM1.SetSelection(d["ITEM1"])
         self.ITEM2.SetSelection(d["ITEM2"])
@@ -1047,7 +1085,7 @@ class StatsTab(wx.Panel):
                 
             evs_list = [str(self.e_SPD.GetValue()), str(self.e_DEF.GetValue()),
                             str(self.e_ATK.GetValue()), str(self.e_HP.GetValue()),
-                            "0","0",str(self.e_SpATK.GetValue()),str(self.e_SpDEF.GetValue())]
+                            "0","0",str(self.e_SpDEF.GetValue()),str(self.e_SpATK.GetValue())]
             evs_bin = ""
             for i, value in enumerate(evs_list):
                 if i == 4:
@@ -1405,7 +1443,16 @@ class MovesTab(wx.Panel):
     def OnRepoint(self, *args):
         repoint = MOVE_REPOINTER(parent=None)
         repoint.ShowModal()
+        Current = self.MOVESET.GetItemCount()
+        if not self.NEW_NUMBER_OF_MOVES:
+            return
+        if Current > self.NEW_NUMBER_OF_MOVES:
+            while Current > self.NEW_NUMBER_OF_MOVES:
+                self.MOVESET.DeleteItem(Current-1)
+                del self.learned_moves[Current-1]
+                Current = self.MOVESET.GetItemCount()
         self.overwrite = repoint.cb.IsChecked()
+        self.UPDATE_FRACTION()
         
     def OnAdd(self, *args):
         self.UPDATE_FRACTION()
@@ -1977,13 +2024,24 @@ class PokeDexTab(wx.Panel):
         self.Type = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_CENTRE, size=(100, -1))
         DEX_Sizer.Add(self.Type, 0, wx.ALL, 5)
         
-        Entry1_txt = wx.StaticText(DEX, -1,"Dex Entry Part 1:")
-        DEX_Sizer.Add(Entry1_txt, 0, wx.ALL, 5)
+        Entry1HBox = wx.BoxSizer(wx.HORIZONTAL)
+        DEX_Sizer.Add(Entry1HBox, 0, wx.ALL, 0)
+        Entry1_txt = wx.StaticText(DEX, -1,"Dex Entry Page 1:                      ")
+        Entry1HBox.Add(Entry1_txt, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        RepointE1 = Button(DEX, 5, "Repoint")
+        self.Bind(wx.EVT_BUTTON, self.OnRepointE1, id=RepointE1.Id)
+        Entry1HBox.Add(RepointE1, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT, 5)
         self.Entry1 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
         DEX_Sizer.Add(self.Entry1, 0, wx.ALL, 5)
         
-        Entry2_txt = wx.StaticText(DEX, -1,"Dex Entry Part 2:")
-        DEX_Sizer.Add(Entry2_txt, 0, wx.ALL, 5)
+        
+        Entry2HBox = wx.BoxSizer(wx.HORIZONTAL)
+        DEX_Sizer.Add(Entry2HBox, 0, wx.ALL, 0)
+        Entry2_txt = wx.StaticText(DEX, -1,"Dex Entry Page 2:                      ")
+        Entry2HBox.Add(Entry2_txt, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        self.RepointE2 = Button(DEX, 6, "Repoint")
+        self.Bind(wx.EVT_BUTTON, self.OnRepointE2, id=self.RepointE2.Id)
+        Entry2HBox.Add(self.RepointE2, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT, 5)
         self.Entry2 = wx.TextCtrl(DEX, wx.ID_ANY, style=wx.TE_MULTILINE, size=(300,70))
         DEX_Sizer.Add(self.Entry2, 0, wx.ALL, 5)
         
@@ -2107,6 +2165,108 @@ class PokeDexTab(wx.Panel):
         TScaleBoxRight.Add(self.TScale_px, 0, wx.TOP, 5)
         
         self.LoadEverything()
+    
+    def OnRepointE1(self, *args):
+        pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
+        LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
+        DexType = frame.Config.get(frame.rom_id, "DexType")
+                    
+        global poke_num
+        with open(frame.open_rom_name, "r+b") as rom:
+            entry1 = convert_ascii_and_poke(self.Entry1.GetValue(), "to_ascii")
+            repoint = Repointer(frame.open_rom_name, frame, len(entry1), "Entry 1")
+            if repoint.ShowModal() == wx.ID_OK:
+                offset = repoint.offset
+                if offset == None:
+                    ERROR = wx.MessageDialog(None, 
+                                "No offset was selected and nothing has been changed.", 
+                                'Just letting you know...', 
+                                wx.OK | wx.ICON_ERROR)
+                    ERROR.ShowModal()
+                    return
+                POKE = poke_num-1
+                if POKE == -1:
+                    index = 0
+                else:
+                    index = self.NatDexList[POKE]
+                    if index == 0:
+                        return
+                    else: pokedex = pokedex+(index)*LengthofPokedexEntry
+                rom.seek(pokedex+16)
+                #Write new pointer
+                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                hexOffset = make_pointer(hexOffset)
+                hexOffset = unhexlify(hexOffset)
+                rom.write(hexOffset)
+                rom.seek(-4, 1)
+                #Write new image
+                rom.seek(offset)
+                self.entry1_offset = offset
+                self.OriginalEntry1Len = len(entry1)
+                rom.write(entry1+"\xff\xff")
+        
+                rom.seek(0,1)
+                check = rom.read(1)
+                if check == "\xff":
+                    rom.seek(-1,1)
+                    rom.write("\xfe")
+            else:
+                ERROR = wx.MessageDialog(None, 
+                                "You have aborted repoint. Nothing was changed.", 
+                                'Just letting you know...', 
+                                wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+    
+    def OnRepointE2(self, *args):
+        pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
+        LengthofPokedexEntry = int(frame.Config.get(frame.rom_id, "LengthofPokedexEntry"), 0)
+        DexType = frame.Config.get(frame.rom_id, "DexType")
+                    
+        global poke_num
+        with open(frame.open_rom_name, "r+b") as rom:
+            entry2 = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
+            repoint = Repointer(frame.open_rom_name, frame, len(entry2), "Entry 2")
+            if repoint.ShowModal() == wx.ID_OK:
+                    offset = repoint.offset
+                    if offset == None:
+                        ERROR = wx.MessageDialog(None, 
+                                    "No offset was selected and nothing has been changed.", 
+                                    'Just letting you know...', 
+                                    wx.OK | wx.ICON_ERROR)
+                        ERROR.ShowModal()
+                        return
+                    POKE = poke_num-1
+                    if POKE == -1:
+                        index = 0
+                    else:
+                        index = self.NatDexList[POKE]
+                        if index == 0:
+                            return
+                        else: pokedex = pokedex+(index)*LengthofPokedexEntry
+                    rom.seek(pokedex+20)
+                    #Write new pointer
+                    hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                    hexOffset = make_pointer(hexOffset)
+                    hexOffset = unhexlify(hexOffset)
+                    rom.write(hexOffset)
+                    #Write new image
+                    rom.seek(offset)
+                    rom.write(entry2)
+                    self.entry2_offset = offset
+                    self.OriginalEntry2Len = len(entry2)
+                    rom.write(entry1+"\xff\xff")
+            
+                    rom.seek(0,1)
+                    check = rom.read(1)
+                    if check == "\xff":
+                        rom.seek(-1,1)
+                        rom.write("\xfe")
+            else:
+                ERROR = wx.MessageDialog(None, 
+                                "You have aborted repoint. Nothing was changed.", 
+                                'Just letting you know...', 
+                                wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
     
     def OnRepointFeet(self, *args):
         global poke_num
@@ -2424,7 +2584,7 @@ class PokeDexTab(wx.Panel):
                 self.Entry2.SetValue(entry2)
             else: 
                 self.Entry2.Disable()
-            
+                self.RepointE2.Disable()
             if DexType != "E": rom.seek(pokedex+26)
             else: rom.seek(pokedex+22)
             Pscale = get_bytes_string_from_hex_string(rom.read(2))
@@ -2478,10 +2638,10 @@ class PokeDexTab(wx.Panel):
                 tmp = get_bytes_string_from_hex_string(tmp)
                 tmp = int(tmp, 16)
                 self.NatDexList.append(tmp)
-            for n in range(numofnondexpokesafterchimecho):
+            for n in range(numofnondexpokesafterchimecho-1):
                 self.NatDexList.append(0)
-            rom.seek(numofnondexpokesafterchimecho*2,1)
-            for n in range(numberofpokes-(136+251+numofnondexpokesafterchimecho+numofnondexpokesbetweencelebiandtreeko)):
+            rom.seek((numofnondexpokesafterchimecho-1)*2,1)
+            for n in range(numberofpokes-(136+251+numofnondexpokesafterchimecho-1+numofnondexpokesbetweencelebiandtreeko)):
                 tmp = rom.read(2)
                 tmp = tmp[1]+tmp[0]
                 tmp = get_bytes_string_from_hex_string(tmp)
