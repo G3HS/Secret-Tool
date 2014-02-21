@@ -15,8 +15,8 @@ from EmailError import *
 import json, webbrowser
 import traceback
 import urllib2
-version = 'Beta 0.9B.2'
-versionNumber = "v0.9B.2"
+version = 'Beta 0.9C.0'
+versionNumber = "v0.9C.0"
 
 OPEN = 1
 poke_num = 0
@@ -60,12 +60,15 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         helpmenu = wx.Menu()
         # wx.ID_ABOUT and wx.ID_EXIT are standard IDs provided by wxWidgets.
         filemenu.Append(wx.ID_OPEN, "&Open"," Open a ROM.")
-        help_ID = wx.ID_NEW
+        help_ID = wx.NewId()
+        ContactID = wx.NewId()
         helpmenu.Append(help_ID, "&Documentation"," Open documentation. Requires a pdf reader.")
         helpmenu.AppendSeparator()
+        helpmenu.Append(ContactID, "&Contact"," Contact the developer.")
         helpmenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
         self.Bind(wx.EVT_MENU, self.open_file, id=wx.ID_OPEN)
         self.Bind(wx.EVT_MENU, self.Help, id=help_ID)
+        self.Bind(wx.EVT_MENU, self.Contact, id=ContactID)
         self.Bind(wx.EVT_MENU, self.ABOUT, id=wx.ID_ABOUT)
         # Creating the menubar.
         menuBar = wx.MenuBar()
@@ -88,6 +91,23 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.panel.Layout()
         self.Layout()
         self.Show(True)
+    
+    def Contact(self, event):
+        emailer = ContactDialog(self)
+        if emailer.ShowModal() == wx.ID_OK:
+            try: emailer.Send()
+            except: 
+                ERROR = wx.MessageDialog(None, 
+                        "Message could not be sent.", 
+                        'Connection Error', 
+                        wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
+            Finally = wx.MessageDialog(None, 
+                        "Message sent successfully. Thank you and have a great day.\n\nThe exact message that was sent was:\n------------------\n"+emailer.Report+"\n------------------", 
+                        'Message Sent!', 
+                        wx.OK | wx.ICON_INFORMATION)
+            Finally.ShowModal()
     
     def Help(self, event):
         import subprocess
@@ -120,6 +140,17 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 'Piped error from sys.stderr: PLEASE REPORT', 
                                 wx.YES_NO | wx.ICON_ERROR)
             if ERROR.ShowModal() == wx.ID_YES:
+                if "ConfigParser.NoOptionError" in read:
+                    errors = read.split("\n")
+                    sections = errors[-2].split("'")
+                    missingoption = sections[1]
+                    section = sections[3]
+                    Finally = wx.MessageDialog(None, 
+                                textwrap.fill('This message does not need to be sent. The last line of that error simply means that the specified section was not found in the ini. Please correct this. In section "{0}", the option "{1}" is missing. This is required for loading.'.format(section,missingoption),100), 
+                                'I already know this error....', 
+                                wx.OK | wx.ICON_INFORMATION)
+                    Finally.ShowModal()
+                    return
                 emailer = EmailError(self, read)
                 if emailer.ShowModal() == wx.ID_OK:
                     try: emailer.SendCrashReport()
@@ -135,6 +166,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 'Report Sent!', 
                                 wx.OK | wx.ICON_INFORMATION)
                     Finally.ShowModal()
+    
     def set_timer(self):
         TIMER_ID = 10  # pick a number
         self.timer = wx.Timer(self, TIMER_ID)  # message will be sent to the panel
@@ -2061,11 +2093,10 @@ class PokeDexTab(wx.Panel):
         DEX_Sizer.Add(self.Entry2, 0, wx.ALL, 5)
         
         gamecode = frame.Config.get(frame.rom_id, "gamecode")
-        MAIN
         if gamecode == "BPRE":
-            FixNameBug = Button(DEX, 1, "Fix 'Dex Not Displaying Names Properly")
+            self.FixNameBug = Button(DEX, 1, "Fix 'Dex Not Displaying Names Properly")
             self.Bind(wx.EVT_BUTTON, self.OnFixNameBug, id=1)
-            DEX_Sizer.Add(FixNameBug, 1, wx.ALL|wx.ALIGN_TOP, 5)
+            DEX_Sizer.Add(self.FixNameBug, 1, wx.ALL|wx.ALIGN_TOP, 5)
         
         #Footprints
         FootHBox = wx.BoxSizer(wx.HORIZONTAL)
@@ -2344,6 +2375,7 @@ class PokeDexTab(wx.Panel):
             rom.write("\xFF")
             rom.seek(0x105856)
             rom.write("\xFF")
+        self.FixNameBug.Disable()
         
     def save(self):
         pokedex = int(frame.Config.get(frame.rom_id, "pokedex"), 0)
@@ -2627,6 +2659,15 @@ class PokeDexTab(wx.Panel):
             self.GBAPrint = rom.read(32)
             bitmap = ConvertGBAFootprintToNormal(self.GBAPrint)
             self.FootPrint.SetBitmapLabel(bitmap)
+            
+            gamecode = frame.Config.get(frame.rom_id, "gamecode")
+            if gamecode == "BPRE":
+                rom.seek(0x10583C)
+                read1 = rom.read(1)
+                rom.seek(0x105856)
+                read2 = rom.read(1)
+                if read1 == "\xFF" and read2 == "\xFF":
+                    self.FixNameBug.Disable()
             
     def GetNationalDexOrder(self):
         NationalDexOrder = int(frame.Config.get(frame.rom_id, "NationalDexOrder"), 0)

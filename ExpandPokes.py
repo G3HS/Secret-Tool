@@ -386,6 +386,8 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.write("\x00\x00")
             rom.seek(0x96E7A)
             rom.write("\x00\x00\x00\x00")
+            rom.seek(0x970A6)
+            rom.write("\x00\x00")
             rom.seek(0x971DA)
             rom.write("\x00\x00")
             #Step 3: Dealing with dex entries
