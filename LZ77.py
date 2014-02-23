@@ -1,10 +1,10 @@
 from binascii import hexlify, unhexlify
 
-def LZUncompress(rom, offset, returnSize=False):
+def LZUncompress(rom, offset):
     """
     This function will take a byte string like "\xFF\xFF\x34\x48..." and 
-    decompress it LZ77 GBA. It will return a byte string, like the one it
-    accepted.
+    decompress it LZ77 GBA. It will return a byte string (like the one it
+    accepted) and the original compressed size of the image in a tuple: (data, size).
     
     Credits to Jambo51 and Shiny Quagsire for helping me get this right!
     """
@@ -12,7 +12,7 @@ def LZUncompress(rom, offset, returnSize=False):
     rom.seek(offset)
     check = rom.read(1)
     if check != "\x10":
-        return "Not LZ77 Compressed."
+        return (False,False)
     ##Now, the next 3 bytes are little endian and tell the length of the uncompressed data.
     tmp = rom.read(3)
     data_length = tmp[2]+tmp[1]+tmp[0]
@@ -43,24 +43,22 @@ def LZUncompress(rom, offset, returnSize=False):
                 for n in range(r3):
                     try: r5 = uncompressed[-r12]
                     except:
-                        raise "Bad LZ77 compressed data at "+hex(offset)
-                        return None
+                        ERROR = wx.MessageDialog(None, 
+                                "Bad LZ77 compressed data at "+hex(offset), 
+                                'Error loading sprite data...', 
+                                wx.OK | wx.ICON_ERROR)
+                        ERROR.ShowModal()
+                        return (False,False)
                     uncompressed += r5
                     if len(uncompressed) == data_length: 
-                        if returnSize == True:
-                            size = rom.tell()-offset
-                            return (uncompressed, size)
-                        else:
-                            return uncompressed
+                        size = rom.tell()-offset
+                        return (uncompressed, size)
             elif bit == "0":
                 byte = rom.read(1)
                 uncompressed += byte
                 if len(uncompressed) == data_length:
-                    if returnSize == True:
-                        size = rom.tell()-offset
-                        return (uncompressed, size)
-                    else:
-                        return uncompressed
+                    size = rom.tell()-offset
+                    return (uncompressed, size)
     
 def LZCompress(data):
     """

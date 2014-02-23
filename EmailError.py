@@ -7,7 +7,7 @@ import time
 class EmailError(wx.Dialog):
     def __init__(self, parent=None, error=None, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
-        self.SetWindowStyle( self.GetWindowStyle()|wx.STAY_ON_TOP|wx.RESIZE_BORDER|wx.OK|wx.ICON_ERROR)
+        self.SetWindowStyle(self.GetWindowStyle()|wx.STAY_ON_TOP|wx.RESIZE_BORDER|wx.OK|wx.ICON_ERROR)
         self.Error = error
         self.Report = error
         
@@ -38,7 +38,7 @@ class EmailError(wx.Dialog):
         #I know this is blatent. Just don't abuse my trust.
         address = "G3HSCrashReports@gmail.com"
         password = "OneToolToRuleThemAll"
-        ErrorTime = time.strftime("%H:%M:%S")+" "+time.strftime("%d/%m/%Y")
+        ErrorTime = time.strftime("%H:%M:%S")+" "+time.strftime("%m/%d/%Y")
         msg = MIMEText(self.Report)
         msg["Subject"] = "Error at "+ErrorTime
         msg["From"] = address
@@ -93,7 +93,7 @@ class ContactDialog(wx.Dialog):
         #I know this is blatent. Just don't abuse my trust.
         address = "G3HSCrashReports@gmail.com"
         password = "OneToolToRuleThemAll"
-        ErrorTime = time.strftime("%H:%M:%S")+" "+time.strftime("%d/%m/%Y")
+        ErrorTime = time.strftime("%H:%M:%S")+" "+time.strftime("%m/%d/%Y")
         msg = MIMEText(body)
         msg["Subject"] = "Message at "+ErrorTime+" from "+name
         msg["From"] = address

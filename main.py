@@ -15,8 +15,9 @@ from EmailError import *
 import json, webbrowser
 import traceback
 import urllib2
-version = 'Beta 0.9C.0'
-versionNumber = "v0.9C.0"
+
+version = '1.0'
+versionNumber = "v1.0.0"
 
 OPEN = 1
 poke_num = 0
@@ -29,7 +30,7 @@ description = textwrap.fill("POK\xe9MON Gen III Hacking Suite was developed to e
 
 description = encode_per_platform(description)
 
-licence = textwrap.fill("""The MIT License (MIT)""",90)+"\n\n\n"+textwrap.fill("""Copyright (c) 2014 karatekid552""",90)+"\n\n\n"+textwrap.fill("""Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:""",90)+"\n\n"+textwrap.fill("""The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.""",90)+"\n\n"+textwrap.fill("""THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.""",70)
+licence = textwrap.fill("The MIT License (MIT)",90)+"\n\n\n"+textwrap.fill("Copyright (c) 2014 karatekid552",90)+"\n\n\n"+textwrap.fill("Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:",90)+"\n\n"+textwrap.fill("The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.",90)+"\n\n"+textwrap.fill("THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",70)
 
 licence = encode_per_platform(licence)
 
@@ -95,6 +96,13 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
     def Contact(self, event):
         emailer = ContactDialog(self)
         if emailer.ShowModal() == wx.ID_OK:
+            if emailer.Entry.GetValue() == "":
+                ERROR = wx.MessageDialog(None, 
+                        "Message was not be sent because there was no message.", 
+                        'Send Error', 
+                        wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
             try: emailer.Send()
             except: 
                 ERROR = wx.MessageDialog(None, 
@@ -146,7 +154,24 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                     missingoption = sections[1]
                     section = sections[3]
                     Finally = wx.MessageDialog(None, 
-                                textwrap.fill('This message does not need to be sent. The last line of that error simply means that the specified section was not found in the ini. Please correct this. In section "{0}", the option "{1}" is missing. This is required for loading.'.format(section,missingoption),100), 
+                                textwrap.fill('This message does not need to be sent. The last line of that error simply means that the specified option was not found in the ini. Please correct this. In section "{0}", the option "{1}" is missing. This is required for loading.'.format(section,missingoption),100), 
+                                'I already know this error....', 
+                                wx.OK | wx.ICON_INFORMATION)
+                    Finally.ShowModal()
+                    return
+                if "ConfigParser.NoSectionError" in read:
+                    errors = read.split("\n")
+                    sections = errors[-2].split("'")
+                    section = sections[1]
+                    Finally = wx.MessageDialog(None, 
+                                textwrap.fill('This message does not need to be sent. The last line of that error simply means that the specified section was not found in the ini. Please correct this. This program attempted to load data for {0} which was loaded from 0xAC in your rom. It could not find this section.'.format(section),100), 
+                                'I already know this error....', 
+                                wx.OK | wx.ICON_INFORMATION)
+                    Finally.ShowModal()
+                    return
+                if "load_evos_into_list" in read and "IndexError: list index out of range" in read:
+                    Finally = wx.MessageDialog(None, 
+                                textwrap.fill('This message does not need to be sent. This error occurs when a bad offset is loaded from the ini for the evolution table. It attempted to load data for an evolution type that does not exist. Please check your offset in the ini for "evolutiontable".',100), 
                                 'I already know this error....', 
                                 wx.OK | wx.ICON_INFORMATION)
                     Finally.ShowModal()
@@ -303,6 +328,13 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                 game_code_offset = int("AC",16)
                 self.open_rom.seek(game_code_offset)
                 game_code = self.open_rom.read(4)
+                if game_code not in all_possible_rom_ids:
+                    ERROR = wx.MessageDialog(self,
+                            "Section '{0}' was not found in the ini. How am I supposed to load data if I don't have it? This game code was loaded from 0xAC in your rom. Please check it.".format(game_code), 
+                            'Error', 
+                            wx.OK | wx.ICON_ERROR)
+                    ERROR.ShowModal()
+                    return
                 self.open_rom.seek(rom_id_offset)
                 x = "0000"
                 y = None
@@ -1632,7 +1664,11 @@ class MovesTab(wx.Panel):
             try:
                 index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
             except:
-                sys.stderr.write("Moves have not been fully loaded because there was an error. Either not enough moves were loaded due to a bad number in the ini or the learned move data offset is bad/corrupted. The error occurred trying to read move #{0}. The current number of moves is: {1}.\n--------------------------------------------------\n\n".format(move, len(self.MOVES_LIST)-1))
+                ERROR = wx.MessageDialog(None, 
+                                    textwrap.fill("Moves have not been fully loaded because there was an error. Either not enough moves were loaded due to a bad number in the ini or the learned move data offset is bad/corrupted. The error occurred trying to read move #{0}. The current number of moves is: {1}.".format(move, len(self.MOVES_LIST)-1),100), 
+                                    'Error', 
+                                    wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
                 return
             self.MOVESET.SetStringItem(index, 1, str(level))
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
@@ -2356,8 +2392,14 @@ class PokeDexTab(wx.Panel):
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
             if raw.size != (16,16):
-                raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 16x16.")
+                ERROR = wx.MessageDialog(self,
+                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 16x16.", 
+                        'Image Size error', 
+                        wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
             if raw.mode != "1":
+                raw = raw.convert("RGB")
                 converted = raw.convert("1")
             else:
                 if len(raw.getcolors()) > 2:
@@ -2943,7 +2985,14 @@ class MoveTutorTab(wx.Panel):
         self.get_comp_data()
         self.CompList.DeleteAllItems()
         for num, move in enumerate(self.attacks):
-            index = self.CompList.InsertStringItem(sys.maxint, MOVES_LIST[move])
+            try: index = self.CompList.InsertStringItem(sys.maxint, MOVES_LIST[move])
+            except:
+                ERROR = wx.MessageDialog(None, 
+                                    textwrap.fill("Move tutor moves have not been fully loaded because there was an error. Either not enough moves were loaded due to a bad number in the ini or the learned move data offset is bad/corrupted. The error occurred trying to read move #{0}. The current number of moves is: {1}.".format(move, len(MOVES_LIST)-1),100), 
+                                    'Error', 
+                                    wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
             if self.COMP[num] == True:
                 self.CompList.CheckItem(index) 
         self.load_list_box()

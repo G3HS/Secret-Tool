@@ -2,17 +2,17 @@ from LZ77 import *
 from binascii import hexlify, unhexlify
 from ImageFunctions import *
 from rom_insertion_operations import *
-import os,time
+import os,time,textwrap
 from PIL import Image
 from PILandWXPythonConversions import *
 from Button import *
-
 import pygame
 
 class SpriteTab(wx.Panel):
     def __init__(self, parent, rom=None, config=None, rom_id=None):
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.rom_name = rom
+        self.NoLoad = False
         self.lastPath = os.path.dirname(self.rom_name)
         self.config = config
         self.rom_id = rom_id
@@ -120,6 +120,10 @@ class SpriteTab(wx.Panel):
         self.SeperateFrames.SetValue(True)
         PositionPanelSizer.Add(self.SeperateFrames, 0, wx.ALL|wx.ALIGN_CENTER, 5)
         
+        ChangePointers = Button(PositionPanel, 66, "Change Pointers for Images")
+        self.Bind(wx.EVT_BUTTON, self.OnChangePointers, id=66)
+        PositionPanelSizer.Add(ChangePointers, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        
         lnH = wx.StaticLine(PositionPanel, -1, style=wx.LI_HORIZONTAL)
         lnH.SetSize((2,200))
         PositionPanelSizer.Add(lnH, 0, wx.EXPAND | wx.ALL, 20)
@@ -148,6 +152,9 @@ class SpriteTab(wx.Panel):
         GUIEditor = Button(PositionPanel, 55, "Graphic Position Editor")
         self.Bind(wx.EVT_BUTTON, self.PositionEditor, id=55)
         PositionPanelSizer.Add(GUIEditor, 0, wx.EXPAND | wx.ALL, 2)
+        
+        GUIEditor_txt = wx.StaticText(PositionPanel, -1,"The above button opens and closes\nthe editor. This is a workaround\nuntil I find a cleaner solution.",style=wx.TE_CENTRE)
+        PositionPanelSizer.Add(GUIEditor_txt, 0, wx.EXPAND | wx.ALL, 2)
         
         IconPanel = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         IconPanelSizer = wx.BoxSizer(wx.VERTICAL)
@@ -202,6 +209,46 @@ class SpriteTab(wx.Panel):
         PositionPanel.Layout()
         IconPanel.Layout()
         self.Layout()
+    
+    def OnChangePointers(self, instance):
+        Repointer = ChangeSpritePointers(self)
+        Repointer.FS.SetValue(hex(self.FrontSpritePointer))
+        Repointer.BS.SetValue(hex(self.BackSpritePointer))
+        Repointer.NP.SetValue(hex(self.FrontPalettePointer))
+        Repointer.SP.SetValue(hex(self.ShinyPalettePointer))
+            
+        if Repointer.ShowModal() == wx.ID_OK:
+            FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
+            BackSpriteTable = int(self.config.get(self.rom_id, "BackSpriteTable"), 0)
+            FrontPaletteTable = int(self.config.get(self.rom_id, "FrontPaletteTable"), 0)
+            ShinyPaletteTable = int(self.config.get(self.rom_id, "ShinyPaletteTable"), 0)
+            bytes_per_entry = 8
+            with open(self.rom_name, "r+b") as rom:
+                rom.seek(0)
+                backup = rom.read()
+                try:
+                    rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
+                    tmp = MakeByteStringPointer(int(Repointer.FS.GetValue(), 0))
+                    rom.write(tmp)
+                    rom.seek(BackSpriteTable+(self.poke_num)*bytes_per_entry)
+                    tmp = MakeByteStringPointer(int(Repointer.BS.GetValue(), 0))
+                    rom.write(tmp)
+                    rom.seek(FrontPaletteTable+(self.poke_num)*bytes_per_entry)
+                    tmp = MakeByteStringPointer(int(Repointer.NP.GetValue(), 0))
+                    rom.write(tmp)
+                    rom.seek(ShinyPaletteTable+(self.poke_num)*bytes_per_entry)
+                    tmp = MakeByteStringPointer(int(Repointer.SP.GetValue(), 0))
+                    rom.write(tmp)
+                except:
+                    ERROR = wx.MessageDialog(None, 
+                            "The pointer change has failed. Nothing was changed.", 
+                            'Repoint failed.', 
+                            wx.OK | wx.ICON_ERROR)
+                    ERROR.ShowModal()
+                    rom.seek(0)
+                    rom.write(backup)
+                    return
+            self.load_everything(self.poke_num)
         
     def RepointIcon(self, instance):
         with open(self.rom_name, "r+b") as rom:
@@ -236,6 +283,8 @@ class SpriteTab(wx.Panel):
                 ERROR.ShowModal()
             
     def save(self):
+        if self.NoLoad:
+            return
         if not self.SeperateFrames.IsChecked():
             self.SaveTogether()
             return
@@ -579,8 +628,14 @@ class SpriteTab(wx.Panel):
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
             if raw.size != (32,64):
-                raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 32x64.")
+                ERROR = wx.MessageDialog(self,
+                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 32x64.", 
+                        'Image Size error', 
+                        wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
             if raw.mode != "P":
+                raw = raw.convert("RGB")
                 converted = raw.convert("P", palette=Image.ADAPTIVE, colors=16)
             else:
                 if len(raw.getcolors()) > 16:
@@ -686,8 +741,14 @@ class SpriteTab(wx.Panel):
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
             if raw.size != (64,64):
-                raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 64x64.")
+                ERROR = wx.MessageDialog(self,
+                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 64x64.", 
+                        'Image Size error', 
+                        wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
             if raw.mode != "P":
+                raw = raw.convert("RGB")
                 converted = raw.convert("P", palette=Image.ADAPTIVE, colors=16)
             else:
                 if len(raw.getcolors()) > 16:
@@ -735,10 +796,20 @@ class SpriteTab(wx.Panel):
             raw = Image.open(filename)
             if self.GBABackSpriteFrames[frame] == False:
                 if raw.size != (64,64):
-                    raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 64x64.")
+                    ERROR = wx.MessageDialog(self,
+                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 64x64.", 
+                        'Image Size error', 
+                        wx.OK | wx.ICON_ERROR)
+                    ERROR.ShowModal()
+                    return
             else:
                 if raw.size != (256,64):
-                    raise AttributeError("Image is "+raw.size[0]+"x"+raw.size[1]+". It must be 256x64.")
+                    ERROR = wx.MessageDialog(self,
+                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 256x64.", 
+                        'Image Size error', 
+                        wx.OK | wx.ICON_ERROR)
+                    ERROR.ShowModal()
+                    return
             if self.GBABackSpriteFrames[frame] != False:
                 front = raw.copy().crop((0, 0, 64, 64))
                 shiny = raw.copy().crop((64, 0, 128, 64))
@@ -747,12 +818,14 @@ class SpriteTab(wx.Panel):
                 frontback.paste(front, (0,0))
                 frontback.paste(back, (64,0))
                 if frontback.mode != "P":
+                    frontback = frontback.convert("RGB")
                     frontback = frontback.convert("P", palette=Image.ADAPTIVE, colors=16)
                 else:
                     if len(frontback.getcolors()) > 16:
                         tmp = frontback.convert("RGB")
                         frontback = tmp.convert("P", palette=Image.ADAPTIVE, colors=16)
                 if shiny.mode != "P":
+                    shiny = shiny.convert("RGB")
                     shiny = shiny.convert("P", palette=Image.ADAPTIVE, colors=16)
                 else:
                     if len(shiny.getcolors()) > 16:
@@ -786,6 +859,7 @@ class SpriteTab(wx.Panel):
                 self.Changes["front"]=True
                 
     def load_everything(self, poke_num):
+        self.NoLoad = False
         self.Frames.SetValue(0)
         self.Changes = {"front":False, "back":False, "normal":False, "shiny":False}
         self.poke_num = poke_num
@@ -814,10 +888,22 @@ class SpriteTab(wx.Panel):
             rom.seek(ShinyPaletteTable+(poke_num)*bytes_per_entry)
             self.ShinyPalettePointer = read_pointer(rom.read(4))
             
-            self.GBAFrontSprite, self.OrgSizes["front"] = LZUncompress(rom, self.FrontSpritePointer, True)
-            self.GBABackSprite, self.OrgSizes["back"] = LZUncompress(rom, self.BackSpritePointer, True)
-            FrontPalette, self.OrgSizes["normal"] = LZUncompress(rom, self.FrontPalettePointer, True)
-            ShinyPalette, self.OrgSizes["shiny"] = LZUncompress(rom, self.ShinyPalettePointer, True)
+            self.GBAFrontSprite, self.OrgSizes["front"] = LZUncompress(rom, self.FrontSpritePointer)
+            if self.GBAFrontSprite == False or self.OrgSizes["front"] == False:
+                self.imageLoadingError()
+                return
+            self.GBABackSprite, self.OrgSizes["back"] = LZUncompress(rom, self.BackSpritePointer)
+            if self.GBABackSprite == False or self.OrgSizes["back"] == False:
+                self.imageLoadingError()
+                return
+            FrontPalette, self.OrgSizes["normal"] = LZUncompress(rom, self.FrontPalettePointer)
+            if FrontPalette == False or self.OrgSizes["normal"] == False:
+                self.imageLoadingError()
+                return
+            ShinyPalette, self.OrgSizes["shiny"] = LZUncompress(rom, self.ShinyPalettePointer)
+            if ShinyPalette == False or self.OrgSizes["shiny"] == False:
+                self.imageLoadingError()
+                return
             
             self.GBAFrontSpriteFrames = []
             self.GBABackSpriteFrames = []
@@ -902,7 +988,15 @@ class SpriteTab(wx.Panel):
         self.IconPalChoice.Clear()
         self.IconPalChoice.AppendItems(nums) 
         self.IconPalChoice.SetSelection(self.IconPalNum)
-            
+    
+    def imageLoadingError(self):
+        ERROR = wx.MessageDialog(None, 
+                "Images failed to decompress. Aborting sprite load.", 
+                'Error loading sprite data...', 
+                wx.OK | wx.ICON_ERROR)
+        ERROR.ShowModal()
+        self.NoLoad = True
+    
     def OnIconTimer1(self, event):
         self.SetIconTimer(2)
         self.AniIcon.SetBitmapLabel(self.IconTop)
@@ -1175,3 +1269,50 @@ class SpriteRepointer(wx.Dialog):
                 self.OFFSETS.Append(hex(offset))
                 x = (1,True)
                 start = offset+len(search)
+
+                
+class ChangeSpritePointers(wx.Dialog):
+    def __init__(self, obj, *args, **kw):
+        wx.Dialog.__init__(self, parent=obj, id=wx.ID_ANY)
+        self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
+        
+        self.InitUI()
+        self.SetTitle("Change Sprite Pointers")
+        
+    def InitUI(self):
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        
+        txt = wx.StaticText(self, -1, textwrap.fill("Here you can change the pointers for the sprites and palettes. When you click 'OK', the changes will be applied and the sprite tab will be reloaded. You can use hex (prefix with '0x') or decimal (no prefix) or binary (if it pleases you:P, use a '0b' prefix).",90),style=wx.TE_CENTRE)
+        vbox.Add(txt, 0, wx.EXPAND | wx.ALL, 5)
+        
+        GRID = wx.GridBagSizer(4,2)
+        vbox.Add(GRID, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
+        
+        FS_txt = wx.StaticText(self, -1, "Front Sprite:",style=wx.TE_CENTRE)
+        GRID.Add(FS_txt, (0,0), wx.DefaultSpan,  wx.ALL, 5)
+        self.FS = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
+        GRID.Add(self.FS, (0,1), wx.DefaultSpan,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        BS_txt = wx.StaticText(self, -1, "Back Sprite:",style=wx.TE_CENTRE)
+        GRID.Add(BS_txt, (1,0), wx.DefaultSpan,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        self.BS = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
+        GRID.Add(self.BS, (1,1), wx.DefaultSpan,  wx.ALL, 5)
+        
+        NP_txt = wx.StaticText(self, -1, "Normal Palette:",style=wx.TE_CENTRE)
+        GRID.Add(NP_txt, (2,0), wx.DefaultSpan,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        self.NP = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
+        GRID.Add(self.NP, (2,1), wx.DefaultSpan,  wx.ALL, 5)
+        
+        SP_txt = wx.StaticText(self, -1, "Shiny Palette:",style=wx.TE_CENTRE)
+        GRID.Add(SP_txt, (3,0), wx.DefaultSpan,  wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        self.SP = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
+        GRID.Add(self.SP, (3,1), wx.DefaultSpan,  wx.ALL, 5)
+        
+        OK = self.CreateButtonSizer(wx.OK)
+        vbox.Add(OK, 0, wx.EXPAND | wx.ALL, 5)
+        
+        self.SetSizerAndFit(vbox)
+        self.Fit()
+        self.SetMinSize(self.GetEffectiveMinSize())
+        
+        
