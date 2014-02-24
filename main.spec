@@ -1,17 +1,17 @@
 # -*- mode: python -*-
-a = Analysis(['Z:\\media\\Storage\\Secret-Tool\\main.py'],
-             pathex=['Z:\\media\\Storage\\Secret-Tool'])
-             
+a = Analysis(['main.py'],
+             pathex=['/media/Storage/Secret-Tool'],
+             hiddenimports=[],
+             hookspath=None,
+             runtime_hooks=None)
 pyz = PYZ(a.pure)
-exe = EXE( pyz,
+exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name=os.path.join('dist', 'Gen_III_Suite.exe'),
+          name='main',
           debug=False,
-          strip=False,
+          strip=None,
           upx=True,
-          console=False)
-app = BUNDLE(exe,
-             name=os.path.join('dist', 'main.exe.app'))
+          console=False )

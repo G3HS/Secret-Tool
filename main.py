@@ -16,8 +16,8 @@ import json, webbrowser
 import traceback
 import urllib2
 
-version = '1.0'
-versionNumber = "v1.0.0"
+version = 'v1.0.1 ~ Codename: "Fellowship of the Hack"'
+versionNumber = "v1.0.1"
 
 OPEN = 1
 poke_num = 0
@@ -1910,7 +1910,7 @@ class EvoTab(wx.Panel):
             if method == -1:
                 method = 0
             arg = self.arg.GetSelection()
-            if method == 4 or 8 <= method <=14:
+            if self.evomethodsproperties[method] == "Level":
                 arg += 1
             elif arg == -1:
                 arg = 0
@@ -1969,7 +1969,7 @@ class EvoTab(wx.Panel):
             if method == -1:
                 method = 0
             arg = self.arg.GetSelection()
-            if method == 4 or 8 <= method <=14:
+            if self.evomethodsproperties[method] == "Level":
                 arg += 1
             elif arg == -1:
                 arg = 0
@@ -1987,9 +1987,9 @@ class EvoTab(wx.Panel):
         
         self.method.SetSelection(self.evos[sel][0])
         type = self.change_method(self.method)
-        if type == 4 or 8 <= type <=14:
+        if self.evomethodsproperties[type] == "Level":
             self.arg.SetSelection(self.evos[sel][1]-1)
-        elif type == 6 or type == 7:
+        elif self.evomethodsproperties[type] == "Item":
             self.arg.SetSelection(self.evos[sel][1])
         else:
             self.arg.SetSelection(0)
@@ -1997,7 +1997,7 @@ class EvoTab(wx.Panel):
         
     def change_method(self, instance):
         method = instance.GetSelection()
-        if method == 4 or 8 <= method <=14: #Level type
+        if self.evomethodsproperties[method] == "Level": #Level type
             if self.arg_type != "Level":
                 nums = []
                 for n in range(101):
@@ -2007,14 +2007,16 @@ class EvoTab(wx.Panel):
                 self.arg.AppendItems(nums) 
                 self.arg_txt.SetLabel("Level:")
                 self.arg_type = "Level"
+                self.arg.SetSelection(0)
             
-        elif method == 6 or method == 7: #Item type
+        elif self.evomethodsproperties[method] == "Item": #Item type
             if self.arg_type != "Item":
                 global ITEM_NAMES
                 self.arg.Clear()
                 self.arg.AppendItems(ITEM_NAMES) 
                 self.arg_txt.SetLabel("Item:")
                 self.arg_type = "Item"
+                self.arg.SetSelection(0)
         else: #None type
             self.arg.Clear()
             self.arg.AppendItems(["-None needed-"]) 
@@ -2027,6 +2029,7 @@ class EvoTab(wx.Panel):
         EvolutionsPerPoke = int(frame.Config.get(frame.rom_id, "EvolutionsPerPoke"), 0)
         LengthOfOneEntry = int(frame.Config.get(frame.rom_id, "LengthOfOneEntry"), 0)
         EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
+        self.evomethodsproperties = frame.Config.get(frame.rom_id, "evomethodsproperties").split(",")
         global poke_num
         self.offset = EvolutionTable+(poke_num)*(LengthOfOneEntry*EvolutionsPerPoke)
         with open(frame.open_rom_name, "r+b") as rom:
@@ -2053,9 +2056,9 @@ class EvoTab(wx.Panel):
         self.evo_list.DeleteAllItems()
         for opts in self.evos:
             index = self.evo_list.InsertStringItem(sys.maxint, EvolutionMethods[opts[0]])
-            if opts[0] == 4 or 8 <= opts[0] <=14:
+            if self.evomethodsproperties[opts[0]] == "Level":
                 need = "Level: "+str(opts[1])
-            elif opts[0] == 6 or opts[0] == 7:
+            elif self.evomethodsproperties[opts[0]] == "Item":
                 need = "Item: "+ITEM_NAMES[opts[1]]
             else:
                 need = "-"

@@ -10,7 +10,7 @@ class Button(wx.Button):
 
 class ComboBox(wx.ComboBox):
     def __init__(self, parent, id=-1, value="", pos=wx.DefaultPosition, size=wx.DefaultSize, choices=[], style=0, validator=wx.DefaultValidator, name="ComboBox"):
-        wx.ComboBox.__init__(self, parent, id, value, pos, size, choices, style|wx.CB_DROPDOWN|wx.TE_PROCESS_ENTER, validator, name) 
+        wx.ComboBox.__init__(self, parent, id, value, pos, size, choices, style|wx.CB_DROPDOWN|wx.TE_PROCESS_ENTER|wx.TAB_TRAVERSAL, validator, name) 
         self.Bind(wx.EVT_CHAR, self.EvtChar, self)
         self.Bind(wx.EVT_TEXT, self.SearchWhileTyping, self)
         self.Bind(wx.EVT_TEXT_ENTER, self.SearchOnHitEnter, self)

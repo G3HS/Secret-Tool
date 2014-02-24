@@ -1,4 +1,5 @@
 from binascii import hexlify, unhexlify
+import wx
 
 def LZUncompress(rom, offset):
     """
