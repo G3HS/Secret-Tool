@@ -16,8 +16,8 @@ import json, webbrowser
 import traceback
 import urllib2
 
-version = 'v1.0.1 ~ Codename: "Fellowship of the Hack"'
-versionNumber = "v1.0.1"
+version = 'v1.0.3 ~ Codename: "Fellowship of the Hack"'
+versionNumber = "v1.0.3"
 
 OPEN = 1
 poke_num = 0
@@ -1663,6 +1663,7 @@ class MovesTab(wx.Panel):
         for move, level in self.learned_moves:
             try:
                 index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[move])
+                self.MOVESET.SetStringItem(index, 1, str(level))
             except:
                 ERROR = wx.MessageDialog(None, 
                                     textwrap.fill("Moves have not been fully loaded because there was an error. Either not enough moves were loaded due to a bad number in the ini or the learned move data offset is bad/corrupted. The error occurred trying to read move #{0}. The current number of moves is: {1}.".format(move, len(self.MOVES_LIST)-1),100), 
@@ -1670,7 +1671,6 @@ class MovesTab(wx.Panel):
                                     wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
                 return
-            self.MOVESET.SetStringItem(index, 1, str(level))
         self.LEARNED_OFFSET.SetLabel(hex(self.learned_moves_offset))
         
         self.UPDATE_FRACTION()
@@ -1846,7 +1846,7 @@ class EvoTab(wx.Panel):
         editor_area_a.Add(method_txt, 0, wx.EXPAND | wx.ALL, 5)
         
         EvolutionMethods = frame.Config.get(frame.rom_id, "EvolutionMethods").split(",")
-        self.method = ComboBox(EVO, -1, choices=EvolutionMethods,
+        self.method = wx.ComboBox(EVO, -1, choices=EvolutionMethods,
                                             style=wx.SUNKEN_BORDER, size=(100, -1))
         self.method.Bind(wx.EVT_COMBOBOX, self.change_method)
         editor_area_a.Add(self.method, 0, wx.EXPAND | wx.ALL, 5)
@@ -2003,24 +2003,24 @@ class EvoTab(wx.Panel):
                 for n in range(101):
                     if n != 0:
                         nums.append(str(n))
-                self.arg.Clear()
-                self.arg.AppendItems(nums) 
-                self.arg_txt.SetLabel("Level:")
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,nums)
+                wx.CallAfter(self.arg_txt.SetLabel,"Level:")
                 self.arg_type = "Level"
-                self.arg.SetSelection(0)
+                #wx.CallAfter(self.arg.SetSelection,0)
             
         elif self.evomethodsproperties[method] == "Item": #Item type
             if self.arg_type != "Item":
                 global ITEM_NAMES
-                self.arg.Clear()
-                self.arg.AppendItems(ITEM_NAMES) 
-                self.arg_txt.SetLabel("Item:")
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,ITEM_NAMES)
+                wx.CallAfter(self.arg_txt.SetLabel,"Item:")
                 self.arg_type = "Item"
-                self.arg.SetSelection(0)
+                #wx.CallAfter(self.arg.SetSelection,0)
         else: #None type
-            self.arg.Clear()
-            self.arg.AppendItems(["-None needed-"]) 
-            self.arg_txt.SetLabel("Argument:")
+            wx.CallAfter(self.arg.Clear)
+            wx.CallAfter(self.arg.AppendItems,["-None needed-"])
+            wx.CallAfter(self.arg_txt.SetLabel,"Argument:")
             self.arg_type = None
         return method
         
@@ -3182,7 +3182,7 @@ class EggMoveTab(wx.Panel):
                         NewEggOffset = Offset
                         with open(frame.open_rom_name, "r+b") as rom:
                             rom.seek(eggmovelimit)
-                            writeLength = (length/2-3)
+                            writeLength = int((length/2-3))
                             writeLength = hex(writeLength).lstrip("0x").rstrip("L").zfill(8)
                             writeLength = get_hex_from_string(writeLength)[::-1]
                             rom.write(writeLength)
