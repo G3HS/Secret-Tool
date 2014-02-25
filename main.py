@@ -16,8 +16,8 @@ import json, webbrowser
 import traceback
 import urllib2
 
-version = 'v1.0.3 ~ Codename: "Fellowship of the Hack"'
-versionNumber = "v1.0.3"
+version = 'v1.0.4 ~ Codename: "Fellowship of the Hack"'
+versionNumber = "v1.0.4"
 
 OPEN = 1
 poke_num = 0
@@ -3973,7 +3973,18 @@ def OnUpdateTimer(instance):
     if UpdateDialog.ShowModal() == wx.ID_YES:
         webbrowser.open("https://github.com/thekaratekid552/Secret-Tool/releases")
         frame.Destroy()
-    
+
+def OnMessageTimer(instance):
+    global Msgtimer
+    Msgtimer.Stop()
+    del Msgtimer
+    global MSG
+    MSG = textwrap.fill(MSG,110)
+    Message = "A message from karatekid552:\n\n"+MSG
+    UpdateDialog = wx.MessageDialog(None,Message, 
+                                                        "Message", wx.OK)
+    UpdateDialog.ShowModal()
+        
 app = wx.App(False)
 name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)
@@ -4015,6 +4026,17 @@ try:
                     timer.Start(500)
                     wx.EVT_TIMER(frame, 99, OnUpdateTimer)
 except: pass
+#If I need to send everyone a message, this is the place.
+try:
+    r = urllib2.Request("https://raw.github.com/thekaratekid552/Secret-Tool/master/Message.txt")
+    MSGresponse = urllib2.urlopen(r)
+    MSG = MSGresponse.read()
+    if MSG != "":
+        Msgtimer = wx.Timer(frame, 98)
+        Msgtimer.Start(500)
+        wx.EVT_TIMER(frame, 98, OnMessageTimer)
+except: pass
+
 
 sys.stderr = StringIO()
 frame.set_timer()
