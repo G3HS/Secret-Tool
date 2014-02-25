@@ -118,15 +118,23 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             Finally.ShowModal()
     
     def Help(self, event):
-        import subprocess
-        docs = os.path.join(os.getcwd(),"G3HS_Documentation.pdf")
-        if sys.platform == 'linux2':
-            subprocess.call(["xdg-open", docs])
-        elif sys.platform.startswith('darwin'):
-            subprocess.call(["open", docs])
-        else:
-            os.startfile(docs)
-    
+        try:
+            import subprocess
+            docs = os.path.join(os.getcwd(),"G3HS_Documentation.pdf")
+            if sys.platform == 'linux2':
+                subprocess.call(["xdg-open", docs])
+            elif sys.platform.startswith('darwin'):
+                subprocess.call(["open", docs])
+            else:
+                os.startfile(docs)
+        except:
+            ERROR = wx.MessageDialog(self, 
+                            "G3HS_Documentation.pdf could not be opened in {0}. Please make sure the file exists.".format(os.getcwd()), 
+                            'Documentation Error', 
+                            wx.OK | wx.ICON_ERROR)
+            ERROR.ShowModal()
+        
+        
     def OnDropFiles(self, x, y, filenames):
         filename = filenames[0]
         self.open_rom = open(filename, "r+b")
@@ -172,6 +180,13 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                 if "load_evos_into_list" in read and "IndexError: list index out of range" in read:
                     Finally = wx.MessageDialog(None, 
                                 textwrap.fill('This message does not need to be sent. This error occurs when a bad offset is loaded from the ini for the evolution table. It attempted to load data for an evolution type that does not exist. Please check your offset in the ini for "evolutiontable".',100), 
+                                'I already know this error....', 
+                                wx.OK | wx.ICON_INFORMATION)
+                    Finally.ShowModal()
+                    return
+                if "if int(last_read[1],16)%2 == 0:" in read and "get_move_data" in read:
+                    Finally = wx.MessageDialog(None, 
+                                textwrap.fill('This message does not need to be sent. The only time this error happens is when a pointer for learned move data is not in the rom. Most commonly, this is solely due to the pointer being FFFFFF caused by repointing the move table and filling it with FF. So, in basic terms, you have the wrong learned moves offset in the ini. (Maybe you loaded this rom with the ini for an expanded rom or vice versa?)',110), 
                                 'I already know this error....', 
                                 wx.OK | wx.ICON_INFORMATION)
                     Finally.ShowModal()
@@ -1466,6 +1481,9 @@ class MovesTab(wx.Panel):
             if learned_moves != None: rom.write(learned_moves)
             else:
                 sys.stderr.write("There was an issue saving learned moves. They have been skipped. Please try again. If this continues, restart the program.")
+                sys.stderr.write("\n\nMove data dump:\n")
+                for attack, level in self.learned_moves:
+                    sys.stderr.write("#"+str(attack)+":"+self.MOVES_LIST[attack]+":"+str(level)+", ")
                 return
             learnedmoveslength = int(frame.Config.get(frame.rom_id, "learnedmoveslength"), 0)
             
@@ -1642,6 +1660,8 @@ class MovesTab(wx.Panel):
                 if attack >= 256:
                     lvl += 1
                     atk = atk-256
+                if atk > 255:
+                    continue
                 set = hex(atk)[2:].zfill(2)+hex(lvl)[2:].zfill(2)
                 string += set
         else:

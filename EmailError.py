@@ -2,14 +2,17 @@ import wx
 import smtplib
 from email.mime.text import MIMEText
 import time
+import sys, os
+import platform
 
 
 class EmailError(wx.Dialog):
     def __init__(self, parent=None, error=None, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.SetWindowStyle(self.GetWindowStyle()|wx.STAY_ON_TOP|wx.RESIZE_BORDER|wx.OK|wx.ICON_ERROR)
-        self.Error = error
-        self.Report = error
+        system_info = "\n\nSystem Info:\n{0}\n{1}".format(sys.platform, platform.platform())
+        self.Error = error+system_info
+        self.Report = self.Error
         
         vbox = wx.BoxSizer(wx.VERTICAL)
         
@@ -23,7 +26,7 @@ class EmailError(wx.Dialog):
         OK = self.CreateButtonSizer(wx.OK)
         vbox.Add(OK, 0, wx.EXPAND | wx.ALL, 5)
         
-        txt3 = wx.StaticText(self, -1, "All reports are completely anonymous.\nHave no fear, they only help karatekid552 fix bugs.",style=wx.TE_CENTRE)
+        txt3 = wx.StaticText(self, -1, "All reports are completely anonymous.\nHave no fear, they only help karatekid552 fix bugs.\nYour platform and OS version will be sent too.",style=wx.TE_CENTRE)
         vbox.Add(txt3, 0, wx.EXPAND | wx.ALL, 15)
         
         self.SetSizerAndFit(vbox)

@@ -904,7 +904,16 @@ class SpriteTab(wx.Panel):
             if ShinyPalette == False or self.OrgSizes["shiny"] == False:
                 self.imageLoadingError()
                 return
-            
+            ImageSize = int((64*64)/2)
+            BlankImage = "\x00"*ImageSize
+            BlankPalette = "\x00\x00"*16
+            #Prevent fill if the images are blank.
+            self.cb.SetValue(True)
+            if self.GBAFrontSprite == BlankImage or self.GBABackSprite == BlankImage:
+                self.cb.SetValue(False)
+            if FrontPalette == BlankPalette or ShinyPalette == BlankPalette:
+                self.cb.SetValue(False)
+                
             self.GBAFrontSpriteFrames = []
             self.GBABackSpriteFrames = []
             
