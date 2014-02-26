@@ -10,7 +10,9 @@ from Encoding import *
 def encode_per_platform(string):
     p = platform.system()
     if p == "Windows": out = string #.decode('Latin-1').encode('utf-8')
-    else: out = string.decode('Latin-1').encode('utf-8')
+    else: 
+        try: out = string.decode('Latin-1').encode('utf-8')
+        except: out = string
     return out
 
 def deal_with_16bit_signed_hex(hex_value, method="forward"):
@@ -158,6 +160,9 @@ def convert_ascii_and_poke(string, mode):
     chart = ENCODING
     
     if mode == "to_ascii":
+        #Get rid of bad characters:
+        string = string.replace(u'\u2019', '[>"]').replace(u'\u2018', '["<]')
+        
         string = string.encode('Latin-1')
         old_chart = chart
         chart = {}
@@ -195,7 +200,6 @@ def convert_ascii_and_poke(string, mode):
         p = platform.system()
         if p == "Windows": string = string.decode('utf-8').encode('Latin-1')
         else: string = string.decode('Latin-1').encode('Latin-1')
-        
     else: return None
     return string
     

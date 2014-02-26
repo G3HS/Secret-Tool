@@ -184,7 +184,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 wx.OK | wx.ICON_INFORMATION)
                     Finally.ShowModal()
                     return
-                if "if int(last_read[1],16)%2 == 0:" in read and "get_move_data" in read:
+                if "IndexError: list index out of range" in read and "get_move_data" in read:
                     Finally = wx.MessageDialog(None, 
                                 textwrap.fill('This message does not need to be sent. The only time this error happens is when a pointer for learned move data is not in the rom. Most commonly, this is solely due to the pointer being FFFFFF caused by repointing the move table and filling it with FF. So, in basic terms, you have the wrong learned moves offset in the ini. (Maybe you loaded this rom with the ini for an expanded rom or vice versa?)',110), 
                                 'I already know this error....', 
@@ -251,7 +251,6 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         info.SetArtists(["MrDollSteak"])
         info.SetWebSite('http://thekaratekid552.github.io/Secret-Tool/')
         info.SetLicence(licence)
-        #info.AddDocWriter('')
 
         wx.AboutBox(info)
         
