@@ -1,2 +1,2 @@
-/home/roger/Documents/Pokemon Fire Red_test.gba
-Linux
+D:\Secret-Tool\Pokemon Fire Red_test.gba
+Windows

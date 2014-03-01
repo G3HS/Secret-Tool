@@ -16,8 +16,8 @@ import json, webbrowser
 import traceback
 import urllib2
 
-version = 'v1.0.4 ~ Codename: "Fellowship of the Hack"'
-versionNumber = "v1.0.4"
+version = 'v1.1.0 ~ Codename: "Fellowship of the Hack"'
+versionNumber = "v1.1.0"
 
 OPEN = 1
 poke_num = 0
@@ -43,7 +43,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.open_rom = None
         self.open_rom_name = None
         self.rom_id = None
-        self.path = module_path()
+        #self.path = module_path()
         self.open_rom_ini = {}
         
         self.timer = None
@@ -87,7 +87,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.SetIcon(icon)
         
         self.Config = ConfigParser.ConfigParser()
-        ini = os.path.join(self.path,"PokeRoms.ini")
+        ini = os.path.join("PokeRoms.ini") #self.path,
         self.Config.read(ini)
         self.panel.Layout()
         self.Layout()
@@ -269,6 +269,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                 directory = os.getcwd()
         open_dialog = wx.FileDialog(None, message="Open a rom...", 
                                     defaultDir=directory, 
+                                    wildcard = "Rom files (*.gba,*.bin)|*.gba;*.bin|All files (*.*)|*.*",
                                     style=wx.FD_OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
@@ -284,7 +285,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         #Here we are going to check if the game has been opened before.
         #If yes, load it's custom ini. If no, create its ini.
         self.Config = ConfigParser.ConfigParser()
-        ini = os.path.join(self.path,"PokeRoms.ini")
+        ini = os.path.join("PokeRoms.ini") #self.path,
         self.Config.read(ini)
         if str(self.Config.get("ALL", "JustUseStandardIni")) == "True":
             game_code_offset =  int("AC",16)
@@ -337,7 +338,6 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                             self.work_with_ini()
                         else:
                             ERROR.Destroy()
-                            self.Destroy()
             else:
                 game_code_offset = int("AC",16)
                 self.open_rom.seek(game_code_offset)
@@ -530,7 +530,8 @@ class PokemonDataEditor(wx.Panel):
             return
         currentText = self.Pokes.GetValue()
         MarkRange = self.Pokes.GetMark()
-        currentType = currentText[:MarkRange[0]+1]
+        if MarkRange == (0,0): currentType = currentText
+        else: currentType = currentText[:MarkRange[0]+1]
         items = self.Pokes.GetItems()
         if self.Pokes.FindString(currentType) != -1:
             index = self.Pokes.FindString(currentType)
@@ -559,6 +560,7 @@ class PokemonDataEditor(wx.Panel):
                 index = self.Pokes.FindString(self.Pokes.GetValue().lower())
                 if index != -1:
                     self.Pokes.SetSelection(index)
+                else: return
         cmd = wx.CommandEvent(wx.EVT_COMBOBOX.evtType[0])
         cmd.SetEventObject(self.Pokes) 
         cmd.SetId(self.Pokes.GetId())
@@ -2406,9 +2408,10 @@ class PokeDexTab(wx.Panel):
             
     def OnFoot(self, *args):
         if not self.lastPath: self.lastPath = os.getcwd()
-        
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|JPEG (*.jpeg,*.jpg)|*.jpeg;*.jpg|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a footprint (16x16)...", 
-                                    defaultDir=self.lastPath, style=wx.OPEN)
+                                    defaultDir=self.lastPath, style=wx.OPEN,
+                                    wildcard=wildcard)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
@@ -2784,9 +2787,13 @@ class PokeDexTab(wx.Panel):
             value = 1536
             self.Pscale.SetValue("1536")
             
-        size = int(64*(256/value))
-        self.PScale_px.SetLabel(str(size)+"px")
-        
+        try: 
+            size = int(64*(256/value))
+            self.PScale_px.SetLabel(str(size)+"px")
+        except:
+            self.PScale_px.SetLabel("Bad Scale")
+            self.PScale_x.SetLabel("")
+            return
         scale = 256/value
         scale = ("{0:.3f}x".format(scale))
         self.PScale_x.SetLabel(scale)
@@ -2824,9 +2831,13 @@ class PokeDexTab(wx.Panel):
             self.Tscale.SetValue("1536")
             
             
-        size = int(64*(256/value))
-        self.TScale_px.SetLabel(str(size)+"px")
-        
+        try: 
+            size = int(64*(256/value))
+            self.TScale_px.SetLabel(str(size)+"px")
+        except:
+            self.TScale_px.SetLabel("Bad Scale")
+            self.TScale_x.SetLabel("")
+            return
         scale = 256/value
         scale = ("{0:.3f}x".format(scale))
         self.TScale_x.SetLabel(scale)

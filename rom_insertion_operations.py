@@ -8,12 +8,14 @@ import platform
 from Encoding import *
 
 def encode_per_platform(string):
-    p = platform.system()
-    if p == "Windows": out = string #.decode('Latin-1').encode('utf-8')
-    else: 
-        try: out = string.decode('Latin-1').encode('utf-8')
-        except: out = string
-    return out
+    return unicode(string, "Latin-1")
+    #p = platform.system()
+    #if p == "Windows": out = string #.decode('Latin-1').encode('utf-8')
+    #else: 
+        
+        #try: out = string.decode('Latin-1').encode('utf-8')
+        #except: out = string
+    #return out
 
 def deal_with_16bit_signed_hex(hex_value, method="forward"):
     """
@@ -197,9 +199,22 @@ def convert_ascii_and_poke(string, mode):
         string = "\\x"+re.sub("((.|\n|\r){2})", "\\1\\x", string, 0)[:-2]
         for k,v in chart:
             string = string.replace(k,v)
-        p = platform.system()
-        if p == "Windows": string = string.decode('utf-8').encode('Latin-1')
-        else: string = string.decode('Latin-1').encode('Latin-1')
+        #p = platform.system()
+        string = unicode(string, "utf-8")
+        
+        #if p == "Windows": string = string.decode('utf-8').encode('Latin-1')
+        #else: string = string.decode('Latin-1')
+        AllChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        try: 
+            if string.find('[>"]') != -1 or string.find('["<]') != -1:
+                for c in AllChars:
+                    if string.find(c) == -1:
+                        string = string.replace('[>"]', c)
+                        string = re.sub(c, u'\u2019', string, 0)
+                        string = string.replace('["<]', c)
+                        string = re.sub(c, u'\u2018', string, 0)
+                        break
+        except: pass
     else: return None
     return string
     

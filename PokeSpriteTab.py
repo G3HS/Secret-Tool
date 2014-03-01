@@ -6,7 +6,7 @@ import os,time,textwrap
 from PIL import Image
 from PILandWXPythonConversions import *
 from Button import *
-import pygame
+from PosEditor import *
 
 class SpriteTab(wx.Panel):
     def __init__(self, parent, rom=None, config=None, rom_id=None):
@@ -21,7 +21,6 @@ class SpriteTab(wx.Panel):
         self.IconPalNum = 0
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.generate_UI(self.poke_num)
-        self.PYGFLAG = False
         self.SetSizer(self.sizer)
 
     def generate_UI(self, poke_num):
@@ -126,7 +125,12 @@ class SpriteTab(wx.Panel):
         
         lnH = wx.StaticLine(PositionPanel, -1, style=wx.LI_HORIZONTAL)
         lnH.SetSize((2,200))
-        PositionPanelSizer.Add(lnH, 0, wx.EXPAND | wx.ALL, 20)
+        PositionPanelSizer.Add(lnH, 0, wx.EXPAND | wx.ALL, 10)
+        
+        PositionEditorPanel = wx.Panel(PositionPanel,size=(244,164), style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
+        self.PosEdit = PosEditorBase(PositionEditorPanel)
+        PositionPanelSizer.Add(PositionEditorPanel, 0, wx.EXPAND | wx.ALL, 5)
+        PositionEditorPanel.Bind(wx.EVT_PAINT, self.PosEdit.OnPaint)
         
         PositionEntrySizer = wx.GridBagSizer(3,3)
         PositionPanelSizer.Add(PositionEntrySizer, 0, wx.EXPAND | wx.ALL, 5)
@@ -135,26 +139,22 @@ class SpriteTab(wx.Panel):
         PositionEntrySizer.Add(PlayerY_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.PlayerY = wx.SpinCtrl(PositionPanel, -1,style=wx.TE_CENTRE, size=(60,-1))
         self.PlayerY.SetRange(0,127)
+        self.PlayerY.Bind(wx.EVT_TEXT, self.PosEdit.ChangePlayerY)
         PositionEntrySizer.Add(self.PlayerY,(0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         EnemyY_txt = wx.StaticText(PositionPanel, -1,"Enemy Y:")
         PositionEntrySizer.Add(EnemyY_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.EnemyY = wx.SpinCtrl(PositionPanel, -1,style=wx.TE_CENTRE, size=(60,-1))
         self.EnemyY.SetRange(0,127)
+        self.EnemyY.Bind(wx.EVT_TEXT, self.PosEdit.ChangeEnemyY)
         PositionEntrySizer.Add(self.EnemyY,(1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         EnemyAlt_txt = wx.StaticText(PositionPanel, -1,"Enemy Altitude:")
         PositionEntrySizer.Add(EnemyAlt_txt, (2, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.EnemyAlt = wx.SpinCtrl(PositionPanel, -1,style=wx.TE_CENTRE, size=(60,-1))
         self.EnemyAlt.SetRange(0,127)
+        self.EnemyAlt.Bind(wx.EVT_TEXT, self.PosEdit.ChangeEnemyAlt)
         PositionEntrySizer.Add(self.EnemyAlt,(2, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
-        GUIEditor = Button(PositionPanel, 55, "Graphic Position Editor")
-        self.Bind(wx.EVT_BUTTON, self.PositionEditor, id=55)
-        PositionPanelSizer.Add(GUIEditor, 0, wx.EXPAND | wx.ALL, 2)
-        
-        GUIEditor_txt = wx.StaticText(PositionPanel, -1,"The above button opens and closes\nthe editor. This is a workaround\nuntil I find a cleaner solution.",style=wx.TE_CENTRE)
-        PositionPanelSizer.Add(GUIEditor_txt, 0, wx.EXPAND | wx.ALL, 2)
         
         IconPanel = wx.Panel(self, -1, style=wx.RAISED_BORDER|wx.TAB_TRAVERSAL)
         IconPanelSizer = wx.BoxSizer(wx.VERTICAL)
@@ -453,7 +453,7 @@ class SpriteTab(wx.Panel):
             PlayerY = hex(self.PlayerY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
             rom.write(unhexlify(PlayerY))
             
-            rom.seek(enemyaltitudetable+(self.poke_num)*4+1)
+            rom.seek(enemyaltitudetable+(self.poke_num))
             EnemyAlt = hex(self.EnemyAlt.GetValue()).rstrip("L").lstrip("0x").zfill(2)
             rom.write(unhexlify(EnemyAlt))
             
@@ -562,7 +562,7 @@ class SpriteTab(wx.Panel):
             PlayerY = hex(self.PlayerY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
             rom.write(unhexlify(PlayerY))
             
-            rom.seek(enemyaltitudetable+(self.poke_num)*4+1)
+            rom.seek(enemyaltitudetable+(self.poke_num))
             EnemyAlt = hex(self.EnemyAlt.GetValue()).rstrip("L").lstrip("0x").zfill(2)
             rom.write(unhexlify(EnemyAlt))
             
@@ -621,8 +621,10 @@ class SpriteTab(wx.Panel):
         self.ReloadShownSprites()
     
     def LoadIcon(self, instance):
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|JPEG (*.jpeg,*.jpg)|*.jpeg;*.jpg|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open an icon...", 
-                                                        defaultDir=self.lastPath, style=wx.OPEN)
+                                    defaultDir=self.lastPath, style=wx.OPEN,
+                                    wildcard=wildcard)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
@@ -687,7 +689,7 @@ class SpriteTab(wx.Panel):
             self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.FrontPalette[start:stop])
             self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.ShinyPalette[start:stop])
             self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.ShinyPalette[start:stop])
-            self.LoadAllButton.SetLabel("Load 256x64 Sheet")
+            #self.LoadAllButton.SetLabel("Load 256x64 Sheet")
             self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
             self.BackSprite.SetBitmapLabel(self.TMPBackSprite)
             self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
@@ -701,7 +703,7 @@ class SpriteTab(wx.Panel):
             self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
             self.SBackSprite.SetBitmapLabel(wx.EmptyBitmapRGBA(64,64,alpha=255))
             
-            self.LoadAllButton.SetLabel("Load 64x64 Front Frame. Shiny Will Be Auto Done.")
+            #self.LoadAllButton.SetLabel("Load 64x64 Front Frame. Shiny Will Be Auto Done.")
             
         self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
         self.Icons.SetBitmapLabel(self.TMPIcon)
@@ -734,12 +736,15 @@ class SpriteTab(wx.Panel):
         if sprite_number == 57 or sprite_number == 59:
             if self.GBABackSpriteFrames[frame] == False:
                 return
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|JPEG (*.jpeg,*.jpg)|*.jpeg;*.jpg|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a sprite...", 
-                                                        defaultDir=self.lastPath, style=wx.OPEN)
+                                    defaultDir=self.lastPath, style=wx.OPEN,
+                                    wildcard=wildcard)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
+            
             if raw.size != (64,64):
                 ERROR = wx.MessageDialog(self,
                         "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 64x64.", 
@@ -781,8 +786,9 @@ class SpriteTab(wx.Panel):
             self.ReloadShownSprites()
             
     def LoadSheetSprite(self, instance):
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|JPEG (*.jpeg,*.jpg)|*.jpeg;*.jpg|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a sprite sheet...", 
-                                                        defaultDir=self.lastPath, style=wx.OPEN)
+                                                        defaultDir=self.lastPath, style=wx.OPEN,wildcard=wildcard)
         if open_dialog.ShowModal() == wx.ID_OK:
             frame = self.Frames.GetValue()
             if len(self.FrontPalette) < (frame+1)*16:
@@ -794,22 +800,13 @@ class SpriteTab(wx.Panel):
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
-            if self.GBABackSpriteFrames[frame] == False:
-                if raw.size != (64,64):
-                    ERROR = wx.MessageDialog(self,
-                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 64x64.", 
-                        'Image Size error', 
-                        wx.OK | wx.ICON_ERROR)
-                    ERROR.ShowModal()
-                    return
-            else:
-                if raw.size != (256,64):
-                    ERROR = wx.MessageDialog(self,
-                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 256x64.", 
-                        'Image Size error', 
-                        wx.OK | wx.ICON_ERROR)
-                    ERROR.ShowModal()
-                    return
+            if raw.size != (256,64):
+                ERROR = wx.MessageDialog(self,
+                    "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 256x64.", 
+                    'Image Size error', 
+                    wx.OK | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
             if self.GBABackSpriteFrames[frame] != False:
                 front = raw.copy().crop((0, 0, 64, 64))
                 shiny = raw.copy().crop((64, 0, 128, 64))
@@ -926,9 +923,6 @@ class SpriteTab(wx.Panel):
                 else:
                     self.GBABackSpriteFrames.append(self.GBABackSprite[x*2048:(x+1)*2048])
             
-            del self.GBAFrontSprite
-            del self.GBABackSprite
-            
             self.FrontPalette = ConvertGBAPalTo25Bit(FrontPalette)
             self.ShinyPalette = ConvertGBAPalTo25Bit(ShinyPalette)
             
@@ -937,6 +931,12 @@ class SpriteTab(wx.Panel):
             self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[0],self.ShinyPalette)
             self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[0],self.ShinyPalette)
             self.Refresh()
+            
+            TMPFS = wx.BitmapFromImage(self.TMPFrontSprite.ConvertToImage())
+            TMPSBS = wx.BitmapFromImage(self.TMPSBackSprite.ConvertToImage())
+            self.PosEdit.LoadFSandBS(TMPFS,TMPSBS)
+            del TMPFS
+            del TMPSBS
             
             self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
             self.BackSprite.SetBitmapLabel(self.TMPBackSprite)
@@ -954,6 +954,11 @@ class SpriteTab(wx.Panel):
             rom.seek(enemyytable+(poke_num)*4+1)
             EnemyY = deal_with_8bit_signed_hex(int(get_bytes_string_from_hex_string(rom.read(1)),16))
             self.EnemyY.SetValue(EnemyY)
+            
+            self.PosEdit.RECTS[0] = 48+self.PlayerY.GetValue()
+            self.PosEdit.RECTS[2] = self.EnemyAlt.GetValue()
+            self.PosEdit.EnemyY = self.EnemyY.GetValue()
+            self.PosEdit.RECTS[1] = 8+self.PosEdit.EnemyY-self.PosEdit.RECTS[2]
             
             rom.seek(iconspritetable+(poke_num)*4)
             self.IconPointer = read_pointer(rom.read(4))
@@ -1022,170 +1027,6 @@ class SpriteTab(wx.Panel):
             wx.EVT_TIMER(self, TIMER_ID, self.OnIconTimer1)  # call the on_timer function
         elif num == 2:
             wx.EVT_TIMER(self, TIMER_ID, self.OnIconTimer2)
-        
-    def PositionEditor(self, instance):
-        #origin for pokeback is (40,48)
-        #origin for pokefront is (144,8)
-        if self.PYGFLAG == True:
-            self.timer.Stop()
-            running = False
-            pygame.quit()
-            self.PYGFLAG = False
-            return
-        self.PYGFLAG = True
-        pygame.init()
-        pygame.event.set_blocked(pygame.QUIT)
-        self.TMPFrontSprite.SaveFile(os.path.join("Resources","PokeFront.png"), wx.BITMAP_TYPE_PNG)
-        self.TMPBackSprite.SaveFile(os.path.join("Resources","PokeBack.png"), wx.BITMAP_TYPE_PNG)
-        
-        #Get Key Mappings:
-        self.PlayerYUp = (str(self.config.get("ALL", "PlayerYUp")), "PUp")
-        self.PlayerYDown = (str(self.config.get("ALL", "PlayerYDown")), "PDown")
-        self.EnemyYUp = (str(self.config.get("ALL", "EnemyYUp")), "EUp")
-        self.EnemyYDown = (str(self.config.get("ALL", "EnemyYDown")), "EDown")
-        self.EnemyAltUp = (str(self.config.get("ALL", "EnemyAltUp")), "EAUp")
-        self.EnemyAltDown = (str(self.config.get("ALL", "EnemyAltDown")), "EADown")
-        Mappings = [self.PlayerYUp,self.PlayerYDown,self.EnemyYUp,self.EnemyYDown,self.EnemyAltUp,self.EnemyAltDown]
-        
-        listofkeys = [pygame.K_BACKSPACE,pygame.K_TAB,pygame.K_CLEAR,pygame.K_RETURN,pygame.K_PAUSE,
-            pygame.K_ESCAPE,pygame.K_SPACE ,pygame.K_EXCLAIM,pygame.K_QUOTEDBL,pygame.K_HASH,
-            pygame.K_DOLLAR,pygame.K_AMPERSAND,pygame.K_QUOTE,pygame.K_LEFTPAREN,
-            pygame.K_RIGHTPAREN,pygame.K_ASTERISK,pygame.K_PLUS,pygame.K_COMMA,pygame.K_MINUS,
-            pygame.K_PERIOD,pygame.K_SLASH,pygame.K_0,pygame.K_1,pygame.K_2,pygame.K_3,pygame.K_4,
-            pygame.K_5,pygame.K_6,pygame.K_7,pygame.K_8,pygame.K_9,pygame.K_COLON,
-            pygame.K_SEMICOLON,pygame.K_LESS,pygame.K_EQUALS,pygame.K_GREATER,pygame.K_QUESTION,
-            pygame.K_AT,pygame.K_LEFTBRACKET,pygame.K_BACKSLASH,pygame.K_RIGHTBRACKET,pygame.K_CARET,
-            pygame.K_UNDERSCORE,pygame.K_BACKQUOTE,pygame.K_a,pygame.K_b,pygame.K_c,
-            pygame.K_d,pygame.K_e,pygame.K_f,pygame.K_g,pygame.K_h,pygame.K_i,pygame.K_j,pygame.K_k,
-            pygame.K_l,pygame.K_m,pygame.K_n,pygame.K_o,pygame.K_p,pygame.K_q,pygame.K_r,pygame.K_s,
-            pygame.K_t,pygame.K_u,pygame.K_v,pygame.K_w,pygame.K_x,pygame.K_y,pygame.K_z,pygame.K_DELETE,
-            pygame.K_KP0,pygame.K_KP1,pygame.K_KP2,pygame.K_KP3,pygame.K_KP4,pygame.K_KP5,pygame.K_KP6,
-            pygame.K_KP7,pygame.K_KP8,pygame.K_KP9,pygame.K_KP_PERIOD,pygame.K_KP_DIVIDE,pygame.K_KP_MULTIPLY,
-            pygame.K_KP_MINUS,pygame.K_KP_PLUS,pygame.K_KP_ENTER,pygame.K_KP_EQUALS,pygame.K_UP,pygame.K_DOWN,
-            pygame.K_RIGHT,pygame.K_LEFT,pygame.K_INSERT,pygame.K_HOME,pygame.K_END,pygame.K_PAGEUP,
-            pygame.K_PAGEDOWN,pygame.K_F1,pygame.K_F2,pygame.K_F3,pygame.K_F4,pygame.K_F5,pygame.K_F6,pygame.K_F7,
-            pygame.K_F8,pygame.K_F9,pygame.K_F10,pygame.K_F11,pygame.K_F12,pygame.K_F13,pygame.K_F14,pygame.K_F15,
-            pygame.K_NUMLOCK,pygame.K_CAPSLOCK,pygame.K_SCROLLOCK,pygame.K_RSHIFT,pygame.K_LSHIFT,
-            pygame.K_RCTRL,pygame.K_LCTRL,pygame.K_RALT,pygame.K_LALT,pygame.K_RMETA,pygame.K_LMETA,pygame.K_LSUPER,
-            pygame.K_RSUPER,pygame.K_MODE,pygame.K_HELP,pygame.K_PRINT,pygame.K_SYSREQ,pygame.K_BREAK,
-            pygame.K_MENU,pygame.K_POWER,pygame.K_EURO]
-        
-        self.Mappings = []
-        for key in listofkeys:
-            for map in Mappings:
-                if pygame.key.name(key) == map[0]:
-                    self.Mappings.append((key, map[1]))
-        pygame.display.set_caption("Position Editor", os.path.join("Resources","PokeSquare.png"))
-        pygame.display.set_icon(pygame.image.load(os.path.join("Resources","PokeSquare.png")))
-        size = width, height = 240,160
-        self.screen = pygame.display.set_mode(size)
-        self.PYGBG = pygame.image.load(os.path.join("Resources","BattleBG.png"))
-        
-        self.PYGPokeFront = pygame.image.load(os.path.join("Resources","PokeFront.png"))
-        transparent_color = self.PYGPokeFront.get_at((0,0))
-        self.PYGPokeFront.set_colorkey(transparent_color)
-        
-        alt = self.EnemyAlt.GetValue()
-        
-        self.shadow = pygame.image.load(os.path.join("Resources","Shadow.png"))
-        self.shadow_rect = pygame.Rect(160,65,32,8)
-        FrontHeight = 8+self.EnemyY.GetValue()-alt
-        PokeFrontRect = pygame.Rect(144,FrontHeight,64,64)
-        
-        self.PYGPokeBack = pygame.image.load(os.path.join("Resources","PokeBack.png"))
-        transparent_color = self.PYGPokeBack.get_at((0,0))
-        self.PYGPokeBack.set_colorkey(transparent_color)
-        
-        BackHeight = 48+self.PlayerY.GetValue()
-        PokeBackRect = pygame.Rect(40,BackHeight,64,64)
-        
-        self.PYGTEXTBOX = pygame.image.load(os.path.join("Resources","BattleTextBox.png"))
-        
-        self.screen.blit(self.PYGBG,pygame.Rect(0,0,240,160))
-        if alt > 0:
-            self.screen.blit(self.shadow,self.shadow_rect)
-        self.screen.blit(self.PYGPokeBack,PokeFrontRect)
-        self.screen.blit(self.PYGPokeBack,PokeBackRect)
-        self.screen.blit(self.PYGTEXTBOX,pygame.Rect(0,0,240,160))
-        pygame.display.flip()
-        self.set_timer()
-
-    def on_timer(self, event):
-        self.set_timer()
-        self.PositionEditorLoop()
-
-    def set_timer(self):
-        TIMER_ID = 1  # pick a number
-        self.timer = wx.Timer(self, TIMER_ID)  # message will be sent to the panel
-        self.timer.Start(100)  # 100 milliseconds
-        wx.EVT_TIMER(self, TIMER_ID, self.on_timer)  # call the on_timer function
-        
-    def PositionEditorLoop(self, *args):
-        need_update = []
-        pygame.event.pump()
-        keys = pygame.key.get_pressed()
-           
-        for map in self.Mappings:
-            if keys[map[0]]:
-                need_update.append(map[1])
-        for need in need_update:
-            if need == "PUp":
-                try:
-                    curr = self.PlayerY.GetValue()
-                    curr -= 1
-                    self.PlayerY.SetValue(curr)
-                except: pass
-            elif need == "PDown":
-                try:
-                    curr = self.PlayerY.GetValue()
-                    curr += 1
-                    self.PlayerY.SetValue(curr)
-                except: pass
-            elif need == "EUp":
-                try:
-                    curr = self.EnemyY.GetValue()
-                    curr -= 1
-                    self.EnemyY.SetValue(curr)
-                except: pass
-            elif need == "EDown":
-                try:
-                    curr = self.EnemyY.GetValue()
-                    curr += 1
-                    self.EnemyY.SetValue(curr)
-                except: pass
-            elif need == "EAUp":
-                try:
-                    curr = self.EnemyAlt.GetValue()
-                    curr += 1
-                    self.EnemyAlt.SetValue(curr)
-                except: pass
-            elif need == "EADown":
-                try:
-                    curr = self.EnemyAlt.GetValue()
-                    curr -= 1
-                    self.EnemyAlt.SetValue(curr)
-                except: pass
-        
-        self.UpdatePosition()
-        return
-        
-    def UpdatePosition(self):
-        try:
-            alt = self.EnemyAlt.GetValue()
-            FrontHeight = 8+self.EnemyY.GetValue()-alt
-            PokeFrontRect = pygame.Rect(144,FrontHeight,64,64)
-            
-            BackHeight = 48+self.PlayerY.GetValue()
-            PokeBackRect = pygame.Rect(40,BackHeight,64,64)
-            
-            self.screen.blit(self.PYGBG,pygame.Rect(0,0,240,160))
-            if alt > 0:
-                self.screen.blit(self.shadow,self.shadow_rect)
-            self.screen.blit(self.PYGPokeFront,PokeFrontRect)
-            self.screen.blit(self.PYGPokeBack,PokeBackRect)
-            self.screen.blit(self.PYGTEXTBOX,pygame.Rect(0,0,240,160))
-            pygame.display.flip()
-        except: pass
         
 class SpriteRepointer(wx.Dialog):
     def __init__(self, rom, parent=None, need=None, repoint_what=None, *args, **kw):
