@@ -148,8 +148,8 @@ a.button small {
   font-size: 11px;
 }
 a.icon {
-  width: 128px;
-  height: 128px;
+  width: 731px;
+  height: 277px;
   line-height: 1.2;
   font-size: 23px;
   color: #fff;
@@ -171,9 +171,8 @@ header a.icon {
   position: absolute;
   right: left;
   top: 0;
-  padding-right: 100px;
-  background: transparent url(http://i1322.photobucket.com/albums/u563/karatekid552/0QIkbfy_zpsa62d2ad6.png) 0 0 no-repeat;
-  background-size: 50% auto;
+  padding-right: 10px;
+  background: transparent url(http://i1322.photobucket.com/albums/u563/karatekid552/G3HS%20Thread/Thread_Header_04_zpsa2925fe9.png) 0 0 no-repeat;
 }
 aside a.button {
   width: 138px;
