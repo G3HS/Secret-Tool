@@ -1,6 +1,6 @@
 # -*- mode: python -*-
-a = Analysis(['C:\\Users\\dell\\Desktop\\Gen III Suite\\Secret-Tool\\main.py'],
-             pathex=['C:\\Users\\dell\\Desktop\\Gen III Suite\\Secret-Tool'])
+a = Analysis(['c:\\Secret-Tool-master\\main.py'],
+             pathex=['c:\\Secret-Tool-master\\'])
 for d in a.datas:
     if 'pyconfig' in d[0]: 
         a.datas.remove(d)
@@ -11,7 +11,7 @@ exe = EXE( pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          icon="C:\\Users\\dell\\Desktop\\Gen III Suite\\Secret-Tool\\Icon\\Multi.ico",
+          icon="c:\\Secret-Tool-master\\Icon\\Multi.ico",
           name=os.path.join('dist', 'Gen_III_Suite (Chinese Encoding).exe'),
           debug=False,
           strip=False,
