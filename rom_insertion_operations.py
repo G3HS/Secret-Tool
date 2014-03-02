@@ -1,6 +1,5 @@
 ﻿#!/usr/local/bin/python
 # -*- coding: utf-8 -*-
-from baseconv import *
 import binascii
 import string as st
 import re
@@ -163,9 +162,9 @@ def convert_ascii_and_poke(string, mode):
     
     if mode == "to_ascii":
         #Get rid of bad characters:
-        string = string.replace(u'\u2019', '[>"]').replace(u'\u2018', '["<]')
+        string = string.replace(u'\u2019', '[>"]').replace(u'\u2018', '["<]').replace(u'\u201C', '["<]').replace(u'\u201D', '[>"]')
         
-        string = string.encode('Latin-1')
+        string = string.encode('Latin-1', "ignore")
         old_chart = chart
         chart = {}
         for hexer, poke in old_chart:

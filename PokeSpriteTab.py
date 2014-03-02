@@ -592,7 +592,7 @@ class SpriteTab(wx.Panel):
         if dlg.ShowModal() == wx.ID_OK:
             data = dlg.GetColourData()
         else: return
-        dlg.Destroy()
+        wx.CallAfter(dlg.Destroy)
         self.IconPals[self.IconPalNum][color_number] = data.GetColour()
         self.ReloadShownSprites()
     
@@ -611,7 +611,7 @@ class SpriteTab(wx.Panel):
         if dlg.ShowModal() == wx.ID_OK:
             data = dlg.GetColourData()
         else: return
-        dlg.Destroy()
+        wx.CallAfter(dlg.Destroy)
         if color_number < 16:
             self.FrontPalette[start+color_number] = data.GetColour()
             self.Changes["normal"]=True
@@ -1012,10 +1012,12 @@ class SpriteTab(wx.Panel):
         self.NoLoad = True
     
     def OnIconTimer1(self, event):
+        self.Icontimer.Stop()
         self.SetIconTimer(2)
         self.AniIcon.SetBitmapLabel(self.IconTop)
         
     def OnIconTimer2(self, event):
+        self.Icontimer.Stop()
         self.SetIconTimer(1)
         self.AniIcon.SetBitmapLabel(self.IconBottom)
         

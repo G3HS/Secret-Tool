@@ -2,7 +2,6 @@
 #venv pyi-env-name
 from __future__ import division
 import wx, os, binascii, ConfigParser, sys, textwrap, platform
-from baseconv import *
 from module_locator import *
 from rom_insertion_operations import *
 from CheckListCtrl import *
@@ -145,7 +144,6 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.work_with_ini()
             
     def on_timer(self, event):
-        self.set_timer()
         read = sys.stderr.getvalue()
         if read != "":
             print read
@@ -282,8 +280,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                     path = filename+"\n"+p+"\n"
                     pathfile.write(path)
             except: pass
-            open_dialog.Destroy()
-            self.work_with_ini()
+            wx.CallAfter(open_dialog.Destroy)
+            wx.CallAfter(self.work_with_ini)
 
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
@@ -323,8 +321,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         self.open_rom.write("\xff\xff")
                         self.work_with_ini()
                     else:
-                        ERROR.Destroy()
-                        self.Destroy()
+                        wx.CallAfter(ERROR.Destroy)
+                        wx.CallAfter(self.Destroy)
                 else:
                     game_code_offset = int("AC",16)
                     self.open_rom.seek(game_code_offset)
@@ -341,7 +339,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                             self.open_rom.write("\xff\xff")
                             self.work_with_ini()
                         else:
-                            ERROR.Destroy()
+                            wx.CallAfter(ERROR.Destroy)
             else:
                 game_code_offset = int("AC",16)
                 self.open_rom.seek(game_code_offset)
@@ -383,11 +381,11 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                             self.Config.write(PokeRomsIni)
                         y = True
         self.open_rom.close()
-        self.reload_all_tabs()
+        wx.CallAfter(self.reload_all_tabs)
         self.SetTitle("Gen III Hacking Suite"+" ~ "+self.Config.get(self.rom_id, "name")+" ~ "+self.open_rom.name)
             
     def reload_all_tabs(self):
-        try:    self.tabbed_area.Destroy()
+        try: self.tabbed_area.Destroy()
         except: pass
         self.tabbed_area = TabbedEditorArea(self.panel) 
         
@@ -3210,7 +3208,7 @@ class EggMoveTab(wx.Panel):
             while True:
                 if self.repoint.ShowModal() == wx.ID_OK:
                     Offset = self.repoint.NewEggOffset
-                    self.repoint.Destroy()
+                    wx.CallAfter(self.repoint.Destroy)
                     if self.OFFSET == Offset: continue
                     else: 
                         NewEggOffset = Offset
@@ -3534,7 +3532,7 @@ class MOVE_REPOINTER(wx.Dialog):
                     start = offset+len(search)
                 
     def OnClose(self, *args):
-        self.Destroy()
+        wx.CallAfter(self.Destroy)
 
 class EGG_MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, need, *args, **kw):
@@ -3984,7 +3982,7 @@ def OnUpdateTimer(instance):
                                                         "Update is available...", wx.YES_NO)
     if UpdateDialog.ShowModal() == wx.ID_YES:
         webbrowser.open("https://github.com/thekaratekid552/Secret-Tool/releases")
-        frame.Destroy()
+        wx.CallAfter(frame.Destroy)
 
 def OnMessageTimer(instance):
     global Msgtimer
