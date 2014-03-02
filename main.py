@@ -622,6 +622,8 @@ class PokemonDataEditor(wx.Panel):
         self.tabbed_area.stats.save()
         self.save_new_poke_name()
         self.poke_names = self.get_pokemon_names()
+        self.tabbed_area.evo.poke.Clear()
+        self.tabbed_area.evo.poke.AppendItems(self.poke_names)
         global poke_names
         poke_names = self.poke_names
         self.Pokes.Clear()
@@ -2029,6 +2031,7 @@ class EvoTab(wx.Panel):
                 wx.CallAfter(self.arg.Clear)
                 wx.CallAfter(self.arg.AppendItems,nums)
                 wx.CallAfter(self.arg_txt.SetLabel,"Level:")
+                self.arg.IgnoreEverything = True
                 self.arg_type = "Level"
                 #wx.CallAfter(self.arg.SetSelection,0)
             
@@ -2039,11 +2042,13 @@ class EvoTab(wx.Panel):
                 wx.CallAfter(self.arg.AppendItems,ITEM_NAMES)
                 wx.CallAfter(self.arg_txt.SetLabel,"Item:")
                 self.arg_type = "Item"
+                self.arg.IgnoreEverything = False
                 #wx.CallAfter(self.arg.SetSelection,0)
         else: #None type
             wx.CallAfter(self.arg.Clear)
             wx.CallAfter(self.arg.AppendItems,["-None needed-"])
             wx.CallAfter(self.arg_txt.SetLabel,"Argument:")
+            self.arg.IgnoreEverything = False
             self.arg_type = None
         return method
         

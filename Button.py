@@ -15,13 +15,18 @@ class ComboBox(wx.ComboBox):
         self.Bind(wx.EVT_TEXT, self.SearchWhileTyping, self)
         self.Bind(wx.EVT_TEXT_ENTER, self.SearchOnHitEnter, self)
         self.ignoreEvtText = False
+        self.IgnoreEverything = False
         
     def EvtChar(self, event):
+        if self.IgnoreEverything:
+            return
         if event.GetKeyCode() == 8:
             self.ignoreEvtText = True
         event.Skip()
         
     def SearchWhileTyping(self, *args):
+        if self.IgnoreEverything:
+            return
         if self.ignoreEvtText:
             self.ignoreEvtText = False
             return
@@ -48,6 +53,8 @@ class ComboBox(wx.ComboBox):
                 break
                 
     def SearchOnHitEnter(self, instance):
+        if self.IgnoreEverything:
+            return
         index = self.FindString(self.GetValue())
         if index != -1:
             self.SetSelection(index)
