@@ -10,7 +10,7 @@ exe = EXE(pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          icon="/Users/homedepot326/Desktop/Secret-Tool-master/Icon/Multi.ico",
+          icon="/Users/homedepot326/Desktop/Secret-Tool-master/Icon/Ring256x256.icns",
           name="Gen_III_Suite",
           debug=False,
           strip=None,
@@ -18,4 +18,4 @@ exe = EXE(pyz,
           console=False )
 app = BUNDLE(exe,
              name='Gen_III_Suite.app',
-             icon=None)
+             icon="/Users/homedepot326/Desktop/Secret-Tool-master/Icon/Ring256x256.icns")
