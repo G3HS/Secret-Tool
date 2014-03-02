@@ -1,17 +1,21 @@
 # -*- mode: python -*-
-a = Analysis(['--PUT PATH TO MAIN.PY--'],
-             pathex=['--PUT PATH TO WHERE YOU WANT OUTPUT'])
-             
+a = Analysis(['main.py'],
+             pathex=['/Users/homedepot326/Desktop/Secret-Tool-master'],
+             hiddenimports=[],
+             hookspath=None,
+             runtime_hooks=None)
 pyz = PYZ(a.pure)
-exe = EXE( pyz,
+exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name=os.path.join('dist', 'Gen_III_Suite'),
+          icon="/Users/homedepot326/Desktop/Secret-Tool-master/Icon/Multi.ico",
+          name="Gen_III_Suite",
           debug=False,
-          strip=False,
+          strip=None,
           upx=True,
-          console=False)
+          console=False )
 app = BUNDLE(exe,
-             name=os.path.join('dist', 'Gen_III_Suite.app'))
+             name='Gen_III_Suite.app',
+             icon=None)
