@@ -16,8 +16,8 @@ import json, webbrowser
 import traceback
 import urllib2
 
-version = 'v1.1.0 ~ Codename: "Fellowship of the Hack"'
-versionNumber = "v1.1.0"
+version = 'v1.1.1 ~ Codename: "Fellowship of the Hack"'
+versionNumber = "v1.1.1"
 
 OPEN = 1
 poke_num = 0
@@ -191,7 +191,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 wx.OK | wx.ICON_INFORMATION)
                     Finally.ShowModal()
                     return
-                emailer = EmailError(self, read)
+                global versionNumber
+                emailer = EmailError(self, read, versionNumber)
                 if emailer.ShowModal() == wx.ID_OK:
                     try: emailer.SendCrashReport()
                     except: 

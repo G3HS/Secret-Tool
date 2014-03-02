@@ -7,10 +7,10 @@ import platform
 
 
 class EmailError(wx.Dialog):
-    def __init__(self, parent=None, error=None, *args, **kw):
+    def __init__(self, parent=None, error=None, version=None, *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.SetWindowStyle(self.GetWindowStyle()|wx.STAY_ON_TOP|wx.RESIZE_BORDER|wx.OK|wx.ICON_ERROR)
-        system_info = "\n\nSystem Info:\n{0}\n{1}".format(sys.platform, platform.platform())
+        system_info = "\n\nSystem Info:\n{0}\n{1}\nG3HS {2}".format(sys.platform, platform.platform(),version)
         self.Error = error+system_info
         self.Report = self.Error
         
