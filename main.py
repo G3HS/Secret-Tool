@@ -260,11 +260,12 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             directory = os.path.dirname(self.open_rom.name)
         else:
             try:
-                pathfile = open("LastOpenedRom.txt", "r+")
-                directory = pathfile.readline().rstrip("\n")
-                plat = pathfile.readline().rstrip("\n")
-                if plat != p:
-                    raise AttributeError("Path is for a different system.")
+                with open("LastOpenedRom.txt", "r+") as pathfile:
+                    pathfile = open("LastOpenedRom.txt", "r+")
+                    directory = pathfile.readline().rstrip("\n")
+                    plat = pathfile.readline().rstrip("\n")
+                    if plat != p:
+                        raise AttributeError("Path is for a different system.")
             except:
                 directory = os.getcwd()
         open_dialog = wx.FileDialog(None, message="Open a rom...", 
@@ -275,9 +276,11 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             filename = open_dialog.GetPath()
             self.open_rom = open(filename, "r+b")
             self.open_rom_name = filename
-            pathfile = open("LastOpenedRom.txt", "w+")
-            pathfile.write(filename+"\n"+p+"\n")
-            pathfile.close()
+            try:
+                with open("LastOpenedRom.txt", "w+") as pathfile:
+                    path = filename+"\n"+p+"\n"
+                    pathfile.write(path)
+            except: pass
             open_dialog.Destroy()
             self.work_with_ini()
 
@@ -3739,9 +3742,7 @@ class NumberofEvosChanger(wx.Dialog):
         frame.Config.set(frame.rom_id, "EvolutionTable", _offset_)
         frame.Config.set(frame.rom_id, "EvolutionsPerPoke", str(new_number))
         
-        ini = os.path.join(frame.path,"PokeRoms.ini")
-        
-        with open(ini, "w") as PokeRomsIni:
+        with open("PokeRoms.ini", "w") as PokeRomsIni:
             frame.Config.write(PokeRomsIni)
         
         ##fill table with FF
