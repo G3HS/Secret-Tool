@@ -15,8 +15,8 @@ import json, webbrowser
 import traceback
 import urllib2
 
-version = 'v1.1.2 ~ Codename: "Fellowship of the Hack"'
-versionNumber = "v1.1.2"
+version = 'v1.1.3 ~ Codename: "Fellowship of the Hack"'
+versionNumber = "v1.1.3"
 
 OPEN = 1
 poke_num = 0

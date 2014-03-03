@@ -722,7 +722,8 @@ class SpriteTab(wx.Panel):
         
         self.IconTop = wx.BitmapFromImage(self.IconTop)
         self.IconBottom = wx.BitmapFromImage(self.IconBottom)
-    
+        self.PosEdit.UpdateFSandDS(self)
+        
     def LoadSingleSprite(self, instance):
         frame = self.Frames.GetValue()
         if len(self.FrontPalette) < (frame+1)*16:

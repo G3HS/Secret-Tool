@@ -27,6 +27,10 @@ class PosEditorBase():
         
         DC.DrawBitmap(self.TB,0, 112)
         
+    def UpdateFSandDS(self, SpriteTabObj):
+        self.LoadFSandBS(SpriteTabObj.TMPFrontSprite,SpriteTabObj.TMPSBackSprite)
+        SpriteTabObj.Refresh()
+        
     def LoadFSandBS(self, FS, BS):
         self.FS = FS
         tmp = self.FS.ConvertToImage()
