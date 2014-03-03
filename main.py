@@ -1632,6 +1632,7 @@ class MovesTab(wx.Panel):
         attack = self.ATTACK.GetSelection()
         if attack == -1:
             index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[1])
+            attack = 1
         else:
             index = self.MOVESET.InsertStringItem(sys.maxint, self.MOVES_LIST[attack])
         if level == "":
