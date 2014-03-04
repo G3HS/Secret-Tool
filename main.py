@@ -189,6 +189,13 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 wx.OK | wx.ICON_INFORMATION)
                     Finally.ShowModal()
                     return
+                if "load_stats_into_boxes" in read and "SetSelectedItem(): Inavlid item index" in read:
+                    Finally = wx.MessageDialog(None, 
+                                textwrap.fill('This message does not need to be sent. This error occurs when loading an item number that is too high. 90% of the time, your rom is expanded and using a section of ini for the unexpanded rom, or vice versa. Please check your ini.',110), 
+                                'I already know this error....', 
+                                wx.OK | wx.ICON_INFORMATION)
+                    Finally.ShowModal()
+                    return
                 global versionNumber
                 emailer = EmailError(self, read, versionNumber)
                 if emailer.ShowModal() == wx.ID_OK:
@@ -2416,7 +2423,7 @@ class PokeDexTab(wx.Panel):
             
     def OnFoot(self, *args):
         if not self.lastPath: self.lastPath = os.getcwd()
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|JPEG (*.jpeg,*.jpg)|*.jpeg;*.jpg|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a footprint (16x16)...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
                                     wildcard=wildcard)

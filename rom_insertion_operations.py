@@ -8,13 +8,6 @@ from Encoding import *
 
 def encode_per_platform(string):
     return unicode(string, "Latin-1")
-    #p = platform.system()
-    #if p == "Windows": out = string #.decode('Latin-1').encode('utf-8')
-    #else: 
-        
-        #try: out = string.decode('Latin-1').encode('utf-8')
-        #except: out = string
-    #return out
 
 def deal_with_16bit_signed_hex(hex_value, method="forward"):
     """
@@ -127,8 +120,7 @@ def read_pointer(string):
     offset = ""
     for byte in list_of_bytes:
         offset += byte
-    offset = offset[2:]
-    return int(offset, 16)
+    return int(offset, 16)-0x8000000
     
 def make_pointer(string):
     #make a pointer in XXYYZZ08 format from 08ZZYYXX.
@@ -198,11 +190,7 @@ def convert_ascii_and_poke(string, mode):
         string = "\\x"+re.sub("((.|\n|\r){2})", "\\1\\x", string, 0)[:-2]
         for k,v in chart:
             string = string.replace(k,v)
-        #p = platform.system()
         string = unicode(string, "utf-8")
-        
-        #if p == "Windows": string = string.decode('utf-8').encode('Latin-1')
-        #else: string = string.decode('Latin-1')
         AllChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         try: 
             if string.find('[>"]') != -1 or string.find('["<]') != -1:
