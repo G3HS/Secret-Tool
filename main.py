@@ -3985,7 +3985,7 @@ def OnUpdateTimer(instance):
         Message += "Please note that this is a prerelease and may not work properly.\n\n"
     Message +="Would you like to update?"
     UpdateDialog = wx.MessageDialog(None,Message, 
-                                                        "Update is available...", wx.YES_NO)
+                                    "Update is available...", wx.YES_NO|wx.RESIZE_BORDER)
     if UpdateDialog.ShowModal() == wx.ID_YES:
         webbrowser.open("https://github.com/thekaratekid552/Secret-Tool/releases")
         wx.CallAfter(frame.Destroy)
