@@ -1,0 +1,9 @@
+{
+  "name": "G3HS"
+, "files": [ { "directory": ".",
+      "filters": [
+	"*.py"
+      ], 
+    "recursive": 1 } 
+  ]
+}

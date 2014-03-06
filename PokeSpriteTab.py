@@ -689,7 +689,6 @@ class SpriteTab(wx.Panel):
             self.TMPBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.FrontPalette[start:stop])
             self.TMPSFrontSprite = ConvertGBAImageToNormal(self.GBAFrontSpriteFrames[frame],self.ShinyPalette[start:stop])
             self.TMPSBackSprite = ConvertGBAImageToNormal(self.GBABackSpriteFrames[frame],self.ShinyPalette[start:stop])
-            #self.LoadAllButton.SetLabel("Load 256x64 Sheet")
             self.FrontSprite.SetBitmapLabel(self.TMPFrontSprite)
             self.BackSprite.SetBitmapLabel(self.TMPBackSprite)
             self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
@@ -702,8 +701,6 @@ class SpriteTab(wx.Panel):
             self.BackSprite.SetBitmapLabel(wx.EmptyBitmapRGBA(64,64,alpha=255))
             self.SFrontSprite.SetBitmapLabel(self.TMPSFrontSprite)
             self.SBackSprite.SetBitmapLabel(wx.EmptyBitmapRGBA(64,64,alpha=255))
-            
-            #self.LoadAllButton.SetLabel("Load 64x64 Front Frame. Shiny Will Be Auto Done.")
             
         self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
         self.Icons.SetBitmapLabel(self.TMPIcon)

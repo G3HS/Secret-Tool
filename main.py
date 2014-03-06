@@ -591,7 +591,7 @@ class PokemonDataEditor(wx.Panel):
                                         Expander.offset,
                                         frame.rom_id,
                                         frame.Config)
-                frame.reload_all_tabs()
+                wx.CallAfter(frame.reload_all_tabs)
             else:
                 ERROR = wx.MessageDialog(None, 
                                 "You failed to provide either an offset for repointing or a new number of 'MONs. Please try again.", 
