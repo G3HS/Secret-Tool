@@ -14,6 +14,7 @@ from EmailError import *
 import json, webbrowser
 import traceback
 import urllib2
+from hexeditor import *
 
 version = 'v1.1.3 ~ Codename: "Fellowship of the Hack"'
 versionNumber = "v1.1.3"
@@ -395,6 +396,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         try: self.tabbed_area.Destroy()
         except: pass
         self.tabbed_area = TabbedEditorArea(self.panel) 
+        self.tabbed_area.LoadHexEditor()
         
         self.sizer.Add(self.tabbed_area, 1, wx.ALL|wx.EXPAND, 5)
         self.panel.Layout()
@@ -409,9 +411,11 @@ class TabbedEditorArea(wx.Notebook):
         wx.Notebook.__init__(self, parent, id=wx.ID_ANY, style=wx.BK_DEFAULT)
         
         self.PokeDataTab = PokemonDataEditor(self)
+        self.HexEditor = HexEditor(self)
         name = "POK\xe9MON Data Editor"
         name = encode_per_platform(name)
         self.AddPage(self.PokeDataTab, name)
+        self.AddPage(self.HexEditor, "Hex Editor")
         
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -427,7 +431,9 @@ class TabbedEditorArea(wx.Notebook):
         new = event.GetSelection()
         sel = self.GetSelection()
         event.Skip()
-
+    
+    def LoadHexEditor(self):
+        self.HexEditor.LoadFile(frame.open_rom_name)
         
 #############################################################
 #This tab will allow editing of Pokemon Stats, moves, etc
