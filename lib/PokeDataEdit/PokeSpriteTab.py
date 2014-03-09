@@ -1,12 +1,12 @@
-from LZ77 import *
+from lib.Tools.LZ77 import *
 from binascii import hexlify, unhexlify
-from ImageFunctions import *
-from rom_insertion_operations import *
+from lib.Tools.ImageFunctions import *
+from lib.Tools.rom_insertion_operations import *
 import os,time,textwrap
 from PIL import Image
-from PILandWXPythonConversions import *
-from Button import *
-from PosEditor import *
+from lib.Tools.PILandWXPythonConversions import *
+from lib.OverLoad.Button import *
+from lib.PokeDataEdit.PosEditor import *
 
 class SpriteTab(wx.Panel):
     def __init__(self, parent, rom=None, config=None, rom_id=None):
@@ -1120,7 +1120,7 @@ class SpriteRepointer(wx.Dialog):
                 x = (1,True)
                 start = offset+len(search)
 
-                
+
 class ChangeSpritePointers(wx.Dialog):
     def __init__(self, obj, *args, **kw):
         wx.Dialog.__init__(self, parent=obj, id=wx.ID_ANY)

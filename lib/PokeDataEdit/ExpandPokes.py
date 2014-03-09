@@ -2,10 +2,10 @@
 
 import wx, os, ConfigParser, sys, traceback
 from binascii import hexlify, unhexlify
-from Button import *
-from ExpandPokesOffsets import *
-from rom_insertion_operations import *
-from LZ77 import *
+from lib.OverLoad.Button import *
+from lib.PokeDataEdit.ExpandPokesOffsets import *
+from lib.Tools.rom_insertion_operations import *
+from lib.Tools.LZ77 import *
 
 def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_id, ini):
     #-#-#-#

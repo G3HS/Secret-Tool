@@ -4,7 +4,7 @@ import binascii
 import string as st
 import re
 import platform
-from Encoding import *
+from lib.Tools.Encoding import *
 
 def encode_per_platform(string):
     return unicode(string, "Latin-1")

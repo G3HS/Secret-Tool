@@ -39,6 +39,9 @@ from wx.py import dispatcher
 import wx.lib.agw.buttonpanel as btnpanel
 import wx.lib.agw.genericmessagedialog as gmd
 
+#3/8/14- Need this:
+from binascii import hexlify, unhexlify
+from GLOBALS import *
 
 if sys.version_info[:2] < (2, 7):
     def bin(number):
@@ -692,30 +695,36 @@ class HexEditor(wx.Panel):
         toolbar.AddControl(self._current_text)
 
         toolbar.AddSeparator()
-
-        toolbar.AddControl(TransparentText(toolbar, -1, "Value:", size=(-1, -1)))
-        self._value_hex = wx.TextCtrl(toolbar, -1,
-                                      size=(30, 20),
-                                      style=wx.TE_PROCESS_ENTER | wx.TE_RIGHT,
-                                      validator=NumberValidator(VALID_TYPES.HEX_CHARS))
-        self._value_hex.SetMaxLength(2)
-        self._value_dec = wx.TextCtrl(toolbar, -1,
-                                      size=(40, 20),
-                                      style=wx.TE_PROCESS_ENTER | wx.TE_RIGHT,
-                                      validator=NumberValidator(VALID_TYPES.DEC_CHARS))
-        self._value_dec.SetMaxLength(3)
-        self._value_bin = wx.TextCtrl(toolbar, -1,
-                                      size=(80, 20),
-                                      style=wx.TE_PROCESS_ENTER | wx.TE_RIGHT,
-                                      validator=NumberValidator(VALID_TYPES.BIN_CHARS))
-        self._value_bin.SetMaxLength(8)
-        self._value_chr = TransparentText(toolbar, -1, " ", size=(-1, -1))
-        toolbar.AddControl(self._value_hex)
-        toolbar.AddControl(self._value_dec)
-        toolbar.AddControl(self._value_bin)
-        self._value_hex.Bind(wx.EVT_CHAR, self.OnValueTextChar)
-        self._value_dec.Bind(wx.EVT_CHAR, self.OnValueTextChar)
-        self._value_bin.Bind(wx.EVT_CHAR, self.OnValueTextChar)
+        #3/8/14- Modification to make this convert ASCII to hex, instead of the reverse.
+        toolbar.AddControl(TransparentText(toolbar, -1, "Insert Character:", size=(-1, -1)))
+        self._value_text = wx.TextCtrl(toolbar, -1,
+                                      size=(40,20),
+                                      style=wx.TE_PROCESS_ENTER | wx.TE_RIGHT)
+        self._value_text.SetMaxLength(1)
+        toolbar.AddControl(self._value_text)
+        self._value_text.Bind(wx.EVT_CHAR, self.OnTextChar)
+        #self._value_hex = wx.TextCtrl(toolbar, -1,
+                                      #size=(30, 20),
+                                      #style=wx.TE_PROCESS_ENTER | wx.TE_RIGHT,
+                                      #validator=NumberValidator(VALID_TYPES.HEX_CHARS))
+        #self._value_hex.SetMaxLength(2)
+        #self._value_dec = wx.TextCtrl(toolbar, -1,
+                                      #size=(40, 20),
+                                      #style=wx.TE_PROCESS_ENTER | wx.TE_RIGHT,
+                                      #validator=NumberValidator(VALID_TYPES.DEC_CHARS))
+        #self._value_dec.SetMaxLength(3)
+        #self._value_bin = wx.TextCtrl(toolbar, -1,
+                                      #size=(80, 20),
+                                      #style=wx.TE_PROCESS_ENTER | wx.TE_RIGHT,
+                                      #validator=NumberValidator(VALID_TYPES.BIN_CHARS))
+        #self._value_bin.SetMaxLength(8)
+        self._value_chr = TransparentText(toolbar, -1, " ", size=(20, -1))
+        #toolbar.AddControl(self._value_hex)
+        #toolbar.AddControl(self._value_dec)
+        #toolbar.AddControl(self._value_bin)
+        #self._value_hex.Bind(wx.EVT_CHAR, self.OnValueTextChar)
+        #self._value_dec.Bind(wx.EVT_CHAR, self.OnValueTextChar)
+        #self._value_bin.Bind(wx.EVT_CHAR, self.OnValueTextChar)
         toolbar.AddControl(self._value_chr)
 
         toolbar.AddSeparator()
@@ -764,8 +773,9 @@ class HexEditor(wx.Panel):
         self.grid.SetDefaultCellAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
         self.grid.SetRowLabelAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTER)
         self.grid.SetDefaultColSize(26)
-        self.grid.DisableDragColSize()
-        self.grid.DisableDragRowSize()
+        #3/7/14- They don't need to be disabled.
+        #self.grid.DisableDragColSize()
+        #self.grid.DisableDragRowSize()
         #self.grid.SetLabelBackgroundColour("#E2E8F0")
 
         corner = self.grid.GetGridCornerLabelWindow()
@@ -794,7 +804,25 @@ class HexEditor(wx.Panel):
     def _reset_grid(self):
         self.grid.ClearGrid()
         self._reset_grid_selecting()
+    
+    def OnTextChar(self, event):
+        key = event.GetKeyCode()
+        if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            text_ctrl = event.EventObject
+            val = text_ctrl.GetValue()
+            if val and val.strip():
+                try: char = hexlify(val)
+                except: return
+                self._value_chr.SetLabel(char.upper().zfill(2) + " ")
+                #self._set_value_text(val)
+                row, col = self.CurrentRowCol
+                self.SetCellString(row, col, char)
 
+            text_ctrl.SetInsertionPointEnd()
+            text_ctrl.SetSelection(0, -1)
+
+        event.Skip()
+    
     def AutoSize(self, event=None):
         size = self.GetSize()
         sb_width = wx.SystemSettings.GetMetric(wx.SYS_VSCROLL_X)
@@ -846,22 +874,29 @@ class HexEditor(wx.Panel):
         sb.SetStatusWidths([-2, -1, -1, -1])
         return sb
 
+    #3/8/14- Need to the hex, dec, and bin....
     def _clear_value_text(self):
         self._current_text.SetLabel("")
-        self._value_hex.SetLabel("")
-        self._value_dec.SetLabel("")
-        self._value_bin.SetLabel("")
+        #self._value_hex.SetLabel("")
+        #self._value_dec.SetLabel("")
+        #self._value_bin.SetLabel("")
         self._value_chr.SetLabel(" ")
-
+        self._value_text.SetValue("")
+        
     def _set_value_text(self, value):
-        self._value_hex.SetLabel(hex(value).replace("0x", "").upper().zfill(2))
-        self._value_dec.SetLabel(str(value))
-        self._value_bin.SetLabel(bin(value).replace("0b", "").zfill(8))
-
+        #self._value_hex.SetLabel(hex(value).replace("0x", "").upper().zfill(2))
+        #self._value_dec.SetLabel(str(value))
+        #self._value_bin.SetLabel(bin(value).replace("0b", "").zfill(8))
         if 0x20 <= value <= 0x7E:
-            self._value_chr.SetLabel(chr(value) + " ")
+            self._value_text.SetValue(chr(value))
+            self._value_chr.SetLabel(hex(value).replace("0x", "").upper().zfill(2))
         else:
+            self._value_text.SetValue("")
             self._value_chr.SetLabel(" ")
+        #if 0x20 <= value <= 0x7E:
+            #self._value_chr.SetLabel(chr(value) + " ")
+        #else:
+            #self._value_chr.SetLabel(" ")
 
     def _update_status(self, length=None, row=None, col=None, sel=None):
         if length is not None:
@@ -1013,6 +1048,8 @@ class HexEditor(wx.Panel):
             f = open(self.OpenFile, "wb")
             self.grid.GetTable().SaveFile(f)
             f.close()
+            self.SetBinaryFile(self.OpenFile, os.path.getsize(self.OpenFile))
+            self.GetParent().PokeDataTab.tabbed_area.reload_tab_data() #Reload stuffs.:P
         else: return
 
     def GetCellString(self, row, col, length=1):
@@ -1319,6 +1356,32 @@ class HexEditor(wx.Panel):
             text_ctrl.SetSelection(0, -1)
 
         event.Skip()
+        
+    def OnValueTextChar(self, event):
+        key = event.GetKeyCode()
+        if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            text_ctrl = event.EventObject
+            val = text_ctrl.GetValue()
+            if val and val.strip():
+                if text_ctrl == self._value_hex:
+                    val = int(val, 16)
+                elif text_ctrl == self._value_dec:
+                    val = int(val, 10)
+                    if val > 0xFF:
+                        return
+                elif text_ctrl == self._value_bin:
+                    val = int(val, 2)
+                else:
+                    raise Exception("unknown text ctrl")
+
+                self._set_value_text(val)
+                row, col = self.CurrentRowCol
+                self.SetCellString(row, col, hex(val))
+
+            text_ctrl.SetInsertionPointEnd()
+            text_ctrl.SetSelection(0, -1)
+
+        event.Skip()
 
     def JumpTo(self, row, col):
         ppunit = self.grid.GetScrollPixelsPerUnit()
@@ -1414,6 +1477,7 @@ class BinFileDropTarget(wx.FileDropTarget):
     def OnDropFiles(self, x, y, filenames):
         filenames = [path for path in filenames if os.path.isfile(path)]
         self.editor.LoadFile(filenames[0])
+
 
 
 if __name__ == '__main__':

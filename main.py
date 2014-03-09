@@ -2,22 +2,20 @@
 #venv pyi-env-name
 from __future__ import division
 import wx, os, binascii, ConfigParser, sys, textwrap, platform
-from module_locator import *
-from rom_insertion_operations import *
-from CheckListCtrl import *
-from Button import *
-from PokeSpriteTab import *
-from ExpandPokes import *
-from BaseRepointer import *
+from lib.Tools.rom_insertion_operations import *
+from lib.OverLoad.CheckListCtrl import *
+from lib.OverLoad.Button import *
+from lib.PokeDataEdit.PokeSpriteTab import *
+from lib.PokeDataEdit.ExpandPokes import *
+from lib.CustomDialogs.BaseRepointer import *
 from cStringIO import StringIO
-from EmailError import *
+from lib.CustomDialogs.EmailError import *
 import json, webbrowser
 import traceback
 import urllib2
-from hexeditor import *
+from lib.HexEditor.hexeditor import *
 
-version = 'v1.1.3 ~ Codename: "Fellowship of the Hack"'
-versionNumber = "v1.1.3"
+from GLOBALS import *
 
 OPEN = 1
 poke_num = 0
@@ -197,8 +195,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 wx.OK | wx.ICON_INFORMATION)
                     Finally.ShowModal()
                     return
-                global versionNumber
-                emailer = EmailError(self, read, versionNumber)
+                emailer = EmailError(self, read, Globals.VersionNumber)
                 if emailer.ShowModal() == wx.ID_OK:
                     try: emailer.SendCrashReport()
                     except: 
@@ -227,7 +224,6 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         icon.CopyFromBitmap(image) 
         
         global description
-        global versionNumber
         
         try:
             r = urllib2.Request('https://api.github.com/repos/thekaratekid552/Secret-Tool/releases')
@@ -236,7 +232,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             obj = json.loads(obj)
             downloads = None
             for x in obj:
-                if x["tag_name"] == versionNumber:
+                if x["tag_name"] == Globals.VersionNumber:
                     downloads = x['assets'][0]['download_count']
             if downloads != None:
                 D = description + "\n\nThis version has been downloaded {0} times around the world.".format(downloads)
@@ -251,8 +247,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         name = encode_per_platform(name)
         info.SetName(name)
         info.SetIcon(icon)
-        global version
-        info.SetVersion(version)
+        info.SetVersion(Globals.Version)
         info.SetDescription(D)
         info.SetCopyright('(C) 2014 karatekid552')
         info.SetArtists(["MrDollSteak"])
@@ -281,8 +276,9 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                     style=wx.FD_OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
+            Globals.OpenRomName = filename
             self.open_rom = open(filename, "r+b")
-            self.open_rom_name = filename
+            #self.open_rom_name = filename
             try:
                 with open("LastOpenedRom.txt", "w+") as pathfile:
                     path = filename+"\n"+p+"\n"
@@ -433,7 +429,7 @@ class TabbedEditorArea(wx.Notebook):
         event.Skip()
     
     def LoadHexEditor(self):
-        self.HexEditor.LoadFile(frame.open_rom_name)
+        self.HexEditor.LoadFile(Globals.OpenRomName)
         
 #############################################################
 #This tab will allow editing of Pokemon Stats, moves, etc
@@ -533,6 +529,7 @@ class PokemonDataEditor(wx.Panel):
         current = self.tabbed_area.GetSelection()
         currentobj = self.tabbed_area.GetPage(current)
         currentobj.save()
+        self.GetParent().HexEditor.LoadFile(Globals.OpenRomName)
     
     def EvtChar(self, event):
         if event.GetKeyCode() == 8:
@@ -587,10 +584,10 @@ class PokemonDataEditor(wx.Panel):
         frame.open_file()
         
     def OnExpandPokes(self, instance):
-        Expander = PokemonExpander(frame.open_rom_name)
+        Expander = PokemonExpander(Globals.OpenRomName)
         if Expander.ShowModal() == wx.ID_OK:
             if Expander.offset and Expander.NewNumOfPokes != 0:
-                RepointPokes(frame.open_rom_name, 
+                RepointPokes(Globals.OpenRomName, 
                                         Expander.NewNumOfPokes,
                                         Expander.NewNumOfDexEntries,
                                         Expander.RAM_offset,
@@ -607,7 +604,7 @@ class PokemonDataEditor(wx.Panel):
     
     def get_pokemon_names(self):
         offset = int(frame.Config.get(frame.rom_id, "PokeNames"),0)
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(offset, 0)
             number = int(frame.Config.get(frame.rom_id, "NumberofPokes"), 0)
             name_length = int(frame.Config.get(frame.rom_id, "PokeNamesLength"), 0)
@@ -650,6 +647,7 @@ class PokemonDataEditor(wx.Panel):
         else:  self.tabbed_area.tutor.save()
         self.tabbed_area.dex.save()
         self.tabbed_area.sprites.save()
+        self.GetParent().HexEditor.LoadFile(Globals.OpenRomName)
         
     def save_new_poke_name(self):
         name = self.Poke_Name.GetValue()
@@ -666,7 +664,7 @@ class PokemonDataEditor(wx.Panel):
         global poke_num
         offset = int(frame.Config.get(frame.rom_id, "PokeNames"),0)
         offset = max_length*poke_num + offset
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(offset,0)
             rom.write(name)
         
@@ -687,7 +685,7 @@ class DataEditingTabs(wx.Notebook):
         self.egg_moves = EggMoveTab(self)
         
         
-        self.sprites = SpriteTab(self, rom=frame.open_rom_name, 
+        self.sprites = SpriteTab(self, rom=Globals.OpenRomName, 
                                  config=frame.Config, rom_id=frame.rom_id)
         
         self.AddPage(self.stats, "Stats")
@@ -744,7 +742,7 @@ class StatsTab(wx.Panel):
         basestatslength = int(frame.Config.get(frame.rom_id, "pokebasestatslength"), 0)
         global poke_num
         self.basestatsoffset = basestatslength*(poke_num) + basestatsoffset
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.basestatsoffset, 0)
             self.base_stats_dict = {}
             self.basestats = rom.read(basestatslength)
@@ -908,7 +906,7 @@ class StatsTab(wx.Panel):
         t_number = int(frame.Config.get(frame.rom_id, "NumberofTypes"), 0)
         list_of_types = []
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(t_offset, 0)
             for n in range(t_number):
                 temp_type = rom.read(t_name_length)
@@ -938,7 +936,7 @@ class StatsTab(wx.Panel):
         abil_num = int(frame.Config.get(frame.rom_id, "NumberofAbilities"), 0)
         abil_len = int(frame.Config.get(frame.rom_id, "AbiltiesNameLength"), 0)
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             abilities_list = generate_list_of_names(abil_offset, abil_len, 
                                                                     "\xff", abil_num, rom)
         
@@ -964,7 +962,7 @@ class StatsTab(wx.Panel):
         number_of_items = int(frame.Config.get(frame.rom_id, "NumberofItems"), 16)
         item_data_len = int(frame.Config.get(frame.rom_id, "ItemsDataLength"), 16)
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             items_list = generate_list_of_names(items_offset, item_data_len,"\xff", number_of_items, rom)
             
         global ITEM_NAMES
@@ -1370,7 +1368,7 @@ class StatsTab(wx.Panel):
         
     def save(self):
         string = self.create_string_of_hex_values_to_be_written()
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.basestatsoffset, 0)
             string = binascii.unhexlify(string)
             rom.write(string)
@@ -1389,7 +1387,7 @@ class MovesTab(wx.Panel):
         moves_length = int(frame.Config.get(frame.rom_id, "AttackNameLength"), 0)
         moves_num = int(frame.Config.get(frame.rom_id, "NumberofAttacks"), 0)
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             self.MOVES_LIST = generate_list_of_names(moves_offset, moves_length, 
                                                                              "\xff", moves_num, rom)
         global MOVES_LIST
@@ -1489,7 +1487,7 @@ class MovesTab(wx.Panel):
         
     def save(self):
         ##Write new table
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             learned_offset = self.learned_moves_offset
             if self.NEW_LEARNED_OFFSET != None:
                 learned_offset = int(self.NEW_LEARNED_OFFSET, 16)
@@ -1743,7 +1741,7 @@ class MovesTab(wx.Panel):
         Jambo51HackCheck = frame.Config.get(frame.rom_id, "Jambo51LearnedMoveHack")
         global poke_num
         self.learned_moves_pointer = (poke_num)*4+self.learned_moves_pointer
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.learned_moves_pointer, 0)
             self.learned_moves_offset = read_pointer(rom.read(4))
             rom.seek(self.learned_moves_offset, 0)
@@ -1785,7 +1783,7 @@ class MovesTab(wx.Panel):
         global poke_num
         
         self.TMHMoffset += (poke_num)*length
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.TMHMoffset)
             read = rom.read(length)
         TMHM = ""
@@ -1813,7 +1811,7 @@ class MovesTab(wx.Panel):
         TMListLength = int(frame.Config.get(frame.rom_id, "TMListEntryLength"), 0)
         NumberofTMs = int(frame.Config.get(frame.rom_id, "NumberofTMs"), 0)
         NumberofHMs = int(frame.Config.get(frame.rom_id, "NumberofHMs"), 0)
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(TMList)
             
             self.TMNumbers = []
@@ -2074,7 +2072,7 @@ class EvoTab(wx.Panel):
         self.evomethodsproperties = frame.Config.get(frame.rom_id, "evomethodsproperties").split(",")
         global poke_num
         self.offset = EvolutionTable+(poke_num)*(LengthOfOneEntry*EvolutionsPerPoke)
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.offset, 0)
             raw = rom.read(LengthOfOneEntry*EvolutionsPerPoke)
         hexValues = get_bytes_string_from_hex_string(raw)
@@ -2123,7 +2121,7 @@ class EvoTab(wx.Panel):
                 tmp += "00"
             hex_string += tmp
         write_string = get_hex_from_string(hex_string)
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.offset, 0)
             rom.write(write_string)
         
@@ -2299,9 +2297,9 @@ class PokeDexTab(wx.Panel):
         DexType = frame.Config.get(frame.rom_id, "DexType")
                     
         global poke_num
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             entry1 = convert_ascii_and_poke(self.Entry1.GetValue(), "to_ascii")
-            repoint = Repointer(frame.open_rom_name, frame, len(entry1), "Entry 1")
+            repoint = Repointer(Globals.OpenRomName, frame, len(entry1), "Entry 1")
             if repoint.ShowModal() == wx.ID_OK:
                 offset = repoint.offset
                 if offset == None:
@@ -2350,9 +2348,9 @@ class PokeDexTab(wx.Panel):
         DexType = frame.Config.get(frame.rom_id, "DexType")
                     
         global poke_num
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             entry2 = convert_ascii_and_poke(self.Entry2.GetValue(), "to_ascii")
-            repoint = Repointer(frame.open_rom_name, frame, len(entry2), "Entry 2")
+            repoint = Repointer(Globals.OpenRomName, frame, len(entry2), "Entry 2")
             if repoint.ShowModal() == wx.ID_OK:
                     offset = repoint.offset
                     if offset == None:
@@ -2397,8 +2395,8 @@ class PokeDexTab(wx.Panel):
     
     def OnRepointFeet(self, *args):
         global poke_num
-        with open(frame.open_rom_name, "r+b") as rom:
-            repoint = Repointer(frame.open_rom_name, frame, 32, "Footprint")
+        with open(Globals.OpenRomName, "r+b") as rom:
+            repoint = Repointer(Globals.OpenRomName, frame, 32, "Footprint")
             if repoint.ShowModal() == wx.ID_OK:
                     offset = repoint.offset
                     if offset == None:
@@ -2458,7 +2456,7 @@ class PokeDexTab(wx.Panel):
             self.FootPrint.SetBitmapLabel(bitmap)
             
     def OnFixNameBug(self,instance):
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(0x10583C)
             rom.write("\xFF")
             rom.seek(0x105856)
@@ -2472,7 +2470,7 @@ class PokeDexTab(wx.Panel):
 
         self.GetNationalDexOrder()
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             global poke_num
             POKE = poke_num-1
             if POKE == -1:
@@ -2660,7 +2658,7 @@ class PokeDexTab(wx.Panel):
         footprints = int(frame.Config.get(frame.rom_id, "footprints"), 0)
         
         self.GetNationalDexOrder()
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             global poke_num
             POKE = poke_num-1
             if POKE == -1:
@@ -2763,7 +2761,7 @@ class PokeDexTab(wx.Panel):
         numberofpokes = int(frame.Config.get(frame.rom_id, "numberofpokes"), 0)
         numofnondexpokesafterchimecho = int(frame.Config.get(frame.rom_id, "numofnondexpokesafterchimecho"), 0)
         self.NatDexList = []
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(NationalDexOrder)
             for n in range(251):
                 tmp = rom.read(2)
@@ -3006,7 +3004,7 @@ class MoveTutorTab(wx.Panel):
             for n in range(16-check): 
                 binary += "0"
         hexCOMP = ""
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             while True:
                 word = binary[:16]
                 word = word[::-1]
@@ -3062,7 +3060,7 @@ class MoveTutorTab(wx.Panel):
         length = int(frame.Config.get(frame.rom_id, "MoveTutorCompLen"), 0)
         global poke_num
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             self.MoveTutorComp += (poke_num)*length
             rom.seek(self.MoveTutorComp)
             read = rom.read(length)
@@ -3231,7 +3229,7 @@ class EggMoveTab(wx.Panel):
                     if self.OFFSET == Offset: continue
                     else: 
                         NewEggOffset = Offset
-                        with open(frame.open_rom_name, "r+b") as rom:
+                        with open(Globals.OpenRomName, "r+b") as rom:
                             rom.seek(eggmovelimit)
                             writeLength = int((length/2-3))
                             writeLength = hex(writeLength).lstrip("0x").rstrip("L").zfill(8)
@@ -3241,7 +3239,7 @@ class EggMoveTab(wx.Panel):
                 else: return
         offset = int(NewEggOffset,16)+int("8000000",16)
         offset = hex(offset)[2:].zfill(8)
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             NewEggOffset_pointer_form = make_pointer(offset)
             if NewEggOffset != hex(self.OFFSET)[2:].zfill(6):
                 for pointer in self.POINTERS:
@@ -3380,7 +3378,7 @@ class EggMoveTab(wx.Panel):
         self.EGG_MOVES = {}
         
         self.POINTERS = [int(frame.Config.get(frame.rom_id, "EggMovePointer1"), 0), int(frame.Config.get(frame.rom_id, "EggMovePointer2"), 0)]
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.POINTERS[0])
             self.OFFSET = read_pointer(rom.read(4))
             
@@ -3500,7 +3498,7 @@ class MOVE_REPOINTER(wx.Dialog):
             pointer = get_hex_from_string(pointer)
             global poke_num
             offset_of_pointer = learned_moves_pointer+(poke_num)*4
-            with open(frame.open_rom_name, "r+b") as rom:
+            with open(Globals.OpenRomName, "r+b") as rom:
                 rom.seek(offset_of_pointer)
                 rom.write(pointer)
                 
@@ -3527,7 +3525,7 @@ class MOVE_REPOINTER(wx.Dialog):
         except:
             return
         search = "\xff\xff"*self.num
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(0)
             read = rom.read()
             x = (0,True)
@@ -3610,7 +3608,7 @@ class EGG_MOVE_REPOINTER(wx.Dialog):
     def OnSearch(self, *args):
         self.OFFSETS.Clear()
         search = "\xff"*self.num
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(0)
             read = rom.read()
             x = (0,True)
@@ -3713,7 +3711,7 @@ class NumberofEvosChanger(wx.Dialog):
         
         readlength = EvolutionsPerPoke*LengthOfOneEntry*numberofpokes
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(EvolutionTable)
             entiretable = rom.read(readlength)
 
@@ -3748,7 +3746,7 @@ class NumberofEvosChanger(wx.Dialog):
         pointer = make_pointer(_offset_)
         pointer = get_hex_from_string(pointer)
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             for offset in EvolutionTablePointers:
                 rom.seek(offset)
                 rom.write(pointer)
@@ -3764,7 +3762,7 @@ class NumberofEvosChanger(wx.Dialog):
             frame.Config.write(PokeRomsIni)
         
         ##fill table with FF
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(EvolutionTable)
             for n in range(readlength):
                 rom.write("\xFF")
@@ -3781,7 +3779,7 @@ class NumberofEvosChanger(wx.Dialog):
         
         change1write = binascii.unhexlify(write)
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             for offset in change1:
                 rom.seek(offset, 0)
                 rom.write(change1write)
@@ -3793,7 +3791,7 @@ class NumberofEvosChanger(wx.Dialog):
 
         change2write = get_hex_from_string(str(hex(new_number-1)[2:]))
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             for offset in change2:
                 rom.seek(offset, 0)
                 rom.write(change2write)
@@ -3816,7 +3814,7 @@ class NumberofEvosChanger(wx.Dialog):
             
         TheShedinjaFixWrite = binascii.unhexlify(write)
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(TheShedinjaFix, 0)
             rom.write(TheShedinjaFixWrite)
         
@@ -3827,7 +3825,7 @@ class NumberofEvosChanger(wx.Dialog):
 
         change3write = get_hex_from_string(str(hex(new_number*8)[2:]))
         
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             for offset in change3:
                 rom.seek(offset, 0)
                 rom.write(change3write)
@@ -3859,7 +3857,7 @@ class NumberofEvosChanger(wx.Dialog):
         
         self.OFFSETS.Clear()
         search = "\xff"*length
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(0)
             read = rom.read()
             x = (0,True)
@@ -3957,7 +3955,7 @@ class POKEDEXEntryRepointer(wx.Dialog):
     def OnSearch(self, *args):
         self.OFFSETS.Clear()
         search = "\xff"*self.num
-        with open(frame.open_rom_name, "r+b") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(0)
             read = rom.read()
             x = (0,True)
@@ -4022,7 +4020,7 @@ frame.Bind(wx.EVT_CLOSE, OnClose)
 if len(sys.argv) > 1:
     file = sys.argv[1]
     frame.open_rom = open(file, "r+b")
-    frame.open_rom_name = file
+    Globals.OpenRomName = file
     frame.work_with_ini()
 
 try:
@@ -4041,7 +4039,7 @@ try:
                 LatestGoodBuild = x
                 break
         CheckForDevBuilds = frame.Config.get("ALL", "CheckForDevBuilds")
-        if latestRelease["tag_name"] != versionNumber:
+        if latestRelease["tag_name"] != Globals.VersionNumber:
             if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
                 UseDevBuild = True
                 timer = wx.Timer(frame, 99)
@@ -4049,7 +4047,7 @@ try:
                 wx.EVT_TIMER(frame, 99, OnUpdateTimer)
         if not timer:
             if LatestGoodBuild:
-                if LatestGoodBuild["tag_name"] != versionNumber:
+                if LatestGoodBuild["tag_name"] != Globals.VersionNumber:
                     UseDevBuild = False
                     timer = wx.Timer(frame, 99)
                     timer.Start(500)
