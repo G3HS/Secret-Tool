@@ -1050,6 +1050,8 @@ class HexEditor(wx.Panel):
             f.close()
             self.SetBinaryFile(self.OpenFile, os.path.getsize(self.OpenFile))
             self.GetParent().PokeDataTab.tabbed_area.reload_tab_data() #Reload stuffs.:P
+            #self.GetParent().PokeDataTab.tabbed_area.egg_moves.load()
+            #self.GetParent().PokeDataTab.tabbed_area.reload_tab_data()
         else: return
 
     def GetCellString(self, row, col, length=1):

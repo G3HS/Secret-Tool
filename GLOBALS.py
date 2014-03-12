@@ -5,6 +5,9 @@ class Globals():
     Version = 'v1.1.3 ~ Codename: "Fellowship of the Hack"'
     VersionNumber = "v1.1.3"
     OpenRomName = None
+    OpenRomID = None
+    INI = None
+    PokeNames = None
     #Saved, EVT_SAVED = NE.NewEvent()
     
         

@@ -2,7 +2,8 @@
   "name": "G3HS"
 , "files": [ { "directory": ".",
       "filters": [
-	"*.py"
+	"*.py",
+	"*.ini"
       ], 
     "recursive": 1 } 
   ]

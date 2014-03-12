@@ -1,6 +1,6 @@
 ﻿#!/usr/local/bin/python
 # -*- coding: utf-8 -*-
-import binascii
+from binascii import unhexlify, hexlify
 import string as st
 import re
 import platform
@@ -79,7 +79,7 @@ def get_hex_from_string(string):
     """
     if len(string) % 2 != 0:
         string = "0"+string
-    try: return binascii.unhexlify(string)
+    try: return unhexlify(string)
     except:
         return None
     
@@ -87,7 +87,7 @@ def get_bytes_string_from_hex_string(string):
     """
     Take a UTF-8 string and convert it to a hex string.
     """
-    return binascii.hexlify(string)
+    return hexlify(string)
 
 def split_string_into_bytes(string):
     if len(string)%2 != 0:
@@ -137,7 +137,7 @@ def MakeByteStringPointer(offset):
     """
     Pointer = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
     Pointer = make_pointer(Pointer)
-    Pointer = binascii.unhexlify(Pointer)
+    Pointer = unhexlify(Pointer)
     return Pointer
     
 def reverse_hex(string):
@@ -147,7 +147,15 @@ def reverse_hex(string):
     for byte in list_of_bytes:
         offset += byte
     return offset
-    
+
+def read_number(string):
+    """
+    Take a fresh read from the rom and convert it into an integer.
+    """
+    string = string[::-1]
+    Hex = hexlify(string)
+    return int(Hex, 16)
+
 def convert_ascii_and_poke(string, mode):
     #modes: "to_poke" and "to_ascii"
     chart = ENCODING
@@ -183,9 +191,9 @@ def convert_ascii_and_poke(string, mode):
             new_string += new
         string = new_string
         string = re.sub("(\\\\x)", "", string, 0, re.DOTALL)
-        string = binascii.unhexlify(string)
+        string = unhexlify(string)
     elif mode == "to_poke":
-        string = binascii.hexlify(string)
+        string = hexlify(string)
         string = string.upper()
         string = "\\x"+re.sub("((.|\n|\r){2})", "\\1\\x", string, 0)[:-2]
         for k,v in chart:
