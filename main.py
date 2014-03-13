@@ -148,52 +148,68 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             print read
             sys.stderr.close()
             sys.stderr = StringIO()
+            if "Permission denied" in read:
+                ERROR = wx.MessageDialog(None, 
+                                    textwrap.fill("Hey, look, I gave it my best, but I was denied permission to access that file.  Check and make sure there aren't any crazy characters in the path, that it is not marked as 'read only', and that it is not open in another program.", 100), 
+                                    'Permission Denied', 
+                                    wx.YES_NO | wx.ICON_ERROR)
+                ERROR.ShowModal()
+                return
+            
             ERROR = wx.MessageDialog(None, 
                                 "ERROR:\n\n"+read+"\n\nWould you like to report this error?", 
                                 'Piped error from sys.stderr: PLEASE REPORT', 
                                 wx.YES_NO | wx.ICON_ERROR)
             if ERROR.ShowModal() == wx.ID_YES:
-                if "ConfigParser.NoOptionError" in read:
-                    errors = read.split("\n")
-                    sections = errors[-2].split("'")
-                    missingoption = sections[1]
-                    section = sections[3]
-                    Finally = wx.MessageDialog(None, 
-                                textwrap.fill('This message does not need to be sent. The last line of that error simply means that the specified option was not found in the ini. Please correct this. In section "{0}", the option "{1}" is missing. This is required for loading.'.format(section,missingoption),100), 
-                                'I already know this error....', 
-                                wx.OK | wx.ICON_INFORMATION)
-                    Finally.ShowModal()
-                    return
-                if "ConfigParser.NoSectionError" in read:
-                    errors = read.split("\n")
-                    sections = errors[-2].split("'")
-                    section = sections[1]
-                    Finally = wx.MessageDialog(None, 
-                                textwrap.fill('This message does not need to be sent. The last line of that error simply means that the specified section was not found in the ini. Please correct this. This program attempted to load data for {0} which was loaded from 0xAC in your rom. It could not find this section.'.format(section),100), 
-                                'I already know this error....', 
-                                wx.OK | wx.ICON_INFORMATION)
-                    Finally.ShowModal()
-                    return
-                if "load_evos_into_list" in read and "IndexError: list index out of range" in read:
-                    Finally = wx.MessageDialog(None, 
-                                textwrap.fill('This message does not need to be sent. This error occurs when a bad offset is loaded from the ini for the evolution table. It attempted to load data for an evolution type that does not exist. Please check your offset in the ini for "evolutiontable".',100), 
-                                'I already know this error....', 
-                                wx.OK | wx.ICON_INFORMATION)
-                    Finally.ShowModal()
-                    return
-                if "IndexError: list index out of range" in read and "get_move_data" in read:
-                    Finally = wx.MessageDialog(None, 
-                                textwrap.fill('This message does not need to be sent. The only time this error happens is when a pointer for learned move data is not in the rom. Most commonly, this is solely due to the pointer being FFFFFF caused by repointing the move table and filling it with FF. So, in basic terms, you have the wrong learned moves offset in the ini. (Maybe you loaded this rom with the ini for an expanded rom or vice versa?)',110), 
-                                'I already know this error....', 
-                                wx.OK | wx.ICON_INFORMATION)
-                    Finally.ShowModal()
-                    return
-                if "load_stats_into_boxes" in read and "SetSelectedItem(): Inavlid item index" in read:
-                    Finally = wx.MessageDialog(None, 
-                                textwrap.fill('This message does not need to be sent. This error occurs when loading an item number that is too high. 90% of the time, your rom is expanded and using a section of ini for the unexpanded rom, or vice versa. Please check your ini.',110), 
-                                'I already know this error....', 
-                                wx.OK | wx.ICON_INFORMATION)
-                    Finally.ShowModal()
+                try:
+                    if "ConfigParser.NoOptionError" in read:
+                        errors = read.split("\n")
+                        sections = errors[-2].split("'")
+                        missingoption = sections[1]
+                        section = sections[3]
+                        Finally = wx.MessageDialog(None, 
+                                    textwrap.fill('This message does not need to be sent. The last line of that error simply means that the specified option was not found in the ini. Please correct this. In section "{0}", the option "{1}" is missing. This is required for loading.'.format(section,missingoption),100), 
+                                    'I already know this error....', 
+                                    wx.OK | wx.ICON_INFORMATION)
+                        Finally.ShowModal()
+                        return
+                    if "ConfigParser.NoSectionError" in read:
+                        errors = read.split("\n")
+                        sections = errors[-2].split("'")
+                        section = sections[1]
+                        Finally = wx.MessageDialog(None, 
+                                    textwrap.fill('This message does not need to be sent. The last line of that error simply means that the specified section was not found in the ini. Please correct this. This program attempted to load data for {0} which was loaded from 0xAC in your rom. It could not find this section.'.format(section),100), 
+                                    'I already know this error....', 
+                                    wx.OK | wx.ICON_INFORMATION)
+                        Finally.ShowModal()
+                        return
+                    if "load_evos_into_list" in read and "IndexError: list index out of range" in read:
+                        Finally = wx.MessageDialog(None, 
+                                    textwrap.fill('This message does not need to be sent. This error occurs when a bad offset is loaded from the ini for the evolution table. It attempted to load data for an evolution type that does not exist. Please check your offset in the ini for "evolutiontable".',100), 
+                                    'I already know this error....', 
+                                    wx.OK | wx.ICON_INFORMATION)
+                        Finally.ShowModal()
+                        return
+                    if "IndexError: list index out of range" in read and "get_move_data" in read:
+                        Finally = wx.MessageDialog(None, 
+                                    textwrap.fill('This message does not need to be sent. The only time this error happens is when a pointer for learned move data is not in the rom. Most commonly, this is solely due to the pointer being FFFFFF caused by repointing the move table and filling it with FF. So, in basic terms, you have the wrong learned moves offset in the ini. (Maybe you loaded this rom with the ini for an expanded rom or vice versa?)',110), 
+                                    'I already know this error....', 
+                                    wx.OK | wx.ICON_INFORMATION)
+                        Finally.ShowModal()
+                        return
+                    if "load_stats_into_boxes" in read and "SetSelectedItem(): Inavlid item index" in read:
+                        Finally = wx.MessageDialog(None, 
+                                    textwrap.fill('This message does not need to be sent. This error occurs when loading an item number that is too high. 90% of the time, your rom is expanded and using a section of ini for the unexpanded rom, or vice versa. Please check your ini.',110), 
+                                    'I already know this error....', 
+                                    wx.OK | wx.ICON_INFORMATION)
+                        Finally.ShowModal()
+                        return
+                except:
+                    ERROR = wx.MessageDialog(None, 
+                                "Error report could not be sent.", 
+                                'Failed Error Report', 
+                                wx.OK | wx.ICON_ERROR)
+                    ERROR.ShowModal()
                     return
                 emailer = EmailError(self, read, Globals.VersionNumber)
                 if emailer.ShowModal() == wx.ID_OK:
@@ -373,11 +389,11 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         
                         Globals.INI.add_section(Globals.OpenRomID)
                         options = Globals.INI.options(game_code)
-                        tmp_ini = {}
+                        tmp_ini = []
                         for opt in options:
-                            tmp_ini[opt] = Globals.INI.get(game_code, opt)
+                            tmp_ini.append((opt, Globals.INI.get(game_code, opt)))
                             
-                        for opt, value in tmp_ini.items():
+                        for opt, value in tmp_ini:
                             Globals.INI.set(Globals.OpenRomID, opt, value)
                             
                         with open(ini, "w") as PokeRomsIni:
