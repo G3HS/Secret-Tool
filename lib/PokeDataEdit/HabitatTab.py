@@ -50,6 +50,14 @@ class HABITAT(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=6)
         butons_vbox.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
         
+        PAGE_MOVE_UP = Button(self, 7, "Move Page Up")
+        self.Bind(wx.EVT_BUTTON, self.OnMovePageUp, id=7)
+        butons_vbox.Add(PAGE_MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
+        
+        PAGE_MOVE_DOWN = Button(self,8, "Move Page Down")
+        self.Bind(wx.EVT_BUTTON, self.OnMovePageDown, id=8)
+        butons_vbox.Add(PAGE_MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
+        
         self.NotInPokeList = wx.ListCtrl(self, -1, style=wx.LC_REPORT, size=(140,400))
         self.NotInPokeList.InsertColumn(0, 'Not Used', width=140)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelectPoke,  self.NotInPokeList)
@@ -177,7 +185,16 @@ class HABITAT(wx.Panel):
                 self.ReloadPokesList()
                 self.PokeList.Select(index+1)
                 self.PokeList.Focus(index+1)
+    
+    def OnMovePageUp(self, *args):
+        
+        if self.CurrentPage 
                 
+    def OnMovePageDown(self, *args):
+        length = len(self.Habitats[self.CurrentHabitat])-1
+        if self.CurrentPage == length: return
+    
+    
     def ReloadPokesList(self):
         self.PokeList.DeleteAllItems()
         for poke in self.Habitats[self.CurrentHabitat][self.CurrentPage]:
