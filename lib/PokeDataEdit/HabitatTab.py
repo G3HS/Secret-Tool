@@ -187,19 +187,34 @@ class HABITAT(wx.Panel):
                 self.PokeList.Focus(index+1)
     
     def OnMovePageUp(self, *args):
+        if self.CurrentPage == 0: return
+        self.Habitats[self.CurrentHabitat][self.CurrentPage], self.Habitats[self.CurrentHabitat][self.CurrentPage-1] = self.Habitats[self.CurrentHabitat][self.CurrentPage-1], self.Habitats[self.CurrentHabitat][self.CurrentPage]
+        self.ReloadPagesList()
+        self.CurrentPage -= 1
+        self.PageList.Select(self.CurrentPage)
+        self.PageList.Focus(self.CurrentPage)
+        self.ReloadPokesList()
         
-        if self.CurrentPage 
-                
     def OnMovePageDown(self, *args):
         length = len(self.Habitats[self.CurrentHabitat])-1
         if self.CurrentPage == length: return
-    
-    
+        self.Habitats[self.CurrentHabitat][self.CurrentPage], self.Habitats[self.CurrentHabitat][self.CurrentPage+1] = self.Habitats[self.CurrentHabitat][self.CurrentPage+1], self.Habitats[self.CurrentHabitat][self.CurrentPage]
+        self.ReloadPagesList()
+        self.CurrentPage += 1
+        self.PageList.Select(self.CurrentPage)
+        self.PageList.Focus(self.CurrentPage)
+        self.ReloadPokesList()
+        
     def ReloadPokesList(self):
         self.PokeList.DeleteAllItems()
         for poke in self.Habitats[self.CurrentHabitat][self.CurrentPage]:
             index = self.PokeList.InsertStringItem(sys.maxint, Globals.PokeNames[poke])
         self.FindNonUsedPokes()
+    
+    def ReloadPagesList(self):
+        self.PageList.DeleteAllItems()
+        for num, page in enumerate(self.Habitats[self.CurrentHabitat]):
+            index = self.PageList.InsertStringItem(sys.maxint, str(num))
     
     def FindNonUsedPokes(self):
         AllPokesInHabitats = []
