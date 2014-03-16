@@ -465,6 +465,9 @@ class SpriteTab(wx.Panel):
             rom.seek(self.IconPointer)
             rom.write(self.GBAIcon)
             
+            rom.seek(iconpalettetable+(self.poke_num))
+            rom.write(unhexlify(hex(self.IconPalNum).rstrip("L").lstrip("0x").zfill(2)))
+            
             pals = ""
             for pal in self.IconPals:
                 tmp = Convert25bitPalettetoGBA(pal)
@@ -574,6 +577,9 @@ class SpriteTab(wx.Panel):
             #Write all things Icon
             rom.seek(self.IconPointer)
             rom.write(self.GBAIcon)
+            
+            rom.seek(iconpalettetable+(self.poke_num))
+            rom.write(unhexlify(hex(self.IconPalNum).rstrip("L").lstrip("0x").zfill(2)))
             
             pals = ""
             for pal in self.IconPals:
