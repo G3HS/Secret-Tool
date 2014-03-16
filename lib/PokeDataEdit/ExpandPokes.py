@@ -627,6 +627,11 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
 
             with open("PokeRoms.ini", "w") as PokeRomsIni:
                 ini.write(PokeRomsIni)
+            DONE = wx.MessageDialog(None, 
+                                "All tables has been expanded, the ini has been ammended, and evolutions have been changed.:)\n\n\nReloading 'MON Data.", 
+                                "Done!",
+                                wx.OK)
+            DONE.ShowModal()
         except Exception as Error:
             rom.seek(0)
             rom.write(SUPERBACKUP)
@@ -637,6 +642,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
                 sys.stderr.write(value)
             sys.stderr.write(TYPE)
             sys.stderr.write(VALUE)
+            
 def FindFreeSpace(starting, length, rom):
         search = "\xFF"*length
         rom.seek(0)

@@ -471,6 +471,8 @@ class SpriteTab(wx.Panel):
                 pals += tmp
             rom.seek(iconpalettes)
             rom.write(pals)
+            for opt in self.Changes:
+                self.Changes[opt] = False
     
     def SaveTogether(self):
         FrontSpriteTable = int(self.config.get(self.rom_id, "FrontSpriteTable"), 0)
@@ -579,7 +581,9 @@ class SpriteTab(wx.Panel):
                 pals += tmp
             rom.seek(iconpalettes)
             rom.write(pals)
-            
+            for opt in self.Changes:
+                self.Changes[opt] = False
+                
     def SwapIconPal(self, instance):
         self.IconPalNum = instance.GetSelection()
         self.ReloadShownSprites()
@@ -645,12 +649,17 @@ class SpriteTab(wx.Panel):
                     converted = raw.convert("P", palette=Image.ADAPTIVE, colors=16)
                 else: converted = raw
             converted = converted.convert("RGB")
+            image = PilImageToWxImage(converted)
+            OrgPalette = GetImageColors(image)
             
-            TC = self.IconPals[self.IconPalNum][0]
+            BestPaletteIndex = BestPalette(self.IconPals,OrgPalette)
+            IconPalette = self.IconPals[BestPaletteIndex]
+            
+            TC = IconPalette[0]
             TransColor = (TC[0],TC[1],TC[2])
             
             PILPal = []
-            for color in self.IconPals[self.IconPalNum]:
+            for color in IconPalette:
                 PILPal.append(color[0])
                 PILPal.append(color[1])
                 PILPal.append(color[2])
@@ -671,8 +680,11 @@ class SpriteTab(wx.Panel):
             converted = converted.convert("RGB")
             
             image = PilImageToWxImage(converted)
-            self.GBAIcon, palette = ConvertNormalImageToGBA(image, palette=self.IconPals[self.IconPalNum], size=(32,64))
-            self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,self.IconPals[self.IconPalNum],size=(32,64))
+            
+            self.IconPalNum = BestPaletteIndex
+            self.IconPalChoice.SetSelection(BestPaletteIndex)
+            self.GBAIcon, palette = ConvertNormalImageToGBA(image, palette=IconPalette, size=(32,64))
+            self.TMPIcon = ConvertGBAImageToNormal(self.GBAIcon,IconPalette,size=(32,64))
             self.Icons.SetBitmapLabel(self.TMPIcon)
             self.ReloadShownSprites()
     

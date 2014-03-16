@@ -3824,7 +3824,7 @@ class NumberofEvosChanger(wx.Dialog):
             rom.seek(TheShedinjaFix, 0)
             rom.write(TheShedinjaFixWrite)
         
-        change3 = [] 
+        change3 = []
         tmp = Globals.INI.get(Globals.OpenRomID, "ChangeToNewNumberTimes8").split(",")
         for offset in tmp:
             change3.append(int(offset, 0))
@@ -4004,7 +4004,7 @@ def OnUpdateTimer(instance):
     UpdateDialog = wx.MessageDialog(None,Message, 
                                     "Update is available...", wx.YES_NO|wx.RESIZE_BORDER)
     if UpdateDialog.ShowModal() == wx.ID_YES:
-        webbrowser.open("https://github.com/thekaratekid552/Secret-Tool/releases")
+        webbrowser.open("http://adf.ly/5621614/g3hs-releases")
         wx.CallAfter(frame.Destroy)
 
 def OnMessageTimer(instance):
