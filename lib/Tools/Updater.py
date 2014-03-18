@@ -110,7 +110,8 @@ class UnpackThread(Thread):
             try: os.remove(os.path.join(os.getcwd(),"G3HS_Documentation.pdf"))
             except: pass
             self.UpdateGauge(50)
-            shutil.move(os.path.join(os.getcwd(),'tmp',"G3HS_Documentation.pdf"), os.path.join(os.getcwd()))
+            NewDocLoc = os.path.join(os.getcwd(),'tmp',"G3HS_Documentation.pdf")
+            shutil.move(NewDocLoc, os.path.join(os.getcwd()))
             self.UpdateGauge(100)
             
             
@@ -118,16 +119,49 @@ class UnpackThread(Thread):
             self.UpdateStatus("Merging ini....")
             #Merge ini
             iniloc = os.path.join(tmpdir, "PokeRoms.ini")
+            orginiloc = os.path.join(os.getcwd(), "PokeRoms.ini")
             NewIni = ConfigParser.ConfigParser().read(iniloc)
             NewRomSections = NewIni.sections()
             #Check if all sections are present:
             OldRomSections = Globals.INI.sections()
+            #Get any new sections I may have added.
+            #Update any current base sections.
             for section in NewRomSections:
+                NewOptions = NewRomSections.options(section)
+                NewIni = []
+                OldOptions = Globals.INI.options(section)
+                for opt in NewOptions:
+                    NewIni.append((opt, 
+                                    NewRomSections.options(section, opt)))
                 if section not in OldRomSections:
-                    pass
-            
-            
-            
+                    Globals.INI.add_section(section)
+                    for opt, value in NewIni:
+                        Globals.INI.set(section, opt, value)
+                else:
+                    for opt in NewOptions:
+                        if opt not in OldOptions:
+                            Globals.INI.set(section, opt, 
+                                            NewRomSections.get(section, opt))
+            for section in OldRomSections:
+                if section is not "ALL":
+                    gamecode = Globals.INI.get(section, "gamecode")
+                else: return
+                UpdateOpts = NewRomSections.options(section)
+                NewUpdateSections = []
+                for opt in UpdateOpts:
+                    NewUpdateSections.append((opt, 
+                                        NewRomSections.options(gamecode, opt)))
+                OldOpts = Globals.INI.options(section)
+                OldOptsLst = []
+                for opt in OldOpts:
+                    Globals.INI.append((opt, 
+                                        Globals.INI.options(section, opt)))
+                for opt, value in NewUpdateSections:
+                    if opt not in OldOpts:
+                        Globals.INI.set(section, opt, value)
+                        
+            with open(orginiloc, "w") as PokeRomsIni:
+                Globals.INI.write(PokeRomsIni)
             
             self.UpdateGauge(100)
             
@@ -171,7 +205,7 @@ class MyPanel(wx.Panel):
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         
         self.status = wx.StaticText(self, label="")
-        self.main_sizer.Add(self.status, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 20)
+        self.main_sizer.Add(self.status,0,wx.ALL|wx.ALIGN_CENTER_HORIZONTAL,20)
         self.gauge = MyGauge(self)
         self.main_sizer.Add(self.gauge, 0, wx.ALL|wx.EXPAND, 10)
  
