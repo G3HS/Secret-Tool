@@ -11,8 +11,10 @@ import shutil
 from threading import Thread
 try: from wx.lib.pubsub import Publisher as pub
 except: 
-    from wx.lib.pubsub import pub
+    print "Changing pub mode"
     from wx.lib.pubsub import setuparg1
+    from wx.lib.pubsub import pub
+    
 from subprocess import Popen
  
 class DownloadThread(Thread):
@@ -124,6 +126,10 @@ class UnpackThread(Thread):
             #Merge ini
             iniloc = os.path.join(tmpdir, "PokeRoms.ini")
             orginiloc = os.path.join(os.getcwd(), "PokeRoms.ini")
+            #Backup ini
+            BackUpIni = os.path.join(os.getcwd(),"PokeRoms.ini.bak")
+            shutil.copy(orginiloc, BackUpIni)
+            
             NewIni = ConfigParser.ConfigParser()
             NewIni.read(iniloc)
             NewRomSections = NewIni.sections()
@@ -133,6 +139,7 @@ class UnpackThread(Thread):
             #update any current base sections.
             self.PulseGauge()
             for section in NewRomSections:
+                self.PulseGauge()
                 NewOptions = NewIni.options(section)
                 NewOptsValues = []
                 OldOptions = Globals.INI.options(section)
@@ -148,6 +155,7 @@ class UnpackThread(Thread):
                             Globals.INI.set(section, opt, 
                                             NewIni.get(section, opt))
             for section in OldRomSections:
+                self.PulseGauge()
                 if section != "ALL":
                     gamecode = Globals.INI.get(section, "gamecode")
                 else: continue

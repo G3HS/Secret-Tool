@@ -20,6 +20,7 @@ from lib.PokeDataEdit.HabitatTab import *
 
 try: from wx.lib.pubsub import Publisher as pub
 except: 
+    print "Changing pub mode"
     from wx.lib.pubsub import setuparg1
     from wx.lib.pubsub import pub
 
@@ -90,7 +91,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.SetIcon(icon)
         
         Globals.INI = ConfigParser.ConfigParser()
-        ini = os.paself.Destroyth.join("PokeRoms.ini") #self.path,
+        ini = os.path.join("PokeRoms.ini") #self.path,
         Globals.INI.read(ini)
         pub.subscribe(self.EXIT, "CloseG3HS")
         self.panel.Layout()
