@@ -17,6 +17,7 @@ import traceback
 import urllib2
 from lib.HexEditor.hexeditor import *
 from lib.PokeDataEdit.HabitatTab import *
+from wx.lib.pubsub import Publisher as pub
 
 from GLOBALS import *
 
@@ -87,10 +88,14 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         Globals.INI = ConfigParser.ConfigParser()
         ini = os.path.join("PokeRoms.ini") #self.path,
         Globals.INI.read(ini)
+        pub.subscribe(self.EXIT, "CloseG3HS")
         self.panel.Layout()
         self.Layout()
         self.Show(True)
     
+    def EXIT(self, data=None):
+        wx.CallAfter(self.Destroy)
+
     def Contact(self, event):
         emailer = ContactDialog(self)
         if emailer.ShowModal() == wx.ID_OK:
