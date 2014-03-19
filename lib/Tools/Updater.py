@@ -9,6 +9,7 @@ from zipfile import ZipFile
 import shutil
 from threading import Thread
 from wx.lib.pubsub import Publisher as pub
+from subprocess import Popen
  
 ########################################################################
 class DownloadThread(Thread):
@@ -166,9 +167,16 @@ class UnpackThread(Thread):
             self.UpdateGauge(100)
             
             #Replace exe
-            self.UpdateStatus("G3HS will now exit and complete the update....")
-            time.sleep(5)
+            self.UpdateStatus("G3HS will now exit, complete the update, and restart.")
             
+            time.sleep(5)
+            try: popen = Popen([".\Finish.sh"])
+            except: 
+                try: popen = Popen([".\Finish.bat"])
+                except:
+                    print "Failed"
+            wx.CallAfter(pub.sendMessage, "CloseG3HS")
+
     def UpdateGauge(self, data):
         wx.CallAfter(pub.sendMessage, "update_gauge",data=data)
         
