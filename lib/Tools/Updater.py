@@ -125,18 +125,17 @@ class UnpackThread(Thread):
             NewRomSections = NewIni.sections()
             #Check if all sections are present:
             OldRomSections = Globals.INI.sections()
-            #Get any new sections I may have added.
-            #Update any current base sections.
+            #Get any new sections I may have added and update any current base sections.
             for section in NewRomSections:
+                self.PulseGauge()
                 NewOptions = NewRomSections.options(section)
-                NewIni = []
+                NewOptsValues = []
                 OldOptions = Globals.INI.options(section)
                 for opt in NewOptions:
-                    NewIni.append((opt, 
-                                    NewRomSections.options(section, opt)))
+                    NewOptsValues.append((opt, NewRomSections.options(section, opt)))
                 if section not in OldRomSections:
                     Globals.INI.add_section(section)
-                    for opt, value in NewIni:
+                    for opt, value in NewOptsValues:
                         Globals.INI.set(section, opt, value)
                 else:
                     for opt in NewOptions:
@@ -144,23 +143,24 @@ class UnpackThread(Thread):
                             Globals.INI.set(section, opt, 
                                             NewRomSections.get(section, opt))
             for section in OldRomSections:
+                self.PulseGauge()
                 if section is not "ALL":
                     gamecode = Globals.INI.get(section, "gamecode")
-                else: return
+                else: continue
                 UpdateOpts = NewRomSections.options(section)
-                NewUpdateSections = []
+                NewUpdateOptsValues = []
                 for opt in UpdateOpts:
-                    NewUpdateSections.append((opt, 
+                    NewUpdateOptsValues.append((opt, 
                                         NewRomSections.options(gamecode, opt)))
                 OldOpts = Globals.INI.options(section)
                 OldOptsLst = []
                 for opt in OldOpts:
                     Globals.INI.append((opt, 
                                         Globals.INI.options(section, opt)))
-                for opt, value in NewUpdateSections:
+                for opt, value in NewUpdateOptsValues:
                     if opt not in OldOpts:
                         Globals.INI.set(section, opt, value)
-                        
+            self.PulseGauge()
             with open(orginiloc, "w") as PokeRomsIni:
                 Globals.INI.write(PokeRomsIni)
             
@@ -182,6 +182,9 @@ class UnpackThread(Thread):
         
     def UpdateStatus(self, status):
         wx.CallAfter(pub.sendMessage, "UpdateStatus",data=status)
+
+    def PulseGauge(self, data=None):
+        wx.CallAfter(pub.sendMessage, "PULSE")
             
 ########################################################################
 class MyGauge(wx.Gauge):
@@ -193,6 +196,7 @@ class MyGauge(wx.Gauge):
         wx.Gauge.__init__(self, parent, range=0)
         pub.subscribe(self.updateProgress, "update_gauge")
         pub.subscribe(self.SetRangeOfFile, "set_range_gauge")
+        pub.subscribe(self.Pulse, "PULSE")
  
     #----------------------------------------------------------------------
     def updateProgress(self, msg):
