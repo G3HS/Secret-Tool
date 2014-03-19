@@ -4,6 +4,7 @@
 from __future__ import division
 import wx, os, binascii, ConfigParser, sys, textwrap, platform
 from lib.Tools.rom_insertion_operations import *
+from lib.Tools.Updater import DownloaderDialog
 from lib.OverLoad.CheckListCtrl import *
 from lib.OverLoad.Button import *
 from lib.PokeDataEdit.PokeSpriteTab import *
@@ -4004,8 +4005,10 @@ def OnUpdateTimer(instance):
     UpdateDialog = wx.MessageDialog(None,Message, 
                                     "Update is available...", wx.YES_NO|wx.RESIZE_BORDER)
     if UpdateDialog.ShowModal() == wx.ID_YES:
-        webbrowser.open("http://adf.ly/5621614/g3hs-releases")
-        wx.CallAfter(frame.Destroy)
+        #webbrowser.open("http://adf.ly/5621614/g3hs-releases")
+        #wx.CallAfter(frame.Destroy)
+        Globals.latestRelease = latestRelease
+        DownloaderDialog()
 
 def OnMessageTimer(instance):
     global Msgtimer

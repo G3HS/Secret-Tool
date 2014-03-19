@@ -900,7 +900,7 @@ class SpriteTab(wx.Panel):
             self.FrontPalettePointer = read_pointer(rom.read(4))
             rom.seek(ShinyPaletteTable+(poke_num)*bytes_per_entry)
             self.ShinyPalettePointer = read_pointer(rom.read(4))
-            
+            print hex(self.FrontSpritePointer)
             self.GBAFrontSprite, self.OrgSizes["front"] = LZUncompress(rom, self.FrontSpritePointer)
             if self.GBAFrontSprite == False or self.OrgSizes["front"] == False:
                 self.imageLoadingError()

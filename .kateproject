@@ -3,7 +3,8 @@
 , "files": [ { "directory": ".",
       "filters": [
 	"*.py",
-	"*.ini"
+	"*.ini",
+	"*.spec"
       ], 
     "recursive": 1 } 
   ]
