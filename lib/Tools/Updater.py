@@ -2,6 +2,7 @@ import os
 import wx
 import urllib2
 import time
+import ConfigParser
 from GLOBALS import *
 import platform, locale
 from zipfile import ZipFile
@@ -100,10 +101,7 @@ class UnpackThread(Thread):
                     dst_file = os.path.join(dst_dir, file_)
                     if os.path.exists(dst_file):
                         os.remove(dst_file)
-                    shutil.move(src_file, dst_dir)
-                print dst_dir
-                print src_dir
-                print os.getcwd()
+                    shutil.move(src_file, dst_dir))
                         
             self.UpdateGauge(100)
             self.UpdateGauge(0)
@@ -119,7 +117,14 @@ class UnpackThread(Thread):
             self.UpdateGauge(0)
             self.UpdateStatus("Merging ini....")
             #Merge ini
-            
+            iniloc = os.path.join(tmpdir, "PokeRoms.ini")
+            NewIni = ConfigParser.ConfigParser().read(iniloc)
+            NewRomSections = NewIni.sections()
+            #Check if all sections are present:
+            OldRomSections = Globals.INI.sections()
+            for section in NewRomSections:
+                if section not in OldRomSections:
+                    pass
             
             
             
