@@ -4,7 +4,8 @@
       "filters": [
 	"*.py",
 	"*.ini",
-	"*.spec"
+	"*.spec",
+	"*.sh"
       ], 
     "recursive": 1 } 
   ]

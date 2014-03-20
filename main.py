@@ -17,7 +17,11 @@ import traceback
 import urllib2
 from lib.HexEditor.hexeditor import *
 from lib.PokeDataEdit.HabitatTab import *
-from wx.lib.pubsub import Publisher as pub
+
+try: from wx.lib.pubsub import Publisher as pub
+except: 
+    from wx.lib.pubsub import setuparg1
+    from wx.lib.pubsub import pub
 
 from GLOBALS import *
 
@@ -86,7 +90,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.SetIcon(icon)
         
         Globals.INI = ConfigParser.ConfigParser()
-        ini = os.path.join("PokeRoms.ini") #self.path,
+        ini = os.paself.Destroyth.join("PokeRoms.ini") #self.path,
         Globals.INI.read(ini)
         pub.subscribe(self.EXIT, "CloseG3HS")
         self.panel.Layout()
@@ -95,6 +99,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
     
     def EXIT(self, data=None):
         wx.CallAfter(self.Destroy)
+        wx.CallAfter(OnClose, 0)
 
     def Contact(self, event):
         emailer = ContactDialog(self)
@@ -155,10 +160,12 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             sys.stderr.close()
             sys.stderr = StringIO()
             if "Permission denied" in read:
+                error = read.split("\n")[-2]
+                
                 ERROR = wx.MessageDialog(None, 
-                                    textwrap.fill("Hey, look, I gave it my best, but I was denied permission to access that file.  Check and make sure there aren't any crazy characters in the path, that it is not marked as 'read only', and that it is not open in another program.", 100), 
+                                    textwrap.fill("Hey, look, I gave it my best, but I was denied permission to access that file.  Check and make sure there aren't any crazy characters in the path, that it is not marked as 'read only', and that it is not open in another program.", 100)+"\n\nError:\n"+textwrap.fill(error, 100), 
                                     'Permission Denied', 
-                                    wx.YES_NO | wx.ICON_ERROR)
+                                    wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
                 return
             
@@ -4013,7 +4020,7 @@ def OnUpdateTimer(instance):
         #webbrowser.open("http://adf.ly/5621614/g3hs-releases")
         #wx.CallAfter(frame.Destroy)
         Globals.latestRelease = latestRelease
-        DownloaderDialog()
+        DownloaderDialog(frame)
 
 def OnMessageTimer(instance):
     global Msgtimer

@@ -3,37 +3,42 @@ import wx
 import urllib2
 import time
 import ConfigParser
+import sys
 from GLOBALS import *
 import platform, locale
 from zipfile import ZipFile
 import shutil
 from threading import Thread
-from wx.lib.pubsub import Publisher as pub
+try: from wx.lib.pubsub import Publisher as pub
+except: 
+    from wx.lib.pubsub import pub
+    from wx.lib.pubsub import setuparg1
 from subprocess import Popen
  
-########################################################################
 class DownloadThread(Thread):
     """Downloading thread"""
- 
-    #----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
         Thread.__init__(self)
         self.start()
- 
-    #----------------------------------------------------------------------
+        
     def run(self):
-        """
-        Run the worker thread
-        """
+        """Run the worker thread"""
         url = "https://github.com/thekaratekid552/"\
         "Secret-Tool/releases/download/"\
             "{0}/{1}".format(Globals.latestRelease["name"],
                              Globals.ZIPName)
-        
         file_name = url.split('/')[-1]
         Globals.DownloadedZipName = file_name
-        u = urllib2.urlopen(url)
+        for x in range(5):
+            try: u = urllib2.urlopen(url)
+            except:
+                if x == 4:
+                    return False
+                else:
+                    time.sleep(2)
+                    continue
+                
         f = open(file_name, 'w+b')
         meta = u.info()
         self.fsize = int(meta.getheaders("Content-Length")[0])
@@ -63,13 +68,11 @@ class DownloadThread(Thread):
         
 class UnpackThread(Thread):
     """Unpacking thread"""
-    #----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
         Thread.__init__(self)
         self.start()
  
-    #----------------------------------------------------------------------
     def run(self):
         with ZipFile(Globals.DownloadedZipName, 'r') as updatezip:
             self.UpdateGauge(25)
@@ -102,7 +105,7 @@ class UnpackThread(Thread):
                     dst_file = os.path.join(dst_dir, file_)
                     if os.path.exists(dst_file):
                         os.remove(dst_file)
-                    shutil.move(src_file, dst_dir))
+                    shutil.move(src_file, dst_dir)
                         
             self.UpdateGauge(100)
             self.UpdateGauge(0)
@@ -121,18 +124,20 @@ class UnpackThread(Thread):
             #Merge ini
             iniloc = os.path.join(tmpdir, "PokeRoms.ini")
             orginiloc = os.path.join(os.getcwd(), "PokeRoms.ini")
-            NewIni = ConfigParser.ConfigParser().read(iniloc)
+            NewIni = ConfigParser.ConfigParser()
+            NewIni.read(iniloc)
             NewRomSections = NewIni.sections()
             #Check if all sections are present:
             OldRomSections = Globals.INI.sections()
-            #Get any new sections I may have added and update any current base sections.
+            #Get any new sections I may have added and 
+            #update any current base sections.
+            self.PulseGauge()
             for section in NewRomSections:
-                self.PulseGauge()
-                NewOptions = NewRomSections.options(section)
+                NewOptions = NewIni.options(section)
                 NewOptsValues = []
                 OldOptions = Globals.INI.options(section)
                 for opt in NewOptions:
-                    NewOptsValues.append((opt, NewRomSections.options(section, opt)))
+                    NewOptsValues.append((opt, NewIni.get(section, opt)))
                 if section not in OldRomSections:
                     Globals.INI.add_section(section)
                     for opt, value in NewOptsValues:
@@ -141,40 +146,43 @@ class UnpackThread(Thread):
                     for opt in NewOptions:
                         if opt not in OldOptions:
                             Globals.INI.set(section, opt, 
-                                            NewRomSections.get(section, opt))
+                                            NewIni.get(section, opt))
             for section in OldRomSections:
-                self.PulseGauge()
-                if section is not "ALL":
+                if section != "ALL":
                     gamecode = Globals.INI.get(section, "gamecode")
                 else: continue
-                UpdateOpts = NewRomSections.options(section)
+                UpdateOpts = NewIni.options(gamecode)
                 NewUpdateOptsValues = []
                 for opt in UpdateOpts:
                     NewUpdateOptsValues.append((opt, 
-                                        NewRomSections.options(gamecode, opt)))
+                                        NewIni.get(gamecode, opt)))
                 OldOpts = Globals.INI.options(section)
-                OldOptsLst = []
-                for opt in OldOpts:
-                    Globals.INI.append((opt, 
-                                        Globals.INI.options(section, opt)))
                 for opt, value in NewUpdateOptsValues:
                     if opt not in OldOpts:
                         Globals.INI.set(section, opt, value)
-            self.PulseGauge()
             with open(orginiloc, "w") as PokeRomsIni:
                 Globals.INI.write(PokeRomsIni)
-            
+                
+            self.UpdateGauge(0)
+            self.UpdateGauge(25)
+            self.UpdateGauge(75)
             self.UpdateGauge(100)
             
             #Replace exe
-            self.UpdateStatus("G3HS will now exit, complete the update, and restart.")
+            self.UpdateStatus("G3HS will now exit, complete "\
+                                              "the update, and restart.")
             
             time.sleep(5)
-            try: popen = Popen([".\Finish.sh"])
-            except: 
-                try: popen = Popen([".\Finish.bat"])
+            if sys.platform == 'linux2':
+                #Give exe permission.
+                os.chmod(os.path.join(os.getcwd(),"tmp","Gen_III_Suite"), 0766)
+                os.chmod(os.path.join(os.getcwd(),"tmp","Finish.sh"), 0766)
+                try: popen = Popen(os.path.join(os.getcwd(),"tmp","Finish.sh"))
+                except: print os.path.join(os.getcwd(),"tmp","Finish.sh")
+            else:
+                try: popen = Popen(os.path.join(os.getcwd(),"tmp","Finish.bat"))
                 except:
-                    print "Failed"
+                    pass
             wx.CallAfter(pub.sendMessage, "CloseG3HS")
 
     def UpdateGauge(self, data):
@@ -186,30 +194,27 @@ class UnpackThread(Thread):
     def PulseGauge(self, data=None):
         wx.CallAfter(pub.sendMessage, "PULSE")
             
-########################################################################
 class MyGauge(wx.Gauge):
     """"""
- 
-    #----------------------------------------------------------------------
     def __init__(self, parent):
         """Constructor"""
         wx.Gauge.__init__(self, parent, range=0)
         pub.subscribe(self.updateProgress, "update_gauge")
         pub.subscribe(self.SetRangeOfFile, "set_range_gauge")
-        pub.subscribe(self.Pulse, "PULSE")
+        pub.subscribe(self.DoPulse, "PULSE")
  
-    #----------------------------------------------------------------------
     def updateProgress(self, msg):
         """"""
         self.SetValue(msg.data)
-    #----------------------------------------------------------------------
+        
     def SetRangeOfFile(self, range):
         self.SetRange(range.data)
+    
+    def DoPulse(self, data=None):
+        self.Pulse()
  
-########################################################################
 class MyPanel(wx.Panel):
     """"""
-    #----------------------------------------------------------------------
     def __init__(self, parent):
         """Constructor"""
         wx.Panel.__init__(self, parent)
@@ -227,8 +232,6 @@ class MyPanel(wx.Panel):
         pub.subscribe(self.Update, "ContinueUpdate")
         pub.subscribe(self.ChangeStatus, "UpdateStatus")
 
- 
-    #----------------------------------------------------------------------
     def Update(self, msg=None):
         if msg == None:
             DownloadThread()
@@ -245,15 +248,8 @@ class MyPanel(wx.Panel):
     def ChangeStatus(self, msg):
         self.status.SetLabel(msg.data)
         
-########################################################################
 class DownloaderDialog(wx.Dialog):
     def __init__(self, parent=None, id=wx.ID_ANY):
         wx.Dialog.__init__(self, parent, title="Updater", size=(600, 300))
         panel = MyPanel(self)
-        self.Show()
- 
-#----------------------------------------------------------------------
-if __name__ == "__main__":
-    app = wx.App(False)
-    frame = DownloaderDialog()
-    app.MainLoop()
+        self.ShowModal()
