@@ -5,7 +5,8 @@
 	"*.py",
 	"*.ini",
 	"*.spec",
-	"*.sh"
+	"*.sh",
+	"*.bat"
       ], 
     "recursive": 1 } 
   ]
