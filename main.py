@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*- 
 #venv pyi-env-name
 from __future__ import division
-import wx, os, binascii, ConfigParser, sys, textwrap, platform
+import wx, os, ConfigParser, sys, textwrap, platform
 from lib.Tools.rom_insertion_operations import *
-from lib.Tools.Updater import DownloaderDialog
 from lib.OverLoad.CheckListCtrl import *
 from lib.OverLoad.Button import *
 from lib.PokeDataEdit.PokeSpriteTab import *
@@ -12,11 +11,13 @@ from lib.PokeDataEdit.ExpandPokes import *
 from lib.CustomDialogs.BaseRepointer import *
 from cStringIO import StringIO
 from lib.CustomDialogs.EmailError import *
-import json, webbrowser
+import json
 import traceback
 import urllib2
 from lib.HexEditor.hexeditor import *
 from lib.PokeDataEdit.HabitatTab import *
+from lib.OverLoad.UpdateDialog import *
+from binascii import hexlify, unhexlify
 
 try: from wx.lib.pubsub import Publisher as pub
 except: 
@@ -100,7 +101,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
     
     def EXIT(self, data=None):
         wx.CallAfter(self.Destroy)
-        wx.CallAfter(OnClose, 0)
+        wx.CallAfter(sys.exit)
 
     def Contact(self, event):
         emailer = ContactDialog(self)
@@ -263,7 +264,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             downloads = None
             for x in obj:
                 if x["tag_name"] == Globals.VersionNumber:
-                    downloads = x['assets'][0]['download_count']
+                    downloads = 0
+                    for asset in x['assets']: downloads += asset['download_count']
             if downloads != None:
                 D = description + "\n\nThis version has been downloaded {0} times around the world.".format(downloads)
             else:
@@ -331,8 +333,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             rom_id_offset = int(Globals.INI.get("ALL", "OffsetThatContainsSecondRomID"),0)
             
             self.open_rom.seek(rom_id_offset) #Seek to last 2 bytes in rom
-            Globals.OpenRomID = self.open_rom.read(2)
-            Globals.OpenRomID = str(binascii.hexlify(Globals.OpenRomID)) 
+            Globals.OpenRomID = str(hexlify(self.open_rom.read(2))) 
 
             all_possible_rom_ids = Globals.INI.sections()
             
@@ -674,7 +675,7 @@ class PokemonDataEditor(wx.Panel):
         
     def save_new_poke_name(self):
         name = self.Poke_Name.GetValue()
-        name = convert_ascii_and_poke(str(name), "to_ascii")
+        name = convert_ascii_and_poke(name, "to_ascii")
         name += "\xff"
         max_length = int(Globals.INI.get(Globals.OpenRomID, "PokeNamesLength"), 0)
         need = max_length-len(name)
@@ -1394,7 +1395,7 @@ class StatsTab(wx.Panel):
         string = self.create_string_of_hex_values_to_be_written()
         with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.basestatsoffset, 0)
-            string = binascii.unhexlify(string)
+            string = unhexlify(string)
             rom.write(string)
         
 class MovesTab(wx.Panel):
@@ -2117,11 +2118,26 @@ class EvoTab(wx.Panel):
         global ITEM_NAMES
         self.evo_list.DeleteAllItems()
         for opts in self.evos:
-            index = self.evo_list.InsertStringItem(sys.maxint, EvolutionMethods[opts[0]])
-            if self.evomethodsproperties[opts[0]] == "Level":
-                need = "Level: "+str(opts[1])
-            elif self.evomethodsproperties[opts[0]] == "Item":
-                need = "Item: "+ITEM_NAMES[opts[1]]
+            try: method = EvolutionMethods[opts[0]]
+            except: 
+                method = EvolutionMethods[0]
+                opts[0] = 0
+                opts[1] = 0
+                opts[2] = 0
+            index = self.evo_list.InsertStringItem(sys.maxint, method)
+            try: 
+                assettype = self.evomethodsproperties[opts[0]]
+                asset = opts[1]
+            except: 
+                assettype = self.evomethodsproperties[0]
+                asset = 0
+                opts[0] = 0
+                opts[1] = 0
+                opts[2] = 0
+            if assettype == "Level":
+                need = "Level: "+str(asset)
+            elif assettype == "Item":
+                need = "Item: "+ITEM_NAMES[asset]
             else:
                 need = "-"
             self.evo_list.SetStringItem(index, 1, need)
@@ -2504,8 +2520,7 @@ class PokeDexTab(wx.Panel):
                 else: pokedex = pokedex+(index)*LengthofPokedexEntry
             rom.seek(pokedex)
             
-            Type = self.Type.GetValue()
-            Type = convert_ascii_and_poke(Type, "to_ascii")
+            Type = convert_ascii_and_poke(self.Type.GetValue(), "to_ascii")
             Type = Type[:11]+"\xff"
             rom.write(Type)
             
@@ -3797,7 +3812,7 @@ class NumberofEvosChanger(wx.Dialog):
         elif new_number == 32: write = "F000"
         else: write = "F019"
         
-        change1write = binascii.unhexlify(write)
+        change1write = unhexlify(write)
         
         with open(Globals.OpenRomName, "r+b") as rom:
             for offset in change1:
@@ -3832,7 +3847,7 @@ class NumberofEvosChanger(wx.Dialog):
             elif new_number == 32: write = "790189460000"
             else: write = "B9008946C819"
             
-        TheShedinjaFixWrite = binascii.unhexlify(write)
+        TheShedinjaFixWrite = unhexlify(write)
         
         with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(TheShedinjaFix, 0)
@@ -3969,7 +3984,12 @@ class POKEDEXEntryRepointer(wx.Dialog):
         
         try: int(_offset_, 16)
         except: return
-        
+        b = wx.StaticBox(pnl, label='Colors')
+        sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)        
+        sbs.Add(wx.RadioButton(pnl, label='256 Colors', 
+            style=wx.RB_GROUP))
+        sbs.Add(wx.RadioButton(pnl, label='16 Colors'))
+        sbs.Add(wx.RadioButton(pnl, label='2 Colors'))
         returned_offset = _offset_
 
     def OnSearch(self, *args):
@@ -4015,13 +4035,8 @@ def OnUpdateTimer(instance):
     if latestRelease["prerelease"] == True:
         Message += "Please note that this is a prerelease and may not work properly.\n\n"
     Message +="Would you like to update?"
-    UpdateDialog = wx.MessageDialog(None,Message, 
-                                    "Update is available...", wx.YES_NO|wx.RESIZE_BORDER)
-    if UpdateDialog.ShowModal() == wx.ID_YES:
-        #webbrowser.open("http://adf.ly/5621614/g3hs-releases")
-        #wx.CallAfter(frame.Destroy)
-        Globals.latestRelease = latestRelease
-        DownloaderDialog(frame)
+    Updater = UpdateDialog(frame,Message)
+        
 
 def OnMessageTimer(instance):
     global Msgtimer
@@ -4030,10 +4045,30 @@ def OnMessageTimer(instance):
     global MSG
     MSG = textwrap.fill(MSG,110)
     Message = "A message from karatekid552:\n\n"+MSG
-    UpdateDialog = wx.MessageDialog(None,Message, 
-                                                        "Message", wx.OK)
+    UpdateDialog = wx.MessageDialog(None,Message,"Message", wx.OK)
     UpdateDialog.ShowModal()
+
+def DetermineHigherVersion(new, old):
+    new = new.lstrip("v").split(".")
+    old = old.lstrip("v").split(".")
+    for n, v in enumerate(new):
+        new[n] = int(new[n],16)
+    for n, v in enumerate(old):
+        old[n] = int(old[n],16)
+    h = False
+    for num, v in enumerate(new):
+        try: old[num]
+        except: 
+            if h: return False
+            else: return True
+        if old[num] >= v:
+            h = True
+            continue
+        elif old[num] < v:
+            return True
+        return False
         
+
 app = wx.App(False)
 name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)
@@ -4061,7 +4096,7 @@ try:
                 LatestGoodBuild = x
                 break
         CheckForDevBuilds = Globals.INI.get("ALL", "CheckForDevBuilds")
-        if latestRelease["tag_name"] != Globals.VersionNumber:
+        if DetermineHigherVersion(latestRelease["tag_name"],Globals.VersionNumber):
             if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
                 UseDevBuild = True
                 timer = wx.Timer(frame, 99)
@@ -4069,7 +4104,7 @@ try:
                 wx.EVT_TIMER(frame, 99, OnUpdateTimer)
         if not timer:
             if LatestGoodBuild:
-                if LatestGoodBuild["tag_name"] != Globals.VersionNumber:
+                if DetermineHigherVersion(LatestGoodBuild["tag_name"],Globals.VersionNumber):
                     UseDevBuild = False
                     timer = wx.Timer(frame, 99)
                     timer.Start(500)

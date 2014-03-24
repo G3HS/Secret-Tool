@@ -1,9 +1,9 @@
 #Globals: Here is where I store everything that needs to be accessed anywhere.
-#import wx.lib.newevent as NE
+
 
 class Globals():
-    Version = 'v1.2 ~ Codename: "Fellowship of the Hack"'
     VersionNumber = "v1.2"
+    Version = VersionNumber+" ~ Codename: 'Fellowship of the Hack'"
     OpenRomName = None
     OpenRomID = None
     INI = None

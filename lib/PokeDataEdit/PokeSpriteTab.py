@@ -38,7 +38,7 @@ class SpriteTab(wx.Panel):
         SpritesAndPals.Add(self.LoadAllButton, 0, wx.EXPAND | wx.ALL, 6)
         
         self.cb = wx.CheckBox(spritePanel, -1, 'Fill sprites with 0xFF on repoint?', (10, 10))
-        self.cb.SetValue(True)
+        self.cb.SetValue(False)
         SpritesAndPals.Add(self.cb, 0, wx.ALL|wx.ALIGN_CENTER, 5)
         
         button_size = (76,76)
@@ -116,7 +116,7 @@ class SpriteTab(wx.Panel):
         FrameHBox.Add(self.Frames, 0, wx.EXPAND | wx.ALL, 5)
         
         self.SeperateFrames = wx.CheckBox(PositionPanel, -1, 'Repoint Frames Seperately?', (10, 10))
-        self.SeperateFrames.SetValue(True)
+        self.SeperateFrames.SetValue(False)
         PositionPanelSizer.Add(self.SeperateFrames, 0, wx.ALL|wx.ALIGN_CENTER, 5)
         
         ChangePointers = Button(PositionPanel, 66, "Change Pointers for Images")
@@ -532,36 +532,37 @@ class SpriteTab(wx.Panel):
                 else:
                     rom.seek(self.ShinyPalettePointer)
                     rom.write(GBASHINYLZ)
-            Length = ""
-            for x in RepointList:
-                Length += x[0]
-            repointer = SpriteRepointer(rom,need=len(Length)+16,repoint_what="Sprites")
-            while True:
-                if repointer.ShowModal() == wx.ID_OK:
-                    if repointer.offset == None: continue
-                    else:
-                        start = repointer.offset
-                        for sprite in RepointList:
-                            rom.seek(sprite[1]+(self.poke_num)*bytes_per_entry)
-                            #Write new pointer
-                            hexOffset = hex(start+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                            hexOffset = make_pointer(hexOffset)
-                            hexOffset = unhexlify(hexOffset)
-                            rom.write(hexOffset)
-                            #Clear old image
-                            if overwrite == True:
-                                rom.seek(sprite[2])
-                                for x in range(self.OrgSizes[sprite[3]]):
-                                    rom.write("\xFF")
-                            #Write new image
-                            rom.seek(start)
-                            rom.write(sprite[0])
-                            start = rom.tell()
-                            while start%4:
-                                start += 1
-                            self.OrgSizes[sprite[3]] = len(sprite[0])
-                        break
-                else: return
+            if RepointList != []:
+                Length = ""
+                for x in RepointList:
+                    Length += x[0]
+                repointer = SpriteRepointer(rom,need=len(Length)+16,repoint_what="Sprites")
+                while True:
+                    if repointer.ShowModal() == wx.ID_OK:
+                        if repointer.offset == None: continue
+                        else:
+                            start = repointer.offset
+                            for sprite in RepointList:
+                                rom.seek(sprite[1]+(self.poke_num)*bytes_per_entry)
+                                #Write new pointer
+                                hexOffset = hex(start+0x8000000).rstrip("L").lstrip("0x").zfill(8)
+                                hexOffset = make_pointer(hexOffset)
+                                hexOffset = unhexlify(hexOffset)
+                                rom.write(hexOffset)
+                                #Clear old image
+                                if overwrite == True:
+                                    rom.seek(sprite[2])
+                                    for x in range(self.OrgSizes[sprite[3]]):
+                                        rom.write("\xFF")
+                                #Write new image
+                                rom.seek(start)
+                                rom.write(sprite[0])
+                                start = rom.tell()
+                                while start%4:
+                                    start += 1
+                                self.OrgSizes[sprite[3]] = len(sprite[0])
+                            break
+                    else: return
             #Write positions
             rom.seek(playerytable+(self.poke_num)*4+1)
             PlayerY = hex(self.PlayerY.GetValue()).rstrip("L").lstrip("0x").zfill(2)
@@ -872,6 +873,7 @@ class SpriteTab(wx.Panel):
                 self.Changes["front"]=True
                 
     def load_everything(self, poke_num):
+        self.cb.SetValue(False)
         self.NoLoad = False
         self.Frames.SetValue(0)
         self.Changes = {"front":False, "back":False, "normal":False, "shiny":False}
@@ -900,7 +902,7 @@ class SpriteTab(wx.Panel):
             self.FrontPalettePointer = read_pointer(rom.read(4))
             rom.seek(ShinyPaletteTable+(poke_num)*bytes_per_entry)
             self.ShinyPalettePointer = read_pointer(rom.read(4))
-            print hex(self.FrontSpritePointer)
+            
             self.GBAFrontSprite, self.OrgSizes["front"] = LZUncompress(rom, self.FrontSpritePointer)
             if self.GBAFrontSprite == False or self.OrgSizes["front"] == False:
                 self.imageLoadingError()
@@ -917,15 +919,7 @@ class SpriteTab(wx.Panel):
             if ShinyPalette == False or self.OrgSizes["shiny"] == False:
                 self.imageLoadingError()
                 return
-            ImageSize = int((64*64)/2)
-            BlankImage = "\x00"*ImageSize
-            BlankPalette = "\x00\x00"*16
-            #Prevent fill if the images are blank.
-            self.cb.SetValue(True)
-            if self.GBAFrontSprite == BlankImage or self.GBABackSprite == BlankImage:
-                self.cb.SetValue(False)
-            if FrontPalette == BlankPalette or ShinyPalette == BlankPalette:
-                self.cb.SetValue(False)
+            
                 
             self.GBAFrontSpriteFrames = []
             self.GBABackSpriteFrames = []
