@@ -5,6 +5,7 @@ import wx, sys
 from GLOBALS import *
 from lib.Tools.rom_insertion_operations import *
 from lib.OverLoad.Button import *
+from lib.CustomDialogs.BaseRepointer import *
 
 class HABITAT(wx.Panel):
     def __init__(self, parent):
@@ -72,10 +73,38 @@ class HABITAT(wx.Panel):
         self.Layout()
         
         self.LoadHabitatData()
-        
+   
+    def save(self, event=None):
+        if not self.Changed: return
+        #Calculate table size:
+        Size = 0
+        for habitat in self.HabitatNames:
+            Size += 8
+            for page in self.Habitats[habitat]:
+                Size += 8
+                for poke in page:
+                    Size += 8
+        #Request an offset to reconstruct the table at
+        Rep = Repointer(Globals.OpenRomName, parent=None, need=Size, 
+                        repoint_what="habitat table")
+        if Rep.ShowModal() == wx.ID_OK:
+            NewTableOffset = Rep.Offset
+        else: return
+        #Contruct table string
+        Habitats = []
+        for habitat in self.HabitatNames:
+            pass
+            for page in self.Habitats[habitat]:
+                pass
+                for poke in page:
+                    pass
+   
+   
     def LoadHabitatData(self):
-        self.TableOffset = int(Globals.INI.get(Globals.OpenRomID, "habitats"), 0)
-        self.Habitats = {"Grassland":[],"Forest":[],"Water's-edge":[],"Sea":[],"Cave":[],"Mountain":[],"Rough-terrain":[],"Urban":[],"Rare":[]}
+        self.TableOffset = int(Globals.INI.get(Globals.OpenRomID,"habitats"),0)
+        self.Habitats = {"Grassland":[],"Forest":[],"Water's-edge":[],"Sea":[],
+                         "Cave":[],"Mountain":[],"Rough-terrain":[],"Urban":[],
+                         "Rare":[]}
         with open(Globals.OpenRomName, "rb") as rom:
             LogOffset = self.TableOffset
             for habitat in self.HabitatNames:
@@ -97,6 +126,7 @@ class HABITAT(wx.Panel):
         for habitat in self.HabitatNames:
             index = self.HabitatTypeList.InsertStringItem(sys.maxint, habitat)
         self.FindNonUsedPokes()
+        self.Changed = False
         
     def OnSelectHabitat(self, event):
         self.PageList.DeleteAllItems()
@@ -137,6 +167,7 @@ class HABITAT(wx.Panel):
                         del self.Habitats[habitat][PageNum][index]
     
     def OnAddPoke(self, event):
+        self.Changed = True
         POKE = self.POKE_NAME.GetSelection()
         if POKE != -1:
             self.SearchAndRemovePoke(POKE)
@@ -147,6 +178,7 @@ class HABITAT(wx.Panel):
             self.PokeList.Focus(index-1)
             
     def OnDeletePoke(self, event):
+        self.Changed = True
         selection = self.PokeList.GetFocusedItem()
         if selection != -1:
             del self.Habitats[self.CurrentHabitat][self.CurrentPage][selection]
@@ -159,6 +191,7 @@ class HABITAT(wx.Panel):
             self.PokeList.Focus(index)
             
     def OnMoveUp(self, *args):
+        self.Changed = True
         poke = self.PokeList.GetFocusedItem()
         if poke != -1:
             poke = self.PokeList.GetItem(poke, 0)
@@ -173,6 +206,7 @@ class HABITAT(wx.Panel):
                 self.PokeList.Focus(index-1)
                 
     def OnMoveDown(self, *args):
+        self.Changed = True
         poke = self.PokeList.GetFocusedItem()
         if poke != -1:
             poke = self.PokeList.GetItem(poke, 0)
@@ -187,6 +221,7 @@ class HABITAT(wx.Panel):
                 self.PokeList.Focus(index+1)
     
     def OnMovePageUp(self, *args):
+        self.Changed = True
         if self.CurrentPage == 0: return
         self.Habitats[self.CurrentHabitat][self.CurrentPage], self.Habitats[self.CurrentHabitat][self.CurrentPage-1] = self.Habitats[self.CurrentHabitat][self.CurrentPage-1], self.Habitats[self.CurrentHabitat][self.CurrentPage]
         self.ReloadPagesList()
@@ -196,6 +231,7 @@ class HABITAT(wx.Panel):
         self.ReloadPokesList()
         
     def OnMovePageDown(self, *args):
+        self.Changed = True
         length = len(self.Habitats[self.CurrentHabitat])-1
         if self.CurrentPage == length: return
         self.Habitats[self.CurrentHabitat][self.CurrentPage], self.Habitats[self.CurrentHabitat][self.CurrentPage+1] = self.Habitats[self.CurrentHabitat][self.CurrentPage+1], self.Habitats[self.CurrentHabitat][self.CurrentPage]

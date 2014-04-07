@@ -10,6 +10,7 @@ from zipfile import ZipFile
 import shutil
 from threading import Thread
 from subprocess import Popen
+from lib.OverLoad.ErrorDialog import *
 """
 There are two version of the publisher library in wxPython. Only one gets
 put in the final execuatable. This attempts to load either to be safe.
@@ -48,7 +49,11 @@ class DownloadThread(Thread):
             try: u = urllib2.urlopen(url)
             except:
                 if x == 4:
-                    return False
+                    #Tell the user the request failed:
+                    ErrorDialog(None, 
+                                "HTTP request has failed. Please download the "\
+                                "update manually.", 
+                                "Download Failure")
                 else:
                     time.sleep(2)
                     continue
