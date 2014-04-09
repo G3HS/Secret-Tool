@@ -92,8 +92,7 @@ def get_bytes_string_from_hex_string(string):
 def split_string_into_bytes(string):
     if len(string)%2 != 0:
         string = "0"+string
-    list_of_bytes = re.findall('..',string)
-    return list_of_bytes
+    return re.findall('..',string)
     
 def insert_string_of_bytes_into_rom(offset, rom, string):
     offset = get_decimal_offset_from_hex_string(offset)
@@ -155,6 +154,24 @@ def read_number(string):
     string = string[::-1]
     Hex = hexlify(string)
     return int(Hex, 16)
+
+def make_number(integer):
+    """
+    Take an integer and make it into a writable number.
+    """
+    hexvalue = hex(integer).rstrip("L").lstrip("0x")
+    if len(hexvalue)%2 != 0:
+        hexvalue = "0"+hexvalue
+    reverse_hex(hexvalue)
+    return unhexlify(hexvalue)
+
+def make_32bit_number(integer):
+    """
+    Take an integer and make it into a writable 32bit number.
+    """
+    hexvalue = hex(integer).rstrip("L").lstrip("0x").zfill(8)
+    reverse_hex(hexvalue)
+    return unhexlify(hexvalue)
 
 def convert_ascii_and_poke(string, mode):
     #modes: "to_poke" and "to_ascii"

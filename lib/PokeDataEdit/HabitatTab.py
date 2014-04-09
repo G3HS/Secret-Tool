@@ -91,13 +91,33 @@ class HABITAT(wx.Panel):
             NewTableOffset = Rep.Offset
         else: return
         #Contruct table string
-        Habitats = []
+        #Get all of the Pokes, but sorted into page strings.
+        allpagesofpokes = []
         for habitat in self.HabitatNames:
-            pass
             for page in self.Habitats[habitat]:
-                pass
+                pagestring = ""
                 for poke in page:
-                    pass
+                    pagestring += make_number(poke)
+                allpagesofpokes.append(pagestring)
+        """
+        In order to simplify the creation of the table, it will be inverted 
+        with pokes being first, pages next, and then habitats last.
+        
+        What this next set does is get all of the pointers for each page.
+        """
+        counter = 0
+        totalsize = 0
+        allpages = []
+        for pokepage in allpagesofpokes:
+            NumOfPokes = size/2
+            
+            Pointer = MakeByteStringPointer(NewTableOffset+totalsize)
+            writableNumOfPokes = make_32bit_number(NumOfPokes)
+            
+            allpages.append(Pointer+writableNumOfPokes)
+            totalsize += len(pokepage)
+            counter += 1
+                
    
    
     def LoadHabitatData(self):
