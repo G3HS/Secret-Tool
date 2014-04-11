@@ -88,16 +88,17 @@ class HABITAT(wx.Panel):
         Rep = Repointer(Globals.OpenRomName, parent=None, need=Size, 
                         repoint_what="habitat table")
         if Rep.ShowModal() == wx.ID_OK:
-            NewTableOffset = Rep.Offset
+            NewTableOffset = Rep.offset
         else: return
         #Contruct table string
         #Get all of the Pokes, but sorted into page strings.
         allpagesofpokes = []
+        from binascii import hexlify
         for habitat in self.HabitatNames:
             for page in self.Habitats[habitat]:
                 pagestring = ""
                 for poke in page:
-                    pagestring += make_number(poke)
+                    pagestring += make_16bit_number(poke)
                 allpagesofpokes.append(pagestring)
         """
         In order to simplify the creation of the table, it will be inverted 
@@ -105,10 +106,10 @@ class HABITAT(wx.Panel):
         
         What this next set does is get all of the pointers for each page.
         """
-        counter = 0
         totalsize = 0
         allpages = []
         for pokepage in allpagesofpokes:
+            size = len(pokepage)
             NumOfPokes = size/2
             
             Pointer = MakeByteStringPointer(NewTableOffset+totalsize)
@@ -116,10 +117,42 @@ class HABITAT(wx.Panel):
             
             allpages.append(Pointer+writableNumOfPokes)
             totalsize += len(pokepage)
-            counter += 1
-                
-   
-   
+        
+        #Create final pointers for habitats.
+        counter = 0
+        allhabitats = []
+        for habitat in self.HabitatNames:
+            pageCounter = 0
+            for page in self.Habitats[habitat]:
+                size = len(allpages[counter])
+                pageCounter += 1
+                counter += 1
+                totalsize += size
+            writeablePageNumber = make_32bit_number(pageCounter)
+            Pointer = MakeByteStringPointer(NewTableOffset+totalsize)
+            allhabitats.append(Pointer+writeablePageNumber)
+            
+        #Create table:
+        
+        table = ""
+        for n in allpagesofpokes:
+            table += n
+        for n in allpages:
+            table += n
+        for n in allhabitats:
+            table += n
+        
+        with open(Globals.OpenRomName, "rb") as rom:
+            #Write new table
+            pass
+            
+            #Remove old table
+            
+            #Change pointers
+        
+        #Change ini
+        
+        
     def LoadHabitatData(self):
         self.TableOffset = int(Globals.INI.get(Globals.OpenRomID,"habitats"),0)
         self.Habitats = {"Grassland":[],"Forest":[],"Water's-edge":[],"Sea":[],
