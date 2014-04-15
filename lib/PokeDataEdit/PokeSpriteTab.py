@@ -333,7 +333,11 @@ class SpriteTab(wx.Panel):
                                         rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
-                                rom.write(GBAFSLZ)
+                                if GBAFSLZ[-1] == "\xFF":
+                                    rom.write(GBAFSLZ+"\xFE")
+                                    print "GBAFSLZ ended in FF"
+                                else:
+                                    rom.write(GBAFSLZ)
                                 self.OrgSizes["front"] = len(GBAFSLZ)
                                 break
                         else: return
@@ -371,7 +375,11 @@ class SpriteTab(wx.Panel):
                                         rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
-                                rom.write(GBABSLZ)
+                                if GBABSLZ[-1] == "\xFF":
+                                    rom.write(GBABSLZ+"\xFE")
+                                    print "GBABSLZ ended in FF"
+                                else:
+                                    rom.write(GBABSLZ)
                                 self.OrgSizes["back"] = len(GBABSLZ)
                                 break
                         else: return
@@ -406,7 +414,11 @@ class SpriteTab(wx.Panel):
                                         rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
-                                rom.write(GBANORMALLZ)
+                                if GBANORMALLZ[-1] == "\xFF":
+                                    rom.write(GBANORMALLZ+"\xFE")
+                                    print "GBANORMALLZ ended in FF"
+                                else:
+                                    rom.write(GBANORMALLZ)
                                 self.OrgSizes["normal"] = len(GBANORMALLZ)
                                 break
                         else: return
@@ -441,7 +453,11 @@ class SpriteTab(wx.Panel):
                                         rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
-                                rom.write(GBASHINYLZ)
+                                if GBASHINYLZ[-1] == "\xFF":
+                                    rom.write(GBASHINYLZ+"\xFE")
+                                    print "GBASHINYLZ ended in FF"
+                                else:
+                                    rom.write(GBASHINYLZ)
                                 self.OrgSizes["shiny"] = len(GBASHINYLZ)
                                 break
                         else: return
@@ -556,7 +572,11 @@ class SpriteTab(wx.Panel):
                                         rom.write("\xFF")
                                 #Write new image
                                 rom.seek(start)
-                                rom.write(sprite[0])
+                                if sprite[0][-1] == "\xFF":
+                                    rom.write(sprite[0]+"\xFE")
+                                    print "Sprite/Palette ended in FF"
+                                else:
+                                    rom.write(sprite[0])
                                 start = rom.tell()
                                 while start%4:
                                     start += 1
