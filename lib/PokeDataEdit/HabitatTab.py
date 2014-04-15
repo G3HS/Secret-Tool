@@ -119,7 +119,6 @@ class HABITAT(wx.Panel):
             allpages.append(Pointer+writableNumOfPokes)
             totalsize += size
             pagessize += 8
-        
         #Create final pointers for habitats.
         counter = 0
         allhabitats = []
@@ -136,9 +135,7 @@ class HABITAT(wx.Panel):
                 totalsize += size
             writeablePageNumber = make_32bit_number(pageCounter)
             allhabitats.append(Pointer+writeablePageNumber)
-            
         #Create table:
-        
         table = ""
         for n in allpagesofpokes:
             table += n
@@ -148,12 +145,10 @@ class HABITAT(wx.Panel):
             table += n
         for n in allhabitats:
             table += n
-        
         with open(Globals.OpenRomName, "r+b") as rom:
             #Write new table
             rom.seek(NewTableOffset)
             rom.write(table)
-            
             #Remove old table
             LogOffset = self.TableOffset
             for habitat in self.HabitatNames:
@@ -178,7 +173,7 @@ class HABITAT(wx.Panel):
             #Change pointers
             writepointer = MakeByteStringPointer(NewTableOffset+storetotalsize+pagessize)
             for pointer in self.habitatpointers:
-                pointer = int(pointer, 0)
+                pointer = int(pointer,0)
                 rom.seek(pointer)
                 rom.write(writepointer)
         
