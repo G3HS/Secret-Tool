@@ -18,6 +18,7 @@ from lib.HexEditor.hexeditor import *
 from lib.PokeDataEdit.HabitatTab import *
 from lib.OverLoad.UpdateDialog import *
 from binascii import hexlify, unhexlify
+from lib.Tools.Recovery import *
 
 try: from wx.lib.pubsub import Publisher as pub
 except: 
@@ -324,10 +325,10 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         Globals.INI = ConfigParser.ConfigParser()
         ini = os.path.join("PokeRoms.ini") #self.path,
         Globals.INI.read(ini)
+        self.open_rom.seek(0xAC)
+        Globals.OpenRomGameCode = self.open_rom.read(4)
         if str(Globals.INI.get("ALL", "JustUseStandardIni")) == "True":
-            game_code_offset =  int("AC",16)
-            self.open_rom.seek(game_code_offset)
-            Globals.OpenRomID = self.open_rom.read(4)
+            Globals.OpenRomID = Globals.OpenRomGameCode
         
         else:
             rom_id_offset = int(Globals.INI.get("ALL", "OffsetThatContainsSecondRomID"),0)
@@ -358,9 +359,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         wx.CallAfter(ERROR.Destroy)
                         wx.CallAfter(self.Destroy)
                 else:
-                    game_code_offset = int("AC",16)
-                    self.open_rom.seek(game_code_offset)
-                    game_code = self.open_rom.read(4)
+                    game_code = Globals.OpenRomGameCode
                     ini_gamecode = Globals.INI.get(Globals.OpenRomID, "gamecode")
                     if ini_gamecode != game_code:
                         ERROR = wx.MessageDialog(None,
@@ -375,9 +374,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         else:
                             wx.CallAfter(ERROR.Destroy)
             else:
-                game_code_offset = int("AC",16)
-                self.open_rom.seek(game_code_offset)
-                game_code = self.open_rom.read(4)
+                game_code = Globals.OpenRomGameCode
                 if game_code not in all_possible_rom_ids:
                     ERROR = wx.MessageDialog(self,
                             "Section '{0}' was not found in the ini. How am I supposed to load data if I don't have it? This game code was loaded from 0xAC in your rom. Please check it.".format(game_code), 
@@ -417,7 +414,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.open_rom.close()
         wx.CallAfter(self.reload_all_tabs)
         self.SetTitle("Gen III Hacking Suite"+" ~ "+Globals.INI.get(Globals.OpenRomID, "name")+" ~ "+self.open_rom.name)
-            
+        RecoveryPrompt()
+        
     def reload_all_tabs(self):
         try: self.tabbed_area.Destroy()
         except: pass
