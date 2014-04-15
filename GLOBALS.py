@@ -6,6 +6,7 @@ class Globals():
     Version = VersionNumber+" ~ Codename: 'Fellowship of the Hack'"
     OpenRomName = None
     OpenRomID = None
+    OpenRomGameCode = None
     INI = None
     PokeNames = None
     latestRelease = None

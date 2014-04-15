@@ -388,10 +388,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                 while y == None:
                     if x in all_possible_rom_ids:
                         x = str(int(x) + 1)
-                        if len(x) != 4:
-                            n = 4 - len(x)
-                            for n in range(n):
-                                x = "0"+x
+                        x.zfill(4)
                         continue
                     else:
                         Globals.OpenRomID = x
