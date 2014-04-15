@@ -211,6 +211,8 @@ class SpriteTab(wx.Panel):
         self.Layout()
     
     def OnChangePointers(self, instance):
+        if self.NoLoad:
+            return
         Repointer = ChangeSpritePointers(self)
         Repointer.FS.SetValue(hex(self.FrontSpritePointer))
         Repointer.BS.SetValue(hex(self.BackSpritePointer))
@@ -251,6 +253,8 @@ class SpriteTab(wx.Panel):
             self.load_everything(self.poke_num)
         
     def RepointIcon(self, instance):
+        if self.NoLoad:
+            return
         with open(self.rom_name, "r+b") as rom:
             repointer = SpriteRepointer(rom, 
                                         need=len(self.GBAIcon), 
@@ -702,10 +706,14 @@ class SpriteTab(wx.Panel):
                 self.Changes[opt] = False
                 
     def SwapIconPal(self, instance):
+        if self.NoLoad:
+            return
         self.IconPalNum = instance.GetSelection()
         self.ReloadShownSprites()
         
     def editIconColor(self, instance):
+        if self.NoLoad:
+            return
         instance = instance.GetEventObject()
         color_number = instance.Id-70
         dlg = wx.ColourDialog(self)
@@ -718,6 +726,8 @@ class SpriteTab(wx.Panel):
         self.ReloadShownSprites()
     
     def edit_color(self, instance):
+        if self.NoLoad:
+            return
         instance = instance.GetEventObject()
         
         frame = self.Frames.GetValue()
@@ -742,6 +752,8 @@ class SpriteTab(wx.Panel):
         self.ReloadShownSprites()
     
     def LoadIcon(self, instance):
+        if self.NoLoad:
+            return
         wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open an icon...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
@@ -806,6 +818,8 @@ class SpriteTab(wx.Panel):
             self.ReloadShownSprites()
     
     def ReloadShownSprites(self, *args):
+        if self.NoLoad:
+            return
         frame = self.Frames.GetValue()
         if len(self.FrontPalette) < (frame+1)*16:
             start = 0
@@ -851,6 +865,8 @@ class SpriteTab(wx.Panel):
         self.PosEdit.UpdateFSandDS(self)
         
     def LoadSingleSprite(self, instance):
+        if self.NoLoad:
+            return
         frame = self.Frames.GetValue()
         if len(self.FrontPalette) < (frame+1)*16:
             start = 0
@@ -913,6 +929,8 @@ class SpriteTab(wx.Panel):
             self.ReloadShownSprites()
             
     def LoadSheetSprite(self, instance):
+        if self.NoLoad:
+            return
         wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a sprite sheet...", 
                                                         defaultDir=self.lastPath, style=wx.OPEN,wildcard=wildcard)

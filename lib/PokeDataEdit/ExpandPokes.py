@@ -273,7 +273,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             ##Write the palette table
             while len(ShinyPals)/8 < TotalPokesAfterChanges:
                 ShinyPals += NewPaletteEntry
-            NewSPalEggHatchRoutinePointersOffset = FindFreeSpace(StartOffset, len(ShinyPals),rom)
+            NewSPalOffset = FindFreeSpace(StartOffset, len(ShinyPals),rom)
             rom.seek(NewSPalOffset)
             rom.write(ShinyPals)     
             ##Write the pointers for the table

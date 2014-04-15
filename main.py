@@ -512,11 +512,13 @@ class PokemonDataEditor(wx.Panel):
                 
                 gamecode = Globals.INI.get(Globals.OpenRomID, "gamecode")
                 if gamecode == "BPRE":
-                    ExpandPokesTxt = "Expand POK\xe9MON"
-                    ExpandPokesTxt = encode_per_platform(ExpandPokesTxt)
-                    ExpandPokes = Button(self, 2, ExpandPokesTxt)
-                    self.Bind(wx.EVT_BUTTON, self.OnExpandPokes, id=2)
-                    self.sizer_top.Add(ExpandPokes, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+                    if len(Globals.PokeNames) == 0x19C:
+                        ExpandPokesTxt = "Expand POK\xe9MON"
+                        ExpandPokesTxt = encode_per_platform(ExpandPokesTxt)
+                        ExpandPokes = Button(self, 2, ExpandPokesTxt)
+                        self.Bind(wx.EVT_BUTTON, self.OnExpandPokes, id=2)
+                        self.sizer_top.Add(ExpandPokes, 0, 
+                                           wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
                 
                 self.sizer.Add(self.sizer_top, 0, wx.ALL, 2)
                 self.tabbed_area = DataEditingTabs(self)
