@@ -754,7 +754,7 @@ class SpriteTab(wx.Panel):
     def LoadIcon(self, instance):
         if self.NoLoad:
             return
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open an icon...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
                                     wildcard=wildcard)
@@ -879,7 +879,7 @@ class SpriteTab(wx.Panel):
         if sprite_number == 57 or sprite_number == 59:
             if self.GBABackSpriteFrames[frame] == False:
                 return
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a sprite...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
                                     wildcard=wildcard)
@@ -931,7 +931,7 @@ class SpriteTab(wx.Panel):
     def LoadSheetSprite(self, instance):
         if self.NoLoad:
             return
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a sprite sheet...", 
                                                         defaultDir=self.lastPath, style=wx.OPEN,wildcard=wildcard)
         if open_dialog.ShowModal() == wx.ID_OK:

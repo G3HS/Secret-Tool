@@ -2434,7 +2434,7 @@ class PokeDexTab(wx.Panel):
             
     def OnFoot(self, *args):
         if not self.lastPath: self.lastPath = os.getcwd()
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
+        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a footprint (16x16)...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
                                     wildcard=wildcard)
