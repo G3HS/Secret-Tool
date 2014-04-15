@@ -162,7 +162,6 @@ def make_number(integer):
     hexvalue = hex(integer).rstrip("L").lstrip("0x")
     if len(hexvalue)%2 != 0:
         hexvalue = "0"+hexvalue
-    reverse_hex(hexvalue)
     return unhexlify(hexvalue)[::-1]
 
 def make_32bit_number(integer):
@@ -170,7 +169,6 @@ def make_32bit_number(integer):
     Take an integer and make it into a writable 32bit number.
     """
     hexvalue = hex(integer).rstrip("L").lstrip("0x").zfill(8)
-    reverse_hex(hexvalue)
     return unhexlify(hexvalue)[::-1]
 
 def make_16bit_number(integer):
@@ -178,7 +176,6 @@ def make_16bit_number(integer):
     Take an integer and make it into a writable 16bit number.
     """
     hexvalue = hex(integer).rstrip("L").lstrip("0x").zfill(4)
-    reverse_hex(hexvalue)
     return unhexlify(hexvalue)[::-1]
 
 def convert_ascii_and_poke(string, mode):

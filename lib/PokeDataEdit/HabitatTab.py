@@ -117,7 +117,7 @@ class HABITAT(wx.Panel):
             writableNumOfPokes = make_32bit_number(NumOfPokes)
             
             allpages.append(Pointer+writableNumOfPokes)
-            totalsize += len(pokepage)
+            totalsize += size
             pagessize += 8
         
         #Create final pointers for habitats.
@@ -128,13 +128,13 @@ class HABITAT(wx.Panel):
             totalsize += 1
         for habitat in self.HabitatNames:
             pageCounter = 0
+            Pointer = MakeByteStringPointer(NewTableOffset+totalsize)
             for page in self.Habitats[habitat]:
                 size = len(allpages[counter])
                 pageCounter += 1
                 counter += 1
                 totalsize += size
             writeablePageNumber = make_32bit_number(pageCounter)
-            Pointer = MakeByteStringPointer(NewTableOffset+totalsize)
             allhabitats.append(Pointer+writeablePageNumber)
             
         #Create table:
@@ -193,7 +193,6 @@ class HABITAT(wx.Panel):
         with open(Globals.OpenRomName, "rb") as rom:
             LogOffset = self.TableOffset
             for habitat in self.HabitatNames:
-                print hex(LogOffset)
                 rom.seek(LogOffset)
                 PagesOffset = read_pointer(rom.read(4))
                 PagesNum = read_number(rom.read(4))
@@ -208,7 +207,6 @@ class HABITAT(wx.Panel):
                         rom.seek(PokesOffset)
                         PokesList.append(read_number(rom.read(2)))
                         PokesOffset += 2
-                    print self.Habitats
                     self.Habitats[habitat].append(PokesList)
         for habitat in self.HabitatNames:
             index = self.HabitatTypeList.InsertStringItem(sys.maxint, habitat)
@@ -346,7 +344,6 @@ class HABITAT(wx.Panel):
         for habitat in self.Habitats:
             for PageNum, page in enumerate(self.Habitats[habitat]):
                 for poke in self.Habitats[habitat][PageNum]:
-                    print poke
                     AllPokesInHabitats.append(Globals.PokeNames[poke])
         for POKE in Globals.PokeNames:
             if POKE not in AllPokesInHabitats:
