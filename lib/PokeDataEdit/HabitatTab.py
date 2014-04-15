@@ -107,6 +107,7 @@ class HABITAT(wx.Panel):
         What this next set does is get all of the pointers for each page.
         """
         totalsize = 0
+        pagessize = 0
         allpages = []
         for pokepage in allpagesofpokes:
             size = len(pokepage)
@@ -117,10 +118,14 @@ class HABITAT(wx.Panel):
             
             allpages.append(Pointer+writableNumOfPokes)
             totalsize += len(pokepage)
+            pagessize += 8
         
         #Create final pointers for habitats.
         counter = 0
         allhabitats = []
+        storetotalsize = totalsize
+        while totalsize%4 != 0:
+            totalsize += 1
         for habitat in self.HabitatNames:
             pageCounter = 0
             for page in self.Habitats[habitat]:
@@ -137,30 +142,58 @@ class HABITAT(wx.Panel):
         table = ""
         for n in allpagesofpokes:
             table += n
+        while len(table)%4 != 0:
+            table += "\x00"
         for n in allpages:
             table += n
         for n in allhabitats:
             table += n
         
-        with open(Globals.OpenRomName, "rb") as rom:
+        with open(Globals.OpenRomName, "r+b") as rom:
             #Write new table
-            pass
+            rom.seek(NewTableOffset)
+            rom.write(table)
             
             #Remove old table
-            
+            LogOffset = self.TableOffset
+            for habitat in self.HabitatNames:
+                rom.seek(LogOffset)
+                PagesOffset = read_pointer(rom.read(4))
+                PagesNum = read_number(rom.read(4))
+                rom.seek(-8, 1)
+                rom.write("\xFF"*8)
+                LogOffset += 8
+                for n in range(PagesNum):
+                    rom.seek(PagesOffset)
+                    PokesOffset = read_pointer(rom.read(4))
+                    PokesNum = read_number(rom.read(4))
+                    rom.seek(-8, 1)
+                    rom.write("\xFF"*8)
+                    PagesOffset += 8
+                    PokesList = []
+                    for p in range(PokesNum):
+                        rom.seek(PokesOffset)
+                        rom.write("\xFF\xFF")
+                        PokesOffset += 2
             #Change pointers
-        
-        #Change ini
-        
+            writepointer = MakeByteStringPointer(NewTableOffset+storetotalsize+pagessize)
+            for pointer in self.habitatpointers:
+                pointer = int(pointer, 0)
+                rom.seek(pointer)
+                rom.write(writepointer)
         
     def LoadHabitatData(self):
-        self.TableOffset = int(Globals.INI.get(Globals.OpenRomID,"habitats"),0)
+        self.habitatpointers = Globals.INI.get(Globals.OpenRomID,"habitatpointers").split(",")
+        with open(Globals.OpenRomName, "rb") as rom:
+            rom.seek(int(self.habitatpointers[0],0))
+            self.TableOffset = read_pointer(rom.read(4))
         self.Habitats = {"Grassland":[],"Forest":[],"Water's-edge":[],"Sea":[],
                          "Cave":[],"Mountain":[],"Rough-terrain":[],"Urban":[],
                          "Rare":[]}
         with open(Globals.OpenRomName, "rb") as rom:
             LogOffset = self.TableOffset
             for habitat in self.HabitatNames:
+                print hex(LogOffset)
                 rom.seek(LogOffset)
                 PagesOffset = read_pointer(rom.read(4))
                 PagesNum = read_number(rom.read(4))
@@ -175,6 +208,7 @@ class HABITAT(wx.Panel):
                         rom.seek(PokesOffset)
                         PokesList.append(read_number(rom.read(2)))
                         PokesOffset += 2
+                    print self.Habitats
                     self.Habitats[habitat].append(PokesList)
         for habitat in self.HabitatNames:
             index = self.HabitatTypeList.InsertStringItem(sys.maxint, habitat)
@@ -312,6 +346,7 @@ class HABITAT(wx.Panel):
         for habitat in self.Habitats:
             for PageNum, page in enumerate(self.Habitats[habitat]):
                 for poke in self.Habitats[habitat][PageNum]:
+                    print poke
                     AllPokesInHabitats.append(Globals.PokeNames[poke])
         for POKE in Globals.PokeNames:
             if POKE not in AllPokesInHabitats:
