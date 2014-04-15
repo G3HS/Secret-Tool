@@ -281,7 +281,21 @@ class SpriteTab(wx.Panel):
                                 'Just letting you know...', 
                                 wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
-            
+    
+    def WarnOverWrite(self, what):
+        ERROR = wx.MessageDialog(None,
+            "You have chosen to fill the '%s' with free space. However, I have "\
+            "detected that there are multiple pointers to this image outside "\
+            "of the one that you are using. This means that there may be "\
+            "multiple things using this image. Overwriting it could cause "\
+            "issues. Should I continue and fill it with free space (Yes) or "\
+            "just repoint without filling (No)?"%what, 
+            'Multiple Pointers Detected', 
+            wx.YES_NO | wx.ICON_ERROR)
+        
+        if ERROR.ShowModal() == wx.ID_YES: return True
+        else: return False
+    
     def save(self):
         if self.NoLoad:
             return
@@ -305,6 +319,8 @@ class SpriteTab(wx.Panel):
         overwrite = self.cb.IsChecked()
         
         with open(self.rom_name, "r+b") as rom:
+            rom.seek(0)
+            WholeRom = rom.read()
             if self.Changes["front"] != False:
                 GBAFrontSprite = ""
                 for sprite in self.GBAFrontSpriteFrames:
@@ -320,25 +336,34 @@ class SpriteTab(wx.Panel):
                             elif repointer.offset == None: continue
                             else:
                                 rom.seek(FrontSpriteTable+(self.poke_num)*bytes_per_entry)
+                                
                                 #Write new pointer
                                 offset = repointer.offset
-                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                hexOffset = make_pointer(hexOffset)
-                                hexOffset = unhexlify(hexOffset)
+                                hexOffset = MakeByteStringPointer(offset)
                                 rom.write(hexOffset)
-                                #Clear old image
-                                if overwrite == True:
-                                    rom.seek(self.FrontSpritePointer)
-                                    for x in range(self.OrgSizes["front"]):
-                                        rom.write("\xFF")
-                                #Write new image
-                                rom.seek(offset)
-                                if GBAFSLZ[-1] == "\xFF":
-                                    rom.write(GBAFSLZ+"\xFE")
-                                    print "GBAFSLZ ended in FF"
+                                #Check for shared pointers
+                                Pointer = MakeByteStringPointer(self.FrontSpritePointer)
+                                PointerList = []
+                                index = 0
+                                while True:
+                                    index = WholeRom.find(Pointer, index)
+                                    if index == -1: break
+                                    if index%4 == 0:
+                                        PointerList.append(index)
+                                    index += 4
+                                if len(PointerList) > 1:
+                                    if self.WarnOverWrite("Front Sprite"):
+                                        #Clear old image
+                                        if overwrite == True:
+                                            rom.seek(self.FrontSpritePointer)
+                                            for x in range(self.OrgSizes["front"]):
+                                                rom.write("\xFF")
                                 else:
-                                    rom.write(GBAFSLZ)
-                                self.OrgSizes["front"] = len(GBAFSLZ)
+                                    #Clear old image
+                                    if overwrite == True:
+                                        rom.seek(self.FrontSpritePointer)
+                                        for x in range(self.OrgSizes["front"]):
+                                            rom.write("\xFF")
                                 break
                         else: return
                 else:
@@ -364,15 +389,32 @@ class SpriteTab(wx.Panel):
                                 rom.seek(BackSpriteTable+(self.poke_num)*bytes_per_entry)
                                 #Write new pointer
                                 offset = repointer.offset
-                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                hexOffset = make_pointer(hexOffset)
-                                hexOffset = unhexlify(hexOffset)
+                                hexOffset = MakeByteStringPointer(offset)
                                 rom.write(hexOffset)
-                                #Clear old image
-                                if overwrite == True:
-                                    rom.seek(self.BackSpritePointer)
-                                    for x in range(self.OrgSizes["back"]):
-                                        rom.write("\xFF")
+                                #Check for shared pointers
+                                Pointer = MakeByteStringPointer(self.BackSpritePointer)
+                                PointerList = []
+                                index = 0
+                                while True:
+                                    index = WholeRom.find(Pointer, index)
+                                    if index == -1: break
+                                    if index%4 == 0:
+                                        PointerList.append(index)
+                                    index += 4
+                                if len(PointerList) > 1:
+                                    if self.WarnOverWrite("Back Sprite"):
+                                        #Clear old image
+                                        if overwrite == True:
+                                            rom.seek(self.BackSpritePointer)
+                                            for x in range(self.OrgSizes["back"]):
+                                                rom.write("\xFF")
+                                else:
+                                    #Clear old image
+                                    if overwrite == True:
+                                        rom.seek(self.BackSpritePointer)
+                                        for x in range(self.OrgSizes["back"]):
+                                            rom.write("\xFF")
+                                        
                                 #Write new image
                                 rom.seek(offset)
                                 if GBABSLZ[-1] == "\xFF":
@@ -403,15 +445,31 @@ class SpriteTab(wx.Panel):
                                 rom.seek(FrontPaletteTable+(self.poke_num)*bytes_per_entry)
                                 #Write new pointer
                                 offset = repointer.offset
-                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                hexOffset = make_pointer(hexOffset)
-                                hexOffset = unhexlify(hexOffset)
+                                hexOffset = MakeByteStringPointer(offset)
                                 rom.write(hexOffset)
-                                if overwrite == True:
-                                #Clear old image
-                                    rom.seek(self.FrontPalettePointer)
-                                    for x in range(self.OrgSizes["normal"]):
-                                        rom.write("\xFF")
+                                #Check for shared pointers
+                                Pointer = MakeByteStringPointer(self.FrontPalettePointer)
+                                PointerList = []
+                                index = 0
+                                while True:
+                                    index = WholeRom.find(Pointer, index)
+                                    if index == -1: break
+                                    if index%4 == 0:
+                                        PointerList.append(index)
+                                    index += 4
+                                if len(PointerList) > 1:
+                                    if self.WarnOverWrite("Normal Palette"):
+                                        #Clear old image
+                                        if overwrite == True:
+                                            rom.seek(self.FrontPalettePointer)
+                                            for x in range(self.OrgSizes["normal"]):
+                                                rom.write("\xFF")
+                                else:
+                                    #Clear old image
+                                    if overwrite == True:
+                                        rom.seek(self.FrontPalettePointer)
+                                        for x in range(self.OrgSizes["normal"]):
+                                            rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
                                 if GBANORMALLZ[-1] == "\xFF":
@@ -442,15 +500,31 @@ class SpriteTab(wx.Panel):
                                 rom.seek(ShinyPaletteTable+(self.poke_num)*bytes_per_entry)
                                 #Write new pointer
                                 offset = repointer.offset
-                                hexOffset = hex(offset+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                hexOffset = make_pointer(hexOffset)
-                                hexOffset = unhexlify(hexOffset)
+                                hexOffset = MakeByteStringPointer(offset)
                                 rom.write(hexOffset)
-                                #Clear old image
-                                if overwrite == True:
-                                    rom.seek(self.ShinyPalettePointer)
-                                    for x in range(self.OrgSizes["shiny"]):
-                                        rom.write("\xFF")
+                                #Check for shared pointers
+                                Pointer = MakeByteStringPointer(self.ShinyPalettePointer)
+                                PointerList = []
+                                index = 0
+                                while True:
+                                    index = WholeRom.find(Pointer, index)
+                                    if index == -1: break
+                                    if index%4 == 0:
+                                        PointerList.append(index)
+                                    index += 4
+                                if len(PointerList) > 1:
+                                    if self.WarnOverWrite("Shiny Palette"):
+                                        #Clear old image
+                                        if overwrite == True:
+                                            rom.seek(self.ShinyPalettePointer)
+                                            for x in range(self.OrgSizes["shiny"]):
+                                                rom.write("\xFF")
+                                else:
+                                    #Clear old image
+                                    if overwrite == True:
+                                        rom.seek(self.ShinyPalettePointer)
+                                        for x in range(self.OrgSizes["shiny"]):
+                                            rom.write("\xFF")
                                 #Write new image
                                 rom.seek(offset)
                                 if GBASHINYLZ[-1] == "\xFF":
@@ -549,6 +623,8 @@ class SpriteTab(wx.Panel):
                     rom.seek(self.ShinyPalettePointer)
                     rom.write(GBASHINYLZ)
             if RepointList != []:
+                rom.seek(0)
+                WholeRom = rom.read()
                 Length = ""
                 for x in RepointList:
                     Length += x[0]
@@ -558,18 +634,32 @@ class SpriteTab(wx.Panel):
                         if repointer.offset == None: continue
                         else:
                             start = repointer.offset
+                            ShouldIOverwrite = True
+                            for sprite in RepointList:
+                                #Check for shared pointers
+                                Pointer = MakeByteStringPointer(sprite[2])
+                                PointerList = []
+                                index = 0
+                                while True:
+                                    index = WholeRom.find(Pointer, index)
+                                    if index == -1: break
+                                    if index%4 == 0:
+                                        PointerList.append(index)
+                                    index += 4
+                                if len(PointerList) > 1:
+                                    ShouldIOverwrite = self.WarnOverWrite("sprite and palette")
+                                    break
                             for sprite in RepointList:
                                 rom.seek(sprite[1]+(self.poke_num)*bytes_per_entry)
                                 #Write new pointer
-                                hexOffset = hex(start+0x8000000).rstrip("L").lstrip("0x").zfill(8)
-                                hexOffset = make_pointer(hexOffset)
-                                hexOffset = unhexlify(hexOffset)
+                                hexOffset = MakeByteStringPointer(start)
                                 rom.write(hexOffset)
-                                #Clear old image
-                                if overwrite == True:
-                                    rom.seek(sprite[2])
-                                    for x in range(self.OrgSizes[sprite[3]]):
-                                        rom.write("\xFF")
+                                if ShouldIOverwrite:
+                                    #Clear old image
+                                    if overwrite == True:
+                                        rom.seek(sprite[2])
+                                        for x in range(self.OrgSizes[sprite[3]]):
+                                            rom.write("\xFF")
                                 #Write new image
                                 rom.seek(start)
                                 if sprite[0][-1] == "\xFF":
