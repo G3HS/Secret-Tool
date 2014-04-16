@@ -671,6 +671,7 @@ class PokemonDataEditor(wx.Panel):
         else:  self.tabbed_area.tutor.save()
         self.tabbed_area.dex.save()
         self.tabbed_area.sprites.save()
+        self.tabbed_area.habitats.save()
         self.GetParent().HexEditor.LoadFile(Globals.OpenRomName)
         
     def save_new_poke_name(self):
@@ -1140,83 +1141,47 @@ class StatsTab(wx.Panel):
         
     def create_string_of_hex_values_to_be_written(self):
         try:
-            HP = hex(int(self.HP.GetValue(), 0))[2:]
+            HP = hex(int(self.HP.GetValue(), 0))[2:].zfill(2)
             if len(HP) > 2:
                 HP = "FF"
-            elif len(HP) == 0:
-                HP = "00"
-            elif len(HP) == 1:
-                HP = "0"+HP
                 
-            ATK = hex(int(self.ATK.GetValue(), 0))[2:]
+            ATK = hex(int(self.ATK.GetValue(), 0))[2:].zfill(2)
             if len(ATK) > 2:
                 ATK = "FF"
-            elif len(ATK) == 0:
-                ATK = "00"
-            elif len(ATK) == 1:
-                ATK = "0"+ATK
                 
-            DEF = hex(int(self.DEF.GetValue(), 0))[2:]
+            DEF = hex(int(self.DEF.GetValue(), 0))[2:].zfill(2)
             if len(DEF) > 2:
                 DEF = "FF"
-            elif len(DEF) == 0:
-                DEF = "00"
-            elif len(DEF) == 1:
-                DEF = "0"+DEF
                  
-            SPD = hex(int(self.SPD.GetValue(), 0))[2:]
+            SPD = hex(int(self.SPD.GetValue(), 0))[2:].zfill(2)
             if len(SPD) > 2:
                 SPD = "FF"
-            elif len(SPD) == 0:
-                SPD = "00"
-            elif len(SPD) == 1:
-                SPD = "0"+SPD
                  
-            SpATK = hex(int(self.SpATK.GetValue(), 0))[2:]
+            SpATK = hex(int(self.SpATK.GetValue(), 0))[2:].zfill(2)
             if len(SpATK) > 2:
                 SpATK = "FF"
-            elif len(SpATK) == 0:
-                SpATK = "00"
-            elif len(SpATK) == 1:
-                SpATK = "0"+SpATK
                  
-            SpDEF = hex(int(self.SpDEF.GetValue(), 0))[2:]
+            SpDEF = hex(int(self.SpDEF.GetValue(), 0))[2:].zfill(2)
             if len(SpDEF) > 2:
                 SpDEF = "FF"
-            elif len(SpDEF) == 0:
-                SpDEF = "00"
-            elif len(SpDEF) == 1:
-                SpDEF = "0"+SpDEF
             
             tmp = self.TYPE1.GetSelection()
             if tmp == -1:
                 tmp = 1
-            TYPE1 = hex(int(tmp))[2:]
-            if len(TYPE1) == 1:
-                TYPE1 = "0"+TYPE1
+            TYPE1 = hex(int(tmp))[2:].zfill(2)
             
             tmp = self.TYPE2.GetSelection()
             if tmp == -1:
                 tmp = 1
-            TYPE2 = hex(int(tmp))[2:]
-            if len(TYPE2) == 1:
-                TYPE2 = "0"+TYPE2
+            TYPE2 = hex(int(tmp))[2:].zfill(2)
             
-            CATCHRATE = hex(int(self.CATCHRATE.GetValue(), 0))[2:]
+            CATCHRATE = hex(int(self.CATCHRATE.GetValue(), 0))[2:].zfill(2)
             if len(CATCHRATE) > 2:
                 CATCHRATE = "FF"
-            elif len(CATCHRATE) == 0:
-                CATCHRATE = "00"
-            elif len(CATCHRATE) == 1:
-                CATCHRATE = "0"+CATCHRATE
                 
-            BASEEXP = hex(int(self.BASEEXP.GetValue(), 0))[2:]
+            BASEEXP = hex(int(self.BASEEXP.GetValue(), 0))[2:].zfill(2)
             if len(BASEEXP) > 2:
                 BASEEXP = "FF"
-            elif len(BASEEXP) == 0:
-                BASEEXP = "00"
-            elif len(BASEEXP) == 1:
-                BASEEXP = "0"+BASEEXP
                 
             evs_list = [str(self.e_SPD.GetValue()), str(self.e_DEF.GetValue()),
                             str(self.e_ATK.GetValue()), str(self.e_HP.GetValue()),
@@ -1239,96 +1204,62 @@ class StatsTab(wx.Panel):
             tmp = self.ITEM1.GetSelection()
             if tmp == -1:
                 tmp = 1
-            ITEM1 = hex(int(tmp))[2:]
-            ITEM1_len = len(ITEM1)
-            if ITEM1_len < 4:
-                for n in range(4-ITEM1_len):
-                    ITEM1 = "0"+ITEM1
+            ITEM1 = hex(int(tmp))[2:].zfill(4)
+            
             ITEM1 = ITEM1[2:]+ITEM1[:2] #Flip the bytes around.
 
             tmp = self.ITEM2.GetSelection()
             if tmp == -1:
                 tmp = 1
-            ITEM2 = hex(int(tmp))[2:]
-            ITEM2_len = len(ITEM2)
-            if ITEM2_len < 4:
-                for n in range(4-ITEM2_len):
-                    ITEM2 = "0"+ITEM2
+            ITEM2 = hex(int(tmp))[2:].zfill(4)
+            
             ITEM2 = ITEM2[2:]+ITEM2[:2] #Flip the bytes around.
             
-            GENDER = hex(int(self.GENDER.GetValue(), 0))[2:]
+            GENDER = hex(int(self.GENDER.GetValue(), 0))[2:].zfill(2)
             if len(GENDER) > 2:
                 GENDER = "FF"
-            elif len(GENDER) == 0:
-                GENDER = "00"
-            elif len(GENDER) == 1:
-                GENDER = "0"+GENDER
                 
-            HATCH = hex(int(self.HATCH.GetValue(), 0))[2:]
+            HATCH = hex(int(self.HATCH.GetValue(), 0))[2:].zfill(2)
             if len(HATCH) > 2:
                 HATCH = "FF"
-            elif len(HATCH) == 0:
-                HATCH = "00"
-            elif len(HATCH) == 1:
-                HATCH = "0"+HATCH
                 
-            FRIEND = hex(int(self.FRIEND.GetValue(), 0))[2:]
+            FRIEND = hex(int(self.FRIEND.GetValue(), 0))[2:].zfill(2)
             if len(FRIEND) > 2:
                 FRIEND = "FF"
-            elif len(FRIEND) == 0:
-                FRIEND = "00"
-            elif len(FRIEND) == 1:
-                FRIEND = "0"+FRIEND
             
             tmp = self.LEVEL.GetSelection()
             if tmp == -1:
                 tmp = 1
-            LEVEL = hex(int(tmp))[2:]
-            if len(LEVEL) == 1:
-                LEVEL = "0"+LEVEL          
+            LEVEL = hex(int(tmp))[2:].zfill(2)        
             
             tmp = self.EGG1.GetSelection()
             if tmp == -1:
                 tmp = 1
-            EGG1 = hex(int(tmp)+1)[2:]
-            if len(EGG1) == 1:
-                EGG1 = "0"+EGG1 
+            EGG1 = hex(int(tmp)+1)[2:].zfill(2)
             
             tmp = self.EGG2.GetSelection()
             if tmp == -1:
                 tmp = 1
-            EGG2 = hex(int(tmp)+1)[2:]
-            if len(EGG2) == 1:
-                EGG2 = "0"+EGG2 
+            EGG2 = hex(int(tmp)+1)[2:].zfill(2)
             
             tmp = self.ABILITY1.GetSelection()
             if tmp == -1:
                 tmp = 1
-            ABILITY1 = hex(int(tmp))[2:]
-            if len(ABILITY1) == 1:
-                ABILITY1 = "0"+ABILITY1 
+            ABILITY1 = hex(int(tmp))[2:].zfill(2)
             
             tmp = self.ABILITY2.GetSelection()
             if tmp == -1:
                 tmp = 1
-            ABILITY2 = hex(int(tmp))[2:]
-            if len(ABILITY2) == 1:
-                ABILITY2 = "0"+ABILITY2 
+            ABILITY2 = hex(int(tmp))[2:].zfill(2)
                 
-            RUNRATE = hex(int(self.RUNRATE.GetValue(), 0))[2:]
+            RUNRATE = hex(int(self.RUNRATE.GetValue(), 0))[2:].zfill(2)
             if len(RUNRATE) > 2:
                 RUNRATE = "FF"
-            elif len(RUNRATE) == 0:
-                RUNRATE = "00"
-            elif len(RUNRATE) == 1:
-                RUNRATE = "0"+RUNRATE
             
             tmp = self.COLOR.GetSelection()
             if tmp == -1:
                 tmp = 1
-            COLOR = hex(int(tmp))[2:]
-            if len(COLOR) == 1:
-                COLOR = "0"+COLOR
+            COLOR = hex(int(tmp))[2:].zfill(2)
                 
             #Create a string off all of the stats to be written to the rom.
             base = HP+ATK+DEF+SPD+SpATK+SpDEF
@@ -1350,6 +1281,7 @@ class StatsTab(wx.Panel):
                                 'Data Error', 
                                 wx.OK | wx.ICON_ERROR)
             ERROR.ShowModal()
+            return False
         
     def sort_base_stats(self):
         d = self.base_stats_dict
@@ -1393,6 +1325,7 @@ class StatsTab(wx.Panel):
         
     def save(self):
         string = self.create_string_of_hex_values_to_be_written()
+        if not string: return
         with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.basestatsoffset, 0)
             string = unhexlify(string)
