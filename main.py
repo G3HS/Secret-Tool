@@ -33,7 +33,7 @@ MOVES_LIST = None
 ITEM_NAMES = None
 returned_offset = None
 
-description = textwrap.fill("POK\xe9MON Gen III Hacking Suite was developed to enable better cross-platform POK\xe9MON  Rom Hacking by removing the need for the .NET framework.  It was also created in order to be more adaptable to more advanced hacking techniques that change some boundaries, like the number of POK\xe9MON. In the past, these changes rendered some very necessary tools useless and which made using these new limits difficult.", 110)
+description = textwrap.fill("POK\xe9MON Gen III Hacking Suite was developed to enable better cross-platform POK\xe9MON Rom Hacking by removing the need for the .NET framework.  It was also created in order to be more adaptable to more advanced hacking techniques that change some boundaries, like the number of POK\xe9MON. In the past, these changes rendered some very necessary tools useless and which made using these new limits difficult.", 110)
 
 description = encode_per_platform(description)
 
