@@ -671,7 +671,8 @@ class PokemonDataEditor(wx.Panel):
         else:  self.tabbed_area.tutor.save()
         self.tabbed_area.dex.save()
         self.tabbed_area.sprites.save()
-        self.tabbed_area.habitats.save()
+        if gamecode[:3] != "BPR": pass
+        else: self.tabbed_area.habitats.save()
         self.GetParent().HexEditor.LoadFile(Globals.OpenRomName)
         
     def save_new_poke_name(self):
@@ -710,8 +711,8 @@ class DataEditingTabs(wx.Notebook):
         self.sprites = SpriteTab(self, rom=Globals.OpenRomName, 
                                  config=Globals.INI, rom_id=Globals.OpenRomID)
         
-        self.habitats = HABITAT(self)
-        
+        if gamecode[:3] != "BPR": pass
+        else: self.habitats = HABITAT(self)
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
