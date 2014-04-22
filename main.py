@@ -805,23 +805,23 @@ class StatsTab(wx.Panel):
         self.DEF.Bind(wx.EVT_TEXT, self.update_BST)
         basic_stats_sizer.Add(self.DEF,(3, 1), wx.DefaultSpan,  wx.ALL, 4)
         
-        SPD_txt = wx.StaticText(basic_stats, -1,"SPD:")
-        basic_stats_sizer.Add(SPD_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
-        self.SPD = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
-        self.SPD.Bind(wx.EVT_TEXT, self.update_BST)
-        basic_stats_sizer.Add(self.SPD,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
         SpATK_txt = wx.StaticText(basic_stats, -1,"Sp. ATK:")
-        basic_stats_sizer.Add(SpATK_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(SpATK_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SpATK = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
         self.SpATK.Bind(wx.EVT_TEXT, self.update_BST)
-        basic_stats_sizer.Add(self.SpATK,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.SpATK,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         SpDEF_txt = wx.StaticText(basic_stats, -1,"Sp. DEF:")
-        basic_stats_sizer.Add(SpDEF_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(SpDEF_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SpDEF = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
         self.SpDEF.Bind(wx.EVT_TEXT, self.update_BST)
-        basic_stats_sizer.Add(self.SpDEF,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.SpDEF,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        SPD_txt = wx.StaticText(basic_stats, -1,"SPD:")
+        basic_stats_sizer.Add(SPD_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.SPD = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.SPD.Bind(wx.EVT_TEXT, self.update_BST)
+        basic_stats_sizer.Add(self.SPD,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         basic_stats_sizer.SetFlexibleDirection(wx.BOTH)
         
@@ -849,20 +849,20 @@ class StatsTab(wx.Panel):
         self.e_DEF = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
         evs_sizer.Add(self.e_DEF,(3, 1), wx.DefaultSpan,  wx.ALL, 4)
         
-        e_SPD_txt = wx.StaticText(evs, -1,"SPD:")
-        evs_sizer.Add(e_SPD_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
-        self.e_SPD = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
-        evs_sizer.Add(self.e_SPD,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
         e_SpATK_txt = wx.StaticText(evs, -1,"Sp. ATK:")
-        evs_sizer.Add(e_SpATK_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        evs_sizer.Add(e_SpATK_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.e_SpATK = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
-        evs_sizer.Add(self.e_SpATK,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        evs_sizer.Add(self.e_SpATK,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         e_SpDEF_txt = wx.StaticText(evs, -1,"Sp. DEF:")
-        evs_sizer.Add(e_SpDEF_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        evs_sizer.Add(e_SpDEF_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.e_SpDEF = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
-        evs_sizer.Add(self.e_SpDEF,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
+        evs_sizer.Add(self.e_SpDEF,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        e_SPD_txt = wx.StaticText(evs, -1,"SPD:")
+        evs_sizer.Add(e_SPD_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.e_SPD = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
+        evs_sizer.Add(self.e_SPD,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         evs.SetSizerAndFit(evs_sizer)
         

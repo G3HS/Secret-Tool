@@ -1,2 +1,2 @@
-/media/Storage/Secret-Tool/Pokemon SotS.gba
+/home/roger/Documents/Pokemon Fire Red_clean.gba
 Linux
