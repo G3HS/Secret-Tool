@@ -1525,6 +1525,8 @@ class MovesTab(wx.Panel):
                 Current = self.MOVESET.GetItemCount()
         self.overwrite = repoint.cb.IsChecked()
         self.UPDATE_FRACTION()
+        self.save()
+        repoint.Destroy()
         
     def OnAdd(self, *args):
         self.UPDATE_FRACTION()
@@ -1708,7 +1710,7 @@ class MovesTab(wx.Panel):
             if Jambo51HackCheck == "False":
                 while True:
                         last_read = rom.read(2)
-                        if last_read != "\xff\xff":
+                        if last_read != "\xff\xff" and last_read != "\x00\xff":
                             #moves will be a tupple of (move, level)
                             last_read = get_bytes_string_from_hex_string(last_read)
                             last_read = split_string_into_bytes(last_read)
@@ -3504,13 +3506,13 @@ class MOVE_REPOINTER(wx.Dialog):
                 if Jambo51HackCheck == "False":
                     learnedmoveslength = int(Globals.INI.get(Globals.OpenRomID, "learnedmoveslength"), 0)
                     amount_of_bytes = self.num*learnedmoveslength
-                    for n in range(amount_of_bytes):
-                        rom.write("\x00")
+                    for n in range(int(amount_of_bytes/2)):
+                        rom.write("\x00\xCA")
                     rom.write("\xff\xff\xfe\xfe")
                 else:
                     amount_of_bytes = self.num*3
-                    for n in range(amount_of_bytes):
-                        rom.write("\x00")
+                    for n in range(int(amount_of_bytes/2)):
+                        rom.write("\x00\xCA")
                     rom.write("\xff\xff\xff\xfe")
             
             self.OnClose()
@@ -3546,7 +3548,7 @@ class MOVE_REPOINTER(wx.Dialog):
                     start = offset+len(search)
                 
     def OnClose(self, *args):
-        wx.CallAfter(self.Destroy)
+        wx.CallAfter(self.Close)
 
 class EGG_MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, need, *args, **kw):
