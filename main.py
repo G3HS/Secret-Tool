@@ -1984,7 +1984,7 @@ class EvoTab(wx.Panel):
         type = self.change_method(self.method)
         if self.evomethodsproperties[type] == "Level":
             self.arg.SetSelection(self.evos[sel][1]-1)
-        elif self.evomethodsproperties[type] == "Item":
+        elif self.evomethodsproperties[type] != None:
             self.arg.SetSelection(self.evos[sel][1])
         else:
             self.arg.SetSelection(0)
@@ -2003,8 +2003,6 @@ class EvoTab(wx.Panel):
                 wx.CallAfter(self.arg_txt.SetLabel,"Level:")
                 self.arg.IgnoreEverything = True
                 self.arg_type = "Level"
-                #wx.CallAfter(self.arg.SetSelection,0)
-            
         elif self.evomethodsproperties[method] == "Item": #Item type
             if self.arg_type != "Item":
                 global ITEM_NAMES
@@ -2013,7 +2011,21 @@ class EvoTab(wx.Panel):
                 wx.CallAfter(self.arg_txt.SetLabel,"Item:")
                 self.arg_type = "Item"
                 self.arg.IgnoreEverything = False
-                #wx.CallAfter(self.arg.SetSelection,0)
+        elif self.evomethodsproperties[method] == "Pokemon": #Pokemon type
+            if self.arg_type != "Pokemon":
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,Globals.PokeNames)
+                wx.CallAfter(self.arg_txt.SetLabel,"Pokemon")
+                self.arg_type = "Pokemon"
+                self.arg.IgnoreEverything = False
+        elif self.evomethodsproperties[method] == "Move": #Move type
+            if self.arg_type != "Move":
+                global MOVES_LIST
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,MOVES_LIST)
+                wx.CallAfter(self.arg_txt.SetLabel,"Move")
+                self.arg_type = "Move"
+                self.arg.IgnoreEverything = False
         else: #None type
             wx.CallAfter(self.arg.Clear)
             wx.CallAfter(self.arg.AppendItems,["-None needed-"])
@@ -2050,35 +2062,51 @@ class EvoTab(wx.Panel):
     def load_evos_into_list(self):
         EvolutionMethods = Globals.INI.get(Globals.OpenRomID, "EvolutionMethods").split(",")
         global ITEM_NAMES
+        global MOVES_LIST
         self.evo_list.DeleteAllItems()
         for opts in self.evos:
-            try: method = EvolutionMethods[opts[0]]
-            except: 
-                method = EvolutionMethods[0]
-                opts[0] = 0
-                opts[1] = 0
-                opts[2] = 0
-            index = self.evo_list.InsertStringItem(sys.maxint, method)
-            try: 
-                assettype = self.evomethodsproperties[opts[0]]
-                asset = opts[1]
-            except: 
-                assettype = self.evomethodsproperties[0]
-                asset = 0
-                opts[0] = 0
-                opts[1] = 0
-                opts[2] = 0
-            if assettype == "Level":
-                need = "Level: "+str(asset)
-            elif assettype == "Item":
-                need = "Item: "+ITEM_NAMES[asset]
-            else:
-                need = "-"
-            self.evo_list.SetStringItem(index, 1, need)
-            if opts[0] != 0:
-                self.evo_list.SetStringItem(index, 2, Globals.PokeNames[opts[2]])
-            else:
+            if opts[0] == 0 and opts[2] == 0:
+                index = self.evo_list.InsertStringItem(sys.maxint, "None")
+                self.evo_list.SetStringItem(index, 1, "-")
                 self.evo_list.SetStringItem(index, 2, "-")
+            else:
+                try: method = EvolutionMethods[opts[0]]
+                except: 
+                    method = EvolutionMethods[0]
+                    opts[0] = 0
+                    opts[1] = 0
+                    opts[2] = 0
+                    index = self.evo_list.InsertStringItem(sys.maxint, "None")
+                    self.evo_list.SetStringItem(index, 1, "-")
+                    self.evo_list.SetStringItem(index, 2, "-")
+                    continue
+                index = self.evo_list.InsertStringItem(sys.maxint, method)
+                try: 
+                    assettype = self.evomethodsproperties[opts[0]]
+                    asset = opts[1]
+                except: 
+                    assettype = self.evomethodsproperties[0]
+                    asset = 0
+                    opts[0] = 0
+                    opts[1] = 0
+                    opts[2] = 0
+                    index = self.evo_list.InsertStringItem(sys.maxint, "None")
+                    self.evo_list.SetStringItem(index, 1, "-")
+                    self.evo_list.SetStringItem(index, 2, "-")
+                    continue
+                if assettype == "Level":
+                    need = "Level: "+str(asset)
+                elif assettype == "Item":
+                    need = "Item: "+ITEM_NAMES[asset]
+                elif assettype == "Pokemon":
+                    need = "Pokemon: "+Globals.PokeNames[asset]
+                elif assettype == "Move":
+                    need = "Move: "+MOVES_LIST[asset]
+                else:
+                    need = "-"
+                self.evo_list.SetStringItem(index, 1, need)
+                self.evo_list.SetStringItem(index, 2, Globals.PokeNames[opts[2]])
+            
 
     def save(self):
         hex_string = ""
