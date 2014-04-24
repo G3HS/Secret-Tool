@@ -146,11 +146,16 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             NewStatsOffset = FindFreeSpace(StartOffset, len(BaseStats),rom)
             rom.seek(NewStatsOffset)
             rom.write(BaseStats)     
-            ##Write the pointers for the names
+            ##Write the pointers for the stats
             StatsPointer = MakeByteStringPointer(NewStatsOffset)
             for offset in StatsTablePointers:
                 rom.seek(offset)
                 rom.write(StatsPointer)
+            #Fix pointers for egg hatch speed.
+            EggHatchPointer = MakeByteStringPointer(NewStatsOffset+17)
+            for offset in EggHatchRoutinePointers:
+                rom.seek(offset)
+                rom.write(EggHatchPointer)
             #Level-up movepool table
             LearnedMovesTable = int(ini.get(rom_id, "LearnedMoves"), 0)
             rom.seek(LearnedMovesTable)
@@ -268,7 +273,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             ##Write the palette table
             while len(ShinyPals)/8 < TotalPokesAfterChanges:
                 ShinyPals += NewPaletteEntry
-            NewSPalOffset = FindFreeSpace(StartOffset, len(ShinyPals),rom)
+            NewSPalEggHatchRoutinePointersOffset = FindFreeSpace(StartOffset, len(ShinyPals),rom)
             rom.seek(NewSPalOffset)
             rom.write(ShinyPals)     
             ##Write the pointers for the table
