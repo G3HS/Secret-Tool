@@ -39,18 +39,20 @@ class ComboBox(wx.ComboBox):
             wx.CallAfter(self.SetSelection,index)
             wx.CallAfter(self.SetInsertionPoint,len(currentType))
             return
-        
+        Matches = []
         for item in items:
             if item.startswith(currentText) or item.upper().startswith(currentText.upper()) or item.lower().startswith(currentText.lower()):
-                index = self.FindString(item)
-                wx.CallAfter(self.SetSelection,index)
-                cmd = wx.CommandEvent(wx.EVT_COMBOBOX.evtType[0])
-                cmd.SetEventObject(self) 
-                cmd.SetId(self.GetId())
-                self.GetEventHandler().ProcessEvent(cmd) 
-                wx.CallAfter(self.SetInsertionPoint,len(currentText))
-                wx.CallAfter(self.SetMark,len(currentText), len(item))
-                break
+                Matches.append(item)
+        if Matches != []:
+            shortestmatch = min(Matches, key=len)
+            index = self.FindString(shortestmatch)
+            wx.CallAfter(self.SetSelection,index)
+            cmd = wx.CommandEvent(wx.EVT_COMBOBOX.evtType[0])
+            cmd.SetEventObject(self) 
+            cmd.SetId(self.GetId())
+            self.GetEventHandler().ProcessEvent(cmd) 
+            wx.CallAfter(self.SetInsertionPoint,len(currentText))
+            wx.CallAfter(self.SetMark,len(currentText), len(shortestmatch))
                 
     def SearchOnHitEnter(self, instance):
         if self.IgnoreEverything:

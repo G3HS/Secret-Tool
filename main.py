@@ -576,13 +576,16 @@ class PokemonDataEditor(wx.Panel):
             wx.CallAfter(self.Pokes.SetSelection,index)
             wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentType))
             return
+        Matches = []
         for item in items:
             if item.startswith(currentText) or item.upper().startswith(currentText.upper()) or item.lower().startswith(currentText.lower()):
-                index = self.Pokes.FindString(item)
-                wx.CallAfter(self.Pokes.SetSelection,index)
-                wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentText))
-                wx.CallAfter(self.Pokes.SetMark,len(currentText),len(item))
-                break
+                Matches.append(item)
+        if Matches != []:
+            shortestmatch = min(Matches, key=len)
+            index = self.Pokes.FindString(shortestmatch)
+            wx.CallAfter(self.Pokes.SetSelection,index)
+            wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentText))
+            wx.CallAfter(self.Pokes.SetMark,len(currentText),len(shortestmatch))
         if event is not None:
             event.Skip()
             
