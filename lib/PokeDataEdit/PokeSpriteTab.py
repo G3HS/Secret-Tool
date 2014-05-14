@@ -292,8 +292,7 @@ class SpriteTab(wx.Panel):
             "detected that there are multiple pointers to this image outside "\
             "of the one that you are using. This means that there may be "\
             "multiple things using this image. Overwriting it could cause "\
-            "issues. Should I continue and fill it with free space (Yes) or "\
-            "just repoint without filling (No)?"%what, 
+            "issues. Should I continue and fill it with free space?"%what, 
             'Multiple Pointers Detected', 
             wx.YES_NO | wx.ICON_ERROR)
         
@@ -326,6 +325,7 @@ class SpriteTab(wx.Panel):
             rom.seek(0)
             WholeRom = rom.read()
             if self.Changes["front"] != False:
+                print "Changing front sprite."
                 GBAFrontSprite = ""
                 for sprite in self.GBAFrontSpriteFrames:
                     GBAFrontSprite += sprite
@@ -375,6 +375,7 @@ class SpriteTab(wx.Panel):
                     rom.write(GBAFSLZ)
                     
             if self.Changes["back"] != False:
+                print "Changing back sprite"
                 GBABackSprite = ""
                 for sprite in self.GBABackSpriteFrames:
                     if sprite != False:
@@ -434,6 +435,7 @@ class SpriteTab(wx.Panel):
                     rom.write(GBABSLZ)
                     
             if self.Changes["normal"] != False:
+                print "Changing normal palette"
                 normal = Convert25bitPalettetoGBA(self.FrontPalette)
                 GBANORMALLZ = LZCompress(normal)
                 if len(GBANORMALLZ) > self.OrgSizes["normal"]:
@@ -489,6 +491,7 @@ class SpriteTab(wx.Panel):
                     rom.write(GBANORMALLZ)
                     
             if self.Changes["shiny"] != False:
+                print "Writing shiny palette"
                 shiny = Convert25bitPalettetoGBA(self.ShinyPalette)
                 GBASHINYLZ = LZCompress(shiny)
                 if len(GBASHINYLZ) > self.OrgSizes["shiny"]:
