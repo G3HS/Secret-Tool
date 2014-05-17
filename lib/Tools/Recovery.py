@@ -61,7 +61,6 @@ class Recovery:
         
         with open(ini, "w") as PokeRomsIni:
             Globals.INI.write(PokeRomsIni)
-        print True
         wx.CallAfter(pub.sendMessage,"ReloadRom",data=None)
             
 class RecoveryPrompt(wx.Dialog):

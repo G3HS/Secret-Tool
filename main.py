@@ -179,6 +179,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 wx.YES_NO | wx.ICON_ERROR)
             if ERROR.ShowModal() == wx.ID_YES:
                 try:
+                    Finally = None
                     if "ConfigParser.NoOptionError" in read:
                         errors = read.split("\n")
                         sections = errors[-2].split("'")
@@ -217,6 +218,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
                     Recovery()
+                    if Finally:
+                        return
                 except:
                     ERROR = wx.MessageDialog(None, 
                                 "Error report could not be sent.", 

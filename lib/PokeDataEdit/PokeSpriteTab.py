@@ -708,6 +708,7 @@ class SpriteTab(wx.Panel):
             rom.write(pals)
             for opt in self.Changes:
                 self.Changes[opt] = False
+
                 
     def SwapIconPal(self, instance):
         if self.NoLoad:
