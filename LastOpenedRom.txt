@@ -1,2 +1,2 @@
-/home/roger/Documents/Pokemon Fire Red_clean.gba
+/home/roger/Documents/Pokemon Fire Red_test.gba
 Linux

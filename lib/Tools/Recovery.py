@@ -2,54 +2,73 @@ import wx
 from lib.Tools.RecoveryINI import *
 from GLOBALS import *
 from lib.OverLoad.Button import *
+from lib.Tools.rom_insertion_operations import *
+try: from wx.lib.pubsub import Publisher as pub
+except: 
+    print "Changing pub mode"
+    from wx.lib.pubsub import setuparg1
+    from wx.lib.pubsub import pub
+import os
 
 class Recovery:
-    def __init__():
+    def __init__(self):
         if Globals.OpenRomGameCode not in RecoveryIni.INI:
             self.NoRecovery = True
             return
         else:
             self.NoRecovery = False
-            self.INI = RecoveryIni.INI[self.gamecode]
-            RecoveryPrompt(self)
+            self.INI = RecoveryIni.INI[Globals.OpenRomGameCode]
+            Prompt = wx.MessageDialog(None, 
+                                "The error you just recieved could stem from an issue with a malformed ini. There is a recovery feature built into G3HS that may be able to recover your ini by searching the rom for the pointers to all of the tables. Would you like to attempt this?", 
+                                'Attempt recovery?', 
+                                wx.YES_NO | wx.ICON_ERROR)
+            if Prompt.ShowModal() == wx.ID_YES:
+                RecoveryPrompt(self)
             
-    def Recover(rom):
-        rom_id_offset = int(Globals.INI.get("ALL", "OffsetThatContainsSecondRomID"),0)
-        self.open_rom.seek(rom_id_offset)
-        x = "0000"
-        y = None
-        all_possible_rom_ids = Globals.INI.sections()
-        ini = os.path.join("PokeRoms.ini")
-        while True:
-            if x in all_possible_rom_ids:
-                x = str(int(x) + 1)
-                x.zfill(4)
-                continue
-            else:
-                Globals.OpenRomID = x
-                #Write new rom_id to rom.
-                byte_rom_id = get_hex_from_string(Globals.OpenRomID)
-                self.open_rom.write(byte_rom_id)
+    def Recover(self,numbersini):
+        with open(Globals.OpenRomName, "r+b") as rom:
+            rom_id_offset = int(Globals.INI.get("ALL", "OffsetThatContainsSecondRomID"),0)
+            rom.seek(rom_id_offset)
+            x = "0000"
+            y = None
+            all_possible_rom_ids = Globals.INI.sections()
+            ini = os.path.join("PokeRoms.ini")
+            while True:
+                if x in all_possible_rom_ids:
+                    x = str(int(x) + 1).zfill(4)
+                    continue
+                else:
+                    Globals.OpenRomID = x
+                    #Write new rom_id to rom.
+                    byte_rom_id = get_hex_from_string(Globals.OpenRomID)
+                    rom.write(byte_rom_id)
+                    
+                    Globals.INI.add_section(Globals.OpenRomID)
+                    options = Globals.INI.options(Globals.OpenRomGameCode)
+                    tmp_ini = []
+                    for opt in options:
+                        tmp_ini.append((opt, Globals.INI.get(Globals.OpenRomGameCode, opt)))
+                    for opt, value in tmp_ini:
+                        Globals.INI.set(Globals.OpenRomID, opt, value)
+                    break
+            for name, offset in self.INI.iteritems():
+                rom.seek(offset)
+                NewOffset = hex(read_pointer(rom.read(4))).rstrip("L")
+                Globals.INI.set(Globals.OpenRomID, name, NewOffset)
                 
-                Globals.INI.add_section(Globals.OpenRomID)
-                options = Globals.INI.options(Globals.OpenRomGameCode)
-                tmp_ini = []
-                for opt in options:
-                    tmp_ini.append((opt, Globals.INI.get(Globals.OpenRomGameCode, opt)))
-                for opt, value in tmp_ini:
-                    Globals.INI.set(Globals.OpenRomID, opt, value)
-                break
-        for name, offset in self.INI.iteritems():
-            Globals.INI.set(Globals.OpenRomID, name, offset)
+            for name, number in numbersini.iteritems():
+                Globals.INI.set(Globals.OpenRomID, name, number)
         
         with open(ini, "w") as PokeRomsIni:
             Globals.INI.write(PokeRomsIni)
+        print True
+        wx.CallAfter(pub.sendMessage,"ReloadRom",data=None)
             
 class RecoveryPrompt(wx.Dialog):
-    def __init__(self, Calling, *args, **kw):
+    def __init__(self, parent, *args, **kw):
         wx.Dialog.__init__(self, parent=None, id=wx.ID_ANY)
         self.SetWindowStyle( self.GetWindowStyle() | wx.RESIZE_BORDER )
-        self.Caller = Calling
+        self.Caller = parent
         self.InitUI()
         self.SetTitle("Ini Recovery")
         self.ShowModal()
@@ -110,9 +129,18 @@ class RecoveryPrompt(wx.Dialog):
         AbilityHBox.Add(self.Ability, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT, 5)
         
         SUBMIT = Button(pnl, 2, "Submit")
-        self.Bind(wx.EVT_BUTTON, self.Caller.Recover(), id=2)
+        self.Bind(wx.EVT_BUTTON, self.Submit, id=2)
         vbox.Add(SUBMIT, 0, wx.EXPAND | wx.ALL, 5)
         
         pnl.SetSizerAndFit(vbox)
         self.Fit()
         self.SetMinSize(self.GetEffectiveMinSize())
+    
+    def Submit(self, event=None):
+        ini = {"numberofpokes":str(self.Pokemon.GetValue()),
+               "numberofattacks":str(self.Move.GetValue()),
+               "numberofitems":str(self.Item.GetValue()),
+               "numberoftypes":str(self.Type.GetValue()),
+               "numberofabilities":str(self.Ability.GetValue())}
+        wx.CallAfter(self.Destroy)
+        self.Caller.Recover(ini)

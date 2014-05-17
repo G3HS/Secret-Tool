@@ -96,6 +96,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         ini = os.path.join("PokeRoms.ini") #self.path,
         Globals.INI.read(ini)
         pub.subscribe(self.EXIT, "CloseG3HS")
+        pub.subscribe(self.ReloadRom, "ReloadRom")
         self.panel.Layout()
         self.Layout()
         self.Show(True)
@@ -188,7 +189,6 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
                     if "ConfigParser.NoSectionError" in read:
                         errors = read.split("\n")
                         sections = errors[-2].split("'")
@@ -198,28 +198,25 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
                     if "load_evos_into_list" in read and "IndexError: list index out of range" in read:
                         Finally = wx.MessageDialog(None, 
                                     textwrap.fill('This message does not need to be sent. This error occurs when a bad offset is loaded from the ini for the evolution table. It attempted to load data for an evolution type that does not exist. Please check your offset in the ini for "evolutiontable".',100), 
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
                     if "IndexError: list index out of range" in read and "get_move_data" in read:
                         Finally = wx.MessageDialog(None, 
                                     textwrap.fill('This message does not need to be sent. The only time this error happens is when a pointer for learned move data is not in the rom. Most commonly, this is solely due to the pointer being FFFFFF caused by repointing the move table and filling it with FF. So, in basic terms, you have the wrong learned moves offset in the ini. (Maybe you loaded this rom with the ini for an expanded rom or vice versa?)',110), 
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
                     if "load_stats_into_boxes" in read and "SetSelectedItem(): Inavlid item index" in read:
                         Finally = wx.MessageDialog(None, 
                                     textwrap.fill('This message does not need to be sent. This error occurs when loading an item number that is too high. 90% of the time, your rom is expanded and using a section of ini for the unexpanded rom, or vice versa. Please check your ini.',110), 
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
+                    Recovery()
                 except:
                     ERROR = wx.MessageDialog(None, 
                                 "Error report could not be sent.", 
@@ -242,6 +239,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 'Report Sent!', 
                                 wx.OK | wx.ICON_INFORMATION)
                     Finally.ShowModal()
+            else:
+                Recovery()
     
     def set_timer(self):
         TIMER_ID = 10  # pick a number
@@ -318,6 +317,10 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             except: pass
             wx.CallAfter(open_dialog.Destroy)
             wx.CallAfter(self.work_with_ini)
+            
+    def ReloadRom(self, *args):
+        self.open_rom = open(Globals.OpenRomName, "r+b")
+        wx.CallAfter(self.work_with_ini)
 
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
@@ -387,8 +390,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                 y = None
                 while y == None:
                     if x in all_possible_rom_ids:
-                        x = str(int(x) + 1)
-                        x.zfill(4)
+                        x = str(int(x) + 1).zfill(4)
                         continue
                     else:
                         Globals.OpenRomID = x
@@ -411,7 +413,6 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.open_rom.close()
         wx.CallAfter(self.reload_all_tabs)
         self.SetTitle("Gen III Hacking Suite"+" ~ "+Globals.INI.get(Globals.OpenRomID, "name")+" ~ "+self.open_rom.name)
-        RecoveryPrompt()
         
     def reload_all_tabs(self):
         try: self.tabbed_area.Destroy()

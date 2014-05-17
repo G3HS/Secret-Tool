@@ -7,6 +7,7 @@ from PIL import Image
 from lib.Tools.PILandWXPythonConversions import *
 from lib.OverLoad.Button import *
 from lib.PokeDataEdit.PosEditor import *
+from lib.Tools.Recovery import *
 
 class SpriteTab(wx.Panel):
     def __init__(self, parent, rom=None, config=None, rom_id=None):
@@ -1026,29 +1027,33 @@ class SpriteTab(wx.Panel):
         
         with open(self.rom_name, "r+b") as rom:
             rom.seek(FrontSpriteTable+(poke_num)*bytes_per_entry)
-            self.FrontSpritePointer = read_pointer(rom.read(4))
+            FSPoint = rom.read(4)
+            self.FrontSpritePointer = read_pointer(FSPoint)
             rom.seek(BackSpriteTable+(poke_num)*bytes_per_entry)
-            self.BackSpritePointer = read_pointer(rom.read(4))
+            BSPoint = rom.read(4)
+            self.BackSpritePointer = read_pointer(BSPoint)
             rom.seek(FrontPaletteTable+(poke_num)*bytes_per_entry)
-            self.FrontPalettePointer = read_pointer(rom.read(4))
+            NPPoint = rom.read(4)
+            self.FrontPalettePointer = read_pointer(NPPoint)
             rom.seek(ShinyPaletteTable+(poke_num)*bytes_per_entry)
-            self.ShinyPalettePointer = read_pointer(rom.read(4))
+            SPPoint = rom.read(4)
+            self.ShinyPalettePointer = read_pointer(SPPoint)
             
             self.GBAFrontSprite, self.OrgSizes["front"] = LZUncompress(rom, self.FrontSpritePointer)
             if self.GBAFrontSprite == False or self.OrgSizes["front"] == False:
-                self.imageLoadingError()
+                self.imageLoadingError(hexlify(FSPoint))
                 return
             self.GBABackSprite, self.OrgSizes["back"] = LZUncompress(rom, self.BackSpritePointer)
             if self.GBABackSprite == False or self.OrgSizes["back"] == False:
-                self.imageLoadingError()
+                self.imageLoadingError(hexlify(BSPoint))
                 return
             FrontPalette, self.OrgSizes["normal"] = LZUncompress(rom, self.FrontPalettePointer)
             if FrontPalette == False or self.OrgSizes["normal"] == False:
-                self.imageLoadingError()
+                self.imageLoadingError(hexlify(NPPoint))
                 return
             ShinyPalette, self.OrgSizes["shiny"] = LZUncompress(rom, self.ShinyPalettePointer)
             if ShinyPalette == False or self.OrgSizes["shiny"] == False:
-                self.imageLoadingError()
+                self.imageLoadingError(hexlify(SPPoint))
                 return
             
                 
@@ -1144,12 +1149,13 @@ class SpriteTab(wx.Panel):
         self.IconPalChoice.AppendItems(nums) 
         self.IconPalChoice.SetSelection(self.IconPalNum)
     
-    def imageLoadingError(self):
+    def imageLoadingError(self, pointer):
         ERROR = wx.MessageDialog(None, 
-                "Images failed to decompress. Aborting sprite load.", 
+                "Images failed to decompress. Aborting sprite load.\nThe image that was attempted to be loaded had pointer: {0}".format(pointer), 
                 'Error loading sprite data...', 
                 wx.OK | wx.ICON_ERROR)
         ERROR.ShowModal()
+        Recovery()
         self.NoLoad = True
     
     def OnIconTimer1(self, event):
