@@ -190,8 +190,8 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.write(BlankPalette)
             BlankImagePointer = MakeByteStringPointer(BlankImageOffset)
             BlankPalettePointer = MakeByteStringPointer(BlankPaletteOffset)
-            NewImageEntry = BlankImagePointer+"\x00\x08\x00\x00"
-            NewPaletteEntry = BlankPalettePointer+"\x00\x00\x00\x00"
+            NewImageEntry = BlankImagePointer+"\x00\x08"
+            NewPaletteEntry = BlankPalettePointer+"\x00\x00"
             frontspritetable = int(ini.get(rom_id, "frontspritetable"), 0)
             backspritetable = int(ini.get(rom_id, "backspritetable"), 0)
             frontpalettetable = int(ini.get(rom_id, "frontpalettetable"), 0)
@@ -204,8 +204,11 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(frontspritetable)
             rom.write("\xFF"*len(FrontSprites))
             ##Write the sprite table
-            while len(FrontSprites)/8 < TotalPokesAfterChanges:
-                FrontSprites += NewImageEntry
+            count = len(FrontSprites)/8
+            while count < TotalPokesAfterChanges:
+                count = len(FrontSprites)/8
+                FrontSprites += (NewImageEntry+make_16bit_number(count))
+                
             NewFSOffset = FindFreeSpace(StartOffset, len(FrontSprites),rom)
             rom.seek(NewFSOffset)
             rom.write(FrontSprites)     
@@ -226,8 +229,10 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(backspritetable)
             rom.write("\xFF"*len(BackSprites))
             ##Write the sprite table
-            while len(BackSprites)/8 < TotalPokesAfterChanges:
-                BackSprites += NewImageEntry
+            count = len(BackSprites)/8
+            while count < TotalPokesAfterChanges:
+                count = len(BackSprites)/8
+                BackSprites += (NewImageEntry+make_16bit_number(count))
             NewBSOffset = FindFreeSpace(StartOffset, len(BackSprites),rom)
             rom.seek(NewBSOffset)
             rom.write(BackSprites)     
@@ -249,8 +254,10 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(frontpalettetable)
             rom.write("\xFF"*len(NormalPals))
             ##Write the palette table
-            while len(NormalPals)/8 < TotalPokesAfterChanges:
-                NormalPals += NewPaletteEntry
+            count = len(NormalPals)/8
+            while count < TotalPokesAfterChanges:
+                count = len(NormalPals)/8
+                NormalPals += (NewPaletteEntry+make_16bit_number(count))
             NewNPalOffset = FindFreeSpace(StartOffset, len(NormalPals),rom)
             rom.seek(NewNPalOffset)
             rom.write(NormalPals)     
@@ -271,8 +278,9 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(shinypalettetable)
             rom.write("\xFF"*len(ShinyPals))
             ##Write the palette table
-            while len(ShinyPals)/8 < TotalPokesAfterChanges:
-                ShinyPals += NewPaletteEntry
+            while count < TotalPokesAfterChanges:
+                count = len(ShinyPals)/8
+                ShinyPals += (NewPaletteEntry+make_16bit_number(count))
             NewSPalOffset = FindFreeSpace(StartOffset, len(ShinyPals),rom)
             rom.seek(NewSPalOffset)
             rom.write(ShinyPals)     
