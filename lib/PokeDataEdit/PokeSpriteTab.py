@@ -767,13 +767,19 @@ class SpriteTab(wx.Panel):
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
             raw = Image.open(filename)
-            if raw.size != (32,64):
+            if raw.size != (32,64) and raw.size != (64,32):
                 ERROR = wx.MessageDialog(self,
-                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 32x64.", 
+                        "Image is "+str(raw.size[0])+"x"+str(raw.size[1])+". It must be 32x64 or 64x32.", 
                         'Image Size error', 
                         wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
                 return
+            if raw.size == (64,32):
+                p1 = raw.copy().crop((0, 0, 32, 32))
+                p2 = raw.copy().crop((32, 0, 64, 32))
+                raw = Image.new("RGB", (32,64))
+                raw.paste(p1, (0,0))
+                raw.paste(p2, (0,32))
             if raw.mode != "P":
                 raw = raw.convert("RGB")
                 converted = raw.convert("P", palette=Image.ADAPTIVE, colors=16)

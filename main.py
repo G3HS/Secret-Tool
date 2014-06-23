@@ -172,7 +172,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                     wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
                 return
-            
+            """
             ERROR = wx.MessageDialog(None, 
                                 "ERROR:\n\n"+read+"\n\nWould you like to report this error?", 
                                 'Piped error from sys.stderr: PLEASE REPORT', 
@@ -209,7 +209,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         Finally = wx.MessageDialog(None, 
                                     textwrap.fill('This message does not need to be sent. The only time this error happens is when a pointer for learned move data is not in the rom. Most commonly, this is solely due to the pointer being FFFFFF caused by repointing the move table and filling it with FF. So, in basic terms, you have the wrong learned moves offset in the ini. (Maybe you loaded this rom with the ini for an expanded rom or vice versa?)',110), 
                                     'I already know this error....', 
-                                    wx.OK | wx.ICON_INFORMATION)
+                                         wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
                     if "load_stats_into_boxes" in read and "SetSelectedItem(): Inavlid item index" in read:
                         Finally = wx.MessageDialog(None, 
@@ -241,9 +241,9 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 "Report sent successfully. Thank you and have a great day.\n\nThe exact report that was sent was:\n------------------\n"+emailer.Report+"\n------------------", 
                                 'Report Sent!', 
                                 wx.OK | wx.ICON_INFORMATION)
-                    Finally.ShowModal()
-            else:
-                Recovery()
+                    Finally.ShowModal()"""
+            #else:
+            Recovery()
     
     def set_timer(self):
         TIMER_ID = 10  # pick a number
@@ -2031,6 +2031,15 @@ class EvoTab(wx.Panel):
                 wx.CallAfter(self.arg.AppendItems,MOVES_LIST)
                 wx.CallAfter(self.arg_txt.SetLabel,"Move")
                 self.arg_type = "Move"
+                self.arg.IgnoreEverything = False
+        elif self.evomethodsproperties[method] == "Location": #Location type
+            if self.arg_type != "Location":
+                Locations_List = None
+                #Need to get a list of locations.
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,Locations_List)
+                wx.CallAfter(self.arg_txt.SetLabel,"Location")
+                self.arg_type = "Location"
                 self.arg.IgnoreEverything = False
         else: #None type
             wx.CallAfter(self.arg.Clear)
