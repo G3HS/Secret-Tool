@@ -180,6 +180,12 @@ def make_16bit_number(integer):
 
 def convert_ascii_and_poke(string, mode):
     #modes: "to_poke" and "to_ascii"
+    """
+    to_poke to read from rom.
+    to_ascii to convert back into rom form.
+    
+    """
+    
     chart = ENCODING
     
     if mode == "to_ascii":

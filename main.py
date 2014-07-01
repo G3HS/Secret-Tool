@@ -172,6 +172,12 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                     wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
                 return
+            ERROR = wx.MessageDialog(None, 
+                                "ERROR:\n\n"+read, 
+                                'Piped error from sys.stderr: PLEASE REPORT', 
+                                wx.OK | wx.ICON_ERROR)
+            ERROR.ShowModal()
+            
             """
             ERROR = wx.MessageDialog(None, 
                                 "ERROR:\n\n"+read+"\n\nWould you like to report this error?", 
@@ -1820,7 +1826,7 @@ class EvoTab(wx.Panel):
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.arg_type = None
         self.generate_UI()
-        
+        self.Locations = self.get_locations()
         self.SetSizer(self.sizer)
 
     def generate_UI(self):
@@ -1915,6 +1921,8 @@ class EvoTab(wx.Panel):
                 arg += 1
             elif arg == -1:
                 arg = 0
+            elif self.evomethodsproperties[method] == "Location":
+                arg += self.Locations[0]
             poke = self.poke.GetSelection()
             if poke == -1:
                 poke = 1
@@ -1974,6 +1982,8 @@ class EvoTab(wx.Panel):
                 arg += 1
             elif arg == -1:
                 arg = 0
+            elif self.evomethodsproperties[method] == "Location":
+                arg += self.Locations[0]
             poke = self.poke.GetSelection()
             if poke == -1:
                 poke = 1
@@ -2034,8 +2044,7 @@ class EvoTab(wx.Panel):
                 self.arg.IgnoreEverything = False
         elif self.evomethodsproperties[method] == "Location": #Location type
             if self.arg_type != "Location":
-                Locations_List = None
-                #Need to get a list of locations.
+                Locations_List = self.Locations[1]
                 wx.CallAfter(self.arg.Clear)
                 wx.CallAfter(self.arg.AppendItems,Locations_List)
                 wx.CallAfter(self.arg_txt.SetLabel,"Location")
@@ -2048,7 +2057,26 @@ class EvoTab(wx.Panel):
             self.arg.IgnoreEverything = False
             self.arg_type = None
         return method
-        
+    
+    def get_locations(self):
+        LocationTable = int(Globals.INI.get(Globals.OpenRomID, "locationnames"), 0)
+        locationstart = int(Globals.INI.get(Globals.OpenRomID, "locationstart"), 0)
+        locationend = int(Globals.INI.get(Globals.OpenRomID, "locationend"), 0)
+        lst = []
+        with open(Globals.OpenRomName, "r+b") as rom:
+            for x in range((locationend-locationstart)+1):
+                rom.seek(LocationTable+x*4)
+                offset = read_pointer(rom.read(4))
+                rom.seek(offset)
+                string = ""
+                read = ""
+                while read != "\xFF":
+                    
+                    read = rom.read(1)
+                    string += read
+                lst.append(convert_ascii_and_poke(string[:-1],"to_poke"))
+        return (locationstart, lst)
+                
     def load_everything(self):
         EvolutionTable = int(Globals.INI.get(Globals.OpenRomID, "EvolutionTable"), 0)
         EvolutionsPerPoke = int(Globals.INI.get(Globals.OpenRomID, "EvolutionsPerPoke"), 0)
@@ -2117,6 +2145,8 @@ class EvoTab(wx.Panel):
                     need = "Pokemon: "+Globals.PokeNames[asset]
                 elif assettype == "Move":
                     need = "Move: "+MOVES_LIST[asset]
+                elif assettype == "Location":
+                    need = "Location: "+self.Locations[1][asset-self.Locations[0]]
                 else:
                     need = "-"
                 self.evo_list.SetStringItem(index, 1, need)
