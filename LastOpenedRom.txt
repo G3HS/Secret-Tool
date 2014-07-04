@@ -1,2 +1,2 @@
-/media/Storage/Pokemon FireRed TEST.gba
+/media/Storage/Pokemon FireRed CLEAN (copy).gba
 Linux

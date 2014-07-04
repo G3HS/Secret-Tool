@@ -44,8 +44,7 @@ class UpdateDialog(wx.Dialog):
         self.OnClose()
         
     def OnAuto(self, event=None):
-        Globals.latestRelease = latestRelease
-        DownloaderDialog(frame)
+        DownloaderDialog(None)
         self.OnClose()
         
     def OnClose(self, event=None):

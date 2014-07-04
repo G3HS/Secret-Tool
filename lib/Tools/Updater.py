@@ -4,6 +4,7 @@ import urllib2
 import time
 import ConfigParser
 import sys
+from platform import system
 from GLOBALS import *
 import platform, locale
 from zipfile import ZipFile
@@ -36,10 +37,18 @@ class DownloadThread(Thread):
         Globals.ZIPName determines which file should be downloaded for the 
         update. This is set before building by the person who is compiling.
         """
+
+        if system() == "Windows":
+            ZIPName = "Gen_III_Suite.Windows-.English.Encoding.zip"
+            #ZIPName = "Gen_III_Suite.Windows-.Chinese.Encoding.zip"
+        elif system()[:5] == "Linux":
+            ZIPName = "Gen_III_Suite.Ubuntu.13.10.zip"
+        elif system() == "Darwin":
+            ZIPName = "Gen_III_Suite.MAC.zip"
         url = "https://github.com/thekaratekid552/"\
         "Secret-Tool/releases/download/"\
             "{0}/{1}".format(Globals.latestRelease["name"],
-                             Globals.ZIPName)
+                             ZIPName)
         
         #Need to access this file during the unpack.
         Globals.DownloadedZipName = url.split('/')[-1] #Filename
@@ -50,9 +59,9 @@ class DownloadThread(Thread):
                 if x == 4:
                     #Tell the user the request failed:
                     ErrorDialog(None, 
-                                "HTTP request has failed. Please download the "\
-                                "update manually.", 
+                                "HTTP request has failed. Please download the update manually.", 
                                 "Download Failure")
+                    return
                 else:
                     time.sleep(2)
                     continue
@@ -219,13 +228,6 @@ class UnpackThread(Thread):
             with open(orginiloc, "w") as PokeRomsIni:
                 Globals.INI.write(PokeRomsIni)
             
-            #Fool the user into thinking I'm loading the new ini.:P
-            #If they even see this..... Haha
-            self.UpdateGauge(0)
-            self.UpdateGauge(25)
-            self.UpdateGauge(75)
-            self.UpdateGauge(100)
-            
             #Now, since we can't replace the exe while it is running, we
             #tell it to run a bash/batch script to do that for us after the 
             #exe exits.
@@ -244,6 +246,8 @@ class UnpackThread(Thread):
                 try: popen = Popen(os.path.join(os.getcwd(),"tmp","Finish.bat"))
                 except:
                     pass
+            with open("dump.txt", "w+") as dump:
+                dump.write(NewResources)
             #Exit the program so the bash/batch script can run.
             wx.CallAfter(pub.sendMessage, "CloseG3HS")
 

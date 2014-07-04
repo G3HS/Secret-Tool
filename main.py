@@ -44,7 +44,7 @@ licence = encode_per_platform(licence)
 
 class MainWindow(wx.Frame, wx.FileDropTarget):
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, title=title, size=(800,600))
+        wx.Frame.__init__(self, parent, title=title, size=(800,625))
         wx.FileDropTarget.__init__(self)
         
         self.SetDropTarget(self)
@@ -433,7 +433,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.panel.Layout()
         self.Layout()
         self.Show(True)
-
+        self.Refresh()
+        
 #############################################################
 #This class is what holds all of the main tabs.
 #############################################################
@@ -450,7 +451,8 @@ class TabbedEditorArea(wx.Notebook):
         
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
-        
+        self.Layout()
+		
     def OnPageChanged(self, event):
         old = event.GetOldSelection()
         new = event.GetSelection()
@@ -740,7 +742,8 @@ class DataEditingTabs(wx.Notebook):
         self.SetSizer(sizer)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
-        
+        self.Layout()
+		
     def OnPageChanged(self, event):
         old = event.GetOldSelection()
         new = event.GetSelection()
@@ -2062,10 +2065,11 @@ class EvoTab(wx.Panel):
         LocationTable = int(Globals.INI.get(Globals.OpenRomID, "locationnames"), 0)
         locationstart = int(Globals.INI.get(Globals.OpenRomID, "locationstart"), 0)
         locationend = int(Globals.INI.get(Globals.OpenRomID, "locationend"), 0)
+        locationtblfmt = int(Globals.INI.get(Globals.OpenRomID, "locationtblfmt"), 0)
         lst = []
         with open(Globals.OpenRomName, "r+b") as rom:
             for x in range((locationend-locationstart)+1):
-                rom.seek(LocationTable+x*4)
+                rom.seek(LocationTable+x*4*locationtblfmt)
                 offset = read_pointer(rom.read(4))
                 rom.seek(offset)
                 string = ""
@@ -4032,14 +4036,13 @@ def OnUpdateTimer(instance):
     global timer
     timer.Stop()
     del timer
-    global latestRelease
     global LatestGoodBuild
     if UseDevBuild == False:
-        latestRelease = LatestGoodBuild
+        Globals.latestRelease = LatestGoodBuild
     Message = "An update is available for this suite:\n\n"
-    Message += "Version: "+latestRelease["name"]+"\n\n"
-    Message += "Updates:\n"+latestRelease["body"]+"\n\n"
-    if latestRelease["prerelease"] == True:
+    Message += "Version: "+Globals.latestRelease["name"]+"\n\n"
+    Message += "Updates:\n"+Globals.latestRelease["body"]+"\n\n"
+    if Globals.latestRelease["prerelease"] == True:
         Message += "Please note that this is a prerelease and may not work properly.\n\n"
     Message +="Would you like to update?"
     Updater = UpdateDialog(frame,Message)
@@ -4094,7 +4097,7 @@ try:
         response = urllib2.urlopen(r)
         obj = response.read()
         obj = json.loads(obj)
-        latestRelease = obj[0]
+        Globals.latestRelease = obj[0]
         LatestGoodBuild = None
         timer = None
         UseDevBuild = False
@@ -4103,8 +4106,8 @@ try:
                 LatestGoodBuild = x
                 break
         CheckForDevBuilds = Globals.INI.get("ALL", "CheckForDevBuilds")
-        if DetermineHigherVersion(latestRelease["tag_name"],Globals.VersionNumber):
-            if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
+        if DetermineHigherVersion(Globals.latestRelease["tag_name"],Globals.VersionNumber):
+            if Globals.latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
                 UseDevBuild = True
                 timer = wx.Timer(frame, 99)
                 timer.Start(500)

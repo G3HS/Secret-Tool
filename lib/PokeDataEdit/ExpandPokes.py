@@ -278,6 +278,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(shinypalettetable)
             rom.write("\xFF"*len(ShinyPals))
             ##Write the palette table
+            count = len(ShinyPals)/8
             while count < TotalPokesAfterChanges:
                 count = len(ShinyPals)/8
                 ShinyPals += (NewPaletteEntry+make_16bit_number(count))

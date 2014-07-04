@@ -2,7 +2,7 @@
 
 
 class Globals():
-    VersionNumber = "v1.2"
+    VersionNumber = "v1.1"
     Version = VersionNumber+" ~ Codename: 'Fellowship of the Hack'"
     OpenRomName = None
     OpenRomID = None
@@ -11,10 +11,6 @@ class Globals():
     PokeNames = None
     latestRelease = None
     """COMPILERS- Chose the one you want by making it the only one without a #."""
-    #ZIPName = "Gen_III_Suite.Windows-.English.Encoding.zip"
-    #ZIPName = "Gen_III_Suite.Windows-.Chinese.Encoding.zip"
-    #ZIPName = "Gen_III_Suite.MAC.zip"
-    ZIPName = "Gen_III_Suite.Ubuntu.13.10.zip"
     DownloadedZipName = None
     
         

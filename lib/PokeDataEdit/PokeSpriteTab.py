@@ -184,7 +184,6 @@ class SpriteTab(wx.Panel):
         self.IconPalChoice.Bind(wx.EVT_COMBOBOX, self.SwapIconPal)
         IconPanelSizer.Add(self.IconPalChoice, 0, wx.EXPAND | wx.ALL, 5)
         
-        
         IconPalBox = wx.BoxSizer(wx.HORIZONTAL)
         IconPanelSizer.Add(IconPalBox, 0, wx.EXPAND | wx.ALL, 0)
         
@@ -204,6 +203,10 @@ class SpriteTab(wx.Panel):
             elif n > 7:
                 IconPalBoxRight.Add(button, 0, wx.EXPAND | wx.ALL, 5)
             self.IconColorButtons.append(button)
+        IconPalBoxLeft.Layout()
+        IconPalBoxRight.Layout()
+        IconPalBox.Layout()
+        IconPalBox.Layout()
         self.load_everything(self.poke_num)
         PalettePanel.Layout()
         spritePanel.Layout()
@@ -1036,31 +1039,34 @@ class SpriteTab(wx.Panel):
             rom.seek(FrontSpriteTable+(poke_num)*bytes_per_entry)
             FSPoint = rom.read(4)
             self.FrontSpritePointer = read_pointer(FSPoint)
+            
             rom.seek(BackSpriteTable+(poke_num)*bytes_per_entry)
             BSPoint = rom.read(4)
             self.BackSpritePointer = read_pointer(BSPoint)
+            
             rom.seek(FrontPaletteTable+(poke_num)*bytes_per_entry)
             NPPoint = rom.read(4)
             self.FrontPalettePointer = read_pointer(NPPoint)
+            
             rom.seek(ShinyPaletteTable+(poke_num)*bytes_per_entry)
             SPPoint = rom.read(4)
             self.ShinyPalettePointer = read_pointer(SPPoint)
             
             self.GBAFrontSprite, self.OrgSizes["front"] = LZUncompress(rom, self.FrontSpritePointer)
             if self.GBAFrontSprite == False or self.OrgSizes["front"] == False:
-                self.imageLoadingError(hexlify(FSPoint))
+                self.imageLoadingError(hexlify(FSPoint), "Front Sprite")
                 return
             self.GBABackSprite, self.OrgSizes["back"] = LZUncompress(rom, self.BackSpritePointer)
             if self.GBABackSprite == False or self.OrgSizes["back"] == False:
-                self.imageLoadingError(hexlify(BSPoint))
+                self.imageLoadingError(hexlify(BSPoint), "Back Sprite")
                 return
             FrontPalette, self.OrgSizes["normal"] = LZUncompress(rom, self.FrontPalettePointer)
             if FrontPalette == False or self.OrgSizes["normal"] == False:
-                self.imageLoadingError(hexlify(NPPoint))
+                self.imageLoadingError(hexlify(NPPoint), "Normal Palette")
                 return
             ShinyPalette, self.OrgSizes["shiny"] = LZUncompress(rom, self.ShinyPalettePointer)
             if ShinyPalette == False or self.OrgSizes["shiny"] == False:
-                self.imageLoadingError(hexlify(SPPoint))
+                self.imageLoadingError(hexlify(SPPoint), "Shiny Palette")
                 return
             
                 
@@ -1156,9 +1162,9 @@ class SpriteTab(wx.Panel):
         self.IconPalChoice.AppendItems(nums) 
         self.IconPalChoice.SetSelection(self.IconPalNum)
     
-    def imageLoadingError(self, pointer):
+    def imageLoadingError(self, pointer, what):
         ERROR = wx.MessageDialog(None, 
-                "Images failed to decompress. Aborting sprite load.\nThe image that was attempted to be loaded had pointer: {0}".format(pointer), 
+                "Images failed to decompress. Aborting sprite load. The image\nthat was attempted to be loaded had pointer: {0} for {1}.".format(pointer,what), 
                 'Error loading sprite data...', 
                 wx.OK | wx.ICON_ERROR)
         ERROR.ShowModal()
