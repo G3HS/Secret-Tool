@@ -19,6 +19,7 @@ from lib.PokeDataEdit.HabitatTab import *
 from lib.OverLoad.UpdateDialog import *
 from binascii import hexlify, unhexlify
 from lib.Tools.Recovery import *
+from lib.Tools.IniMerger import MergerPrompt
 
 try: from wx.lib.pubsub import Publisher as pub
 except: 
@@ -64,22 +65,27 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.CreateStatusBar() # A Statusbar in the bottom of the window
         # Setting up the menu.
         filemenu = wx.Menu()
+        toolmenu = wx.Menu()
         helpmenu = wx.Menu()
         # wx.ID_ABOUT and wx.ID_EXIT are standard IDs provided by wxWidgets.
         filemenu.Append(wx.ID_OPEN, "&Open"," Open a ROM.")
         help_ID = wx.NewId()
         ContactID = wx.NewId()
+        iniID = wx.NewId()
+        toolmenu.Append(iniID, "&Ini Merger","Merge a new and old ini.")
         helpmenu.Append(help_ID, "&Documentation"," Open documentation. Requires a pdf reader.")
         helpmenu.AppendSeparator()
         helpmenu.Append(ContactID, "&Contact"," Contact the developer.")
         helpmenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
         self.Bind(wx.EVT_MENU, self.open_file, id=wx.ID_OPEN)
+        self.Bind(wx.EVT_MENU, self.ini_merger, id=iniID)
         self.Bind(wx.EVT_MENU, self.Help, id=help_ID)
         self.Bind(wx.EVT_MENU, self.Contact, id=ContactID)
         self.Bind(wx.EVT_MENU, self.ABOUT, id=wx.ID_ABOUT)
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
+        menuBar.Append(toolmenu,"&Tools")
         menuBar.Append(helpmenu,"&Help")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
         p = platform.system()
@@ -100,6 +106,9 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.panel.Layout()
         self.Layout()
         self.Show(True)
+    
+    def ini_merger(self, event=None):
+        MergerPrompt(self)
     
     def EXIT(self, data=None):
         wx.CallAfter(self.Destroy)
