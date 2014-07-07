@@ -2,7 +2,7 @@
 
 
 class Globals():
-    VersionNumber = "v1.1"
+    VersionNumber = "v1.2"
     Version = VersionNumber+" ~ Codename: 'Fellowship of the Hack'"
     OpenRomName = None
     OpenRomID = None
@@ -10,7 +10,6 @@ class Globals():
     INI = None
     PokeNames = None
     latestRelease = None
-    """COMPILERS- Chose the one you want by making it the only one without a #."""
     DownloadedZipName = None
     
         
