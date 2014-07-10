@@ -1,0 +1,3 @@
+-Icon Palettes auto-select is optional
+-Add page in habitats
+-Emerald expansion

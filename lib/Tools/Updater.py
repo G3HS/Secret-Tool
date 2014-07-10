@@ -42,7 +42,7 @@ class DownloadThread(Thread):
             ZIPName = "Gen_III_Suite.Windows-.English.Encoding.zip"
             #ZIPName = "Gen_III_Suite.Windows-.Chinese.Encoding.zip"
         elif system()[:5] == "Linux":
-            ZIPName = "Gen_III_Suite.Ubuntu.13.10.zip"
+            ZIPName = "Gen_III_Suite.Ubuntu.14.04.zip"
         elif system() == "Darwin":
             ZIPName = "Gen_III_Suite.MAC.zip"
         url = "https://github.com/thekaratekid552/"\

@@ -322,7 +322,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                 directory = os.getcwd()
         open_dialog = wx.FileDialog(None, message="Open a rom...", 
                                     defaultDir=directory, 
-                                    wildcard = "Rom files (*.gba,*.bin)|*.gba;*.bin|All files (*.*)|*.*",
+                                    wildcard = "Rom files (*.gba,*.bin)|*.gba;*.GBA;*.BIN;*.bin|All files (*.*)|*.*",
                                     style=wx.FD_OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
@@ -2485,10 +2485,9 @@ class PokeDexTab(wx.Panel):
             
     def OnFoot(self, *args):
         if not self.lastPath: self.lastPath = os.getcwd()
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a footprint (16x16)...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
-                                    wildcard=wildcard)
+                                    wildcard=Globals.IMGWildCard)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)

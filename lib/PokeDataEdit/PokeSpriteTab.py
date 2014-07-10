@@ -179,6 +179,10 @@ class SpriteTab(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.RepointIcon, id=65)
         IconPanelSizer.Add(IconRepoint, 0, wx.EXPAND | wx.ALL, 5)
         
+        self.AutoPallete = wx.CheckBox(IconPanel, -1, 'Auto-Palette?', (10, 10))
+        self.AutoPallete.SetValue(True)
+        IconPanelSizer.Add(self.AutoPallete, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        
         self.IconPalChoice = ComboBox(IconPanel, -1, choices=[],
                                             style=wx.SUNKEN_BORDER, size=(60, -1))
         self.IconPalChoice.Bind(wx.EVT_COMBOBOX, self.SwapIconPal)
@@ -762,10 +766,9 @@ class SpriteTab(wx.Panel):
     def LoadIcon(self, instance):
         if self.NoLoad:
             return
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open an icon...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
-                                    wildcard=wildcard)
+                                    wildcard=Globals.IMGWildCard)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
@@ -795,9 +798,13 @@ class SpriteTab(wx.Panel):
             image = PilImageToWxImage(converted)
             OrgPalette = GetImageColors(image)
             
-            BestPaletteIndex = BestPalette(self.IconPals,OrgPalette)
-            IconPalette = self.IconPals[BestPaletteIndex]
-            
+            if self.AutoPallete.GetValue():
+                BestPaletteIndex = BestPalette(self.IconPals,OrgPalette)
+                IconPalette = self.IconPals[BestPaletteIndex]
+            else:
+                BestPaletteIndex = self.IconPalChoice.GetSelection()
+                IconPalette = self.IconPals[BestPaletteIndex]
+                
             TC = IconPalette[0]
             TransColor = (TC[0],TC[1],TC[2])
             
@@ -893,10 +900,9 @@ class SpriteTab(wx.Panel):
         if sprite_number == 57 or sprite_number == 59:
             if self.GBABackSpriteFrames[frame] == False:
                 return
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a sprite...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
-                                    wildcard=wildcard)
+                                    wildcard=Globals.IMGWildCard)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
@@ -945,9 +951,8 @@ class SpriteTab(wx.Panel):
     def LoadSheetSprite(self, instance):
         if self.NoLoad:
             return
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a sprite sheet...", 
-                                                        defaultDir=self.lastPath, style=wx.OPEN,wildcard=wildcard)
+                                                        defaultDir=self.lastPath, style=wx.OPEN,wildcard=Globals.IMGWildCard)
         if open_dialog.ShowModal() == wx.ID_OK:
             frame = self.Frames.GetValue()
             if len(self.FrontPalette) < (frame+1)*16:

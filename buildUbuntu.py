@@ -1,9 +1,9 @@
-from os import system,remove
-from shutil import copyfile,copytree
+from os import system
+from shutil import copy,copytree,rmtree
 
-system("pyinstaller","mainUbuntu.spec")
-remove("E:\Secret-Tool\build")
-copyfile("E:\Secret-Tool\G3HS_Documentation.pdf","E:\Secret-Tool\mainWIN.spec\dist")
-copyfile("E:\Secret-Tool\PokeRoms.ini","E:\Secret-Tool\mainWIN.spec\dist")
-copyfile("E:\Secret-Tool\Finish.bat","E:\Secret-Tool\mainWIN.spec\dist")
-copytree("E:\Secret-Tool\Resources","E:\Secret-Tool\mainWIN.spec\dist")
+system("pyinstaller mainUbuntu.spec")
+rmtree("/media/Storage/Secret-Tool/build")
+copy("/media/Storage/Secret-Tool/G3HS_Documentation.pdf","/media/Storage/Secret-Tool/dist/")
+copy("/media/Storage/Secret-Tool/PokeRoms.ini","/media/Storage/Secret-Tool/dist/")
+copy("/media/Storage/Secret-Tool/Finish.bat","/media/Storage/Secret-Tool/dist/")
+copytree("/media/Storage/Secret-Tool/Resources","/media/Storage/Secret-Tool/dist/Resources")
