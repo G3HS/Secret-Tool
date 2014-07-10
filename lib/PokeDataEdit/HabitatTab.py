@@ -51,6 +51,14 @@ class HABITAT(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=6)
         butons_vbox.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
         
+        ADD_PAGE =  Button(self, 9, u"Add Page")
+        self.Bind(wx.EVT_BUTTON, self.OnAddPage, id=9)
+        butons_vbox.Add(ADD_PAGE, 0, wx.EXPAND | wx.ALL, 5)
+
+        DELETE_PAGE =  Button(self, 10, u"Remove Page")
+        self.Bind(wx.EVT_BUTTON, self.OnDeletePage, id=10)
+        butons_vbox.Add(DELETE_PAGE, 0, wx.EXPAND | wx.ALL, 5)
+        
         PAGE_MOVE_UP = Button(self, 7, "Move Page Up")
         self.Bind(wx.EVT_BUTTON, self.OnMovePageUp, id=7)
         butons_vbox.Add(PAGE_MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
@@ -247,9 +255,9 @@ class HABITAT(wx.Panel):
                         del self.Habitats[habitat][PageNum][index]
     
     def OnAddPoke(self, event):
-        self.Changed = True
         POKE = self.POKE_NAME.GetSelection()
         if POKE != -1:
+            self.Changed = True
             self.SearchAndRemovePoke(POKE)
             self.Habitats[self.CurrentHabitat][self.CurrentPage].append(POKE)
             self.ReloadPokesList()
@@ -258,9 +266,9 @@ class HABITAT(wx.Panel):
             self.PokeList.Focus(index-1)
             
     def OnDeletePoke(self, event):
-        self.Changed = True
         selection = self.PokeList.GetFocusedItem()
         if selection != -1:
+            self.Changed = True
             del self.Habitats[self.CurrentHabitat][self.CurrentPage][selection]
             self.ReloadPokesList()
             length = len(self.Habitats[self.CurrentHabitat][self.CurrentPage])
@@ -271,9 +279,9 @@ class HABITAT(wx.Panel):
             self.PokeList.Focus(index)
             
     def OnMoveUp(self, *args):
-        self.Changed = True
         poke = self.PokeList.GetFocusedItem()
         if poke != -1:
+            self.Changed = True
             poke = self.PokeList.GetItem(poke, 0)
             poke = poke.GetText()
             poke = Globals.PokeNames.index(poke)
@@ -286,9 +294,9 @@ class HABITAT(wx.Panel):
                 self.PokeList.Focus(index-1)
                 
     def OnMoveDown(self, *args):
-        self.Changed = True
         poke = self.PokeList.GetFocusedItem()
         if poke != -1:
+            self.Changed = True
             poke = self.PokeList.GetItem(poke, 0)
             poke = poke.GetText()
             poke = Globals.PokeNames.index(poke)
@@ -300,9 +308,23 @@ class HABITAT(wx.Panel):
                 self.PokeList.Select(index+1)
                 self.PokeList.Focus(index+1)
     
+    def OnAddPage(self, event):
+        if self.CurrentHabitat:
+            self.Changed = True
+            self.Habitats[self.CurrentHabitat].append([])
+            self.ReloadPagesList()
+            
+    def OnDeletePage(self, event):
+        if self.CurrentHabitat:
+            self.Changed = True
+            del self.Habitats[self.CurrentHabitat][self.CurrentPage]
+            self.ReloadPokesList()
+            self.ReloadPagesList()
+            self.FindNonUsedPokes()
+            
     def OnMovePageUp(self, *args):
-        self.Changed = True
         if self.CurrentPage == 0: return
+        self.Changed = True
         self.Habitats[self.CurrentHabitat][self.CurrentPage], self.Habitats[self.CurrentHabitat][self.CurrentPage-1] = self.Habitats[self.CurrentHabitat][self.CurrentPage-1], self.Habitats[self.CurrentHabitat][self.CurrentPage]
         self.ReloadPagesList()
         self.CurrentPage -= 1
@@ -311,9 +333,9 @@ class HABITAT(wx.Panel):
         self.ReloadPokesList()
         
     def OnMovePageDown(self, *args):
-        self.Changed = True
         length = len(self.Habitats[self.CurrentHabitat])-1
         if self.CurrentPage == length: return
+        self.Changed = True
         self.Habitats[self.CurrentHabitat][self.CurrentPage], self.Habitats[self.CurrentHabitat][self.CurrentPage+1] = self.Habitats[self.CurrentHabitat][self.CurrentPage+1], self.Habitats[self.CurrentHabitat][self.CurrentPage]
         self.ReloadPagesList()
         self.CurrentPage += 1
@@ -322,6 +344,8 @@ class HABITAT(wx.Panel):
         self.ReloadPokesList()
         
     def ReloadPokesList(self):
+        if not self.CurrentHabitat: self.CurrentHabitat = 0
+        if not self.CurrentPage: self.CurrentPage = 0
         self.PokeList.DeleteAllItems()
         for poke in self.Habitats[self.CurrentHabitat][self.CurrentPage]:
             index = self.PokeList.InsertStringItem(sys.maxint, Globals.PokeNames[poke])
