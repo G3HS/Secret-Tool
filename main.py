@@ -1878,6 +1878,13 @@ class EvoTab(wx.Panel):
                                             style=wx.SUNKEN_BORDER, size=(100, -1))
         editor_area_b.Add(self.arg, 0, wx.EXPAND | wx.ALL, 5)
         
+        BankMapSizer = wx.BoxSizer(wx.HORIZONTAL)
+        editor_area_b.Add(BankMapSizer, 0, wx.EXPAND | wx.ALL, 0)
+        self.Bank = wx.TextCtrl(EVO, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.Map = wx.TextCtrl(EVO, -1,style=wx.TE_CENTRE, size=(40,-1))
+        BankMapSizer.Add(self.Bank, 0, wx.EXPAND | wx.ALL, 5)
+        BankMapSizer.Add(self.Map, 0, wx.EXPAND | wx.ALL, 5)
+        
         poke_txt = wx.StaticText(EVO, -1, "Evolves Into:")
         editor_area_c.Add(poke_txt, 0, wx.EXPAND | wx.ALL, 5)
         
@@ -1935,6 +1942,11 @@ class EvoTab(wx.Panel):
                 arg = 0
             elif self.evomethodsproperties[method] == "Location":
                 arg += self.Locations[0]
+            elif self.evomethodsproperties[method] == "Map":
+                try:
+                    arg = int(self.Map.GetValue()[:2].zfill(2)+self.Bank.GetValue()[:2].zfill(2),16)
+                except:
+                    arg = 0
             poke = self.poke.GetSelection()
             if poke == -1:
                 poke = 1
@@ -1996,6 +2008,11 @@ class EvoTab(wx.Panel):
                 arg = 0
             elif self.evomethodsproperties[method] == "Location":
                 arg += self.Locations[0]
+            elif self.evomethodsproperties[method] == "Map":
+                try:
+                    arg = int(self.Map.GetValue()[:2].zfill(2)+self.Bank.GetValue()[:2].zfill(2),16)
+                except:
+                    arg = 0
             poke = self.poke.GetSelection()
             if poke == -1:
                 poke = 1
@@ -2043,7 +2060,7 @@ class EvoTab(wx.Panel):
             if self.arg_type != "Pokemon":
                 wx.CallAfter(self.arg.Clear)
                 wx.CallAfter(self.arg.AppendItems,Globals.PokeNames)
-                wx.CallAfter(self.arg_txt.SetLabel,"Pokemon")
+                wx.CallAfter(self.arg_txt.SetLabel,"Pokemon:")
                 self.arg_type = "Pokemon"
                 self.arg.IgnoreEverything = False
         elif self.evomethodsproperties[method] == "Move": #Move type
@@ -2051,16 +2068,23 @@ class EvoTab(wx.Panel):
                 global MOVES_LIST
                 wx.CallAfter(self.arg.Clear)
                 wx.CallAfter(self.arg.AppendItems,MOVES_LIST)
-                wx.CallAfter(self.arg_txt.SetLabel,"Move")
+                wx.CallAfter(self.arg_txt.SetLabel,"Move:")
                 self.arg_type = "Move"
                 self.arg.IgnoreEverything = False
-        elif self.evomethodsproperties[method] == "Location": #Location type
+        elif self.evomethodsproperties[method] == "Location" or self.evomethodsproperties[method] == "MapName": #Location type
             if self.arg_type != "Location":
                 Locations_List = self.Locations[1]
                 wx.CallAfter(self.arg.Clear)
                 wx.CallAfter(self.arg.AppendItems,Locations_List)
-                wx.CallAfter(self.arg_txt.SetLabel,"Location")
+                wx.CallAfter(self.arg_txt.SetLabel,"Location:")
                 self.arg_type = "Location"
+                self.arg.IgnoreEverything = False
+        elif self.evomethodsproperties[method] == "Map": #Map type
+            if self.arg_type != "Map":
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,["Type Bank and Map Below"])
+                wx.CallAfter(self.arg_txt.SetLabel,"Map:")
+                self.arg_type = "Map"
                 self.arg.IgnoreEverything = False
         else: #None type
             wx.CallAfter(self.arg.Clear)
@@ -2084,7 +2108,6 @@ class EvoTab(wx.Panel):
                 string = ""
                 read = ""
                 while read != "\xFF":
-                    
                     read = rom.read(1)
                     string += read
                 lst.append(convert_ascii_and_poke(string[:-1],"to_poke"))
@@ -2160,6 +2183,9 @@ class EvoTab(wx.Panel):
                     need = "Move: "+MOVES_LIST[asset]
                 elif assettype == "Location":
                     need = "Location: "+self.Locations[1][asset-self.Locations[0]]
+                elif assettype == "Map":
+                    bankmap = hex(asset).rstrip("L").lstrip("0x").zfill(4)
+                    need = "Bank|Map: "+bankmap[2:]+"|"+bankmap[:2]
                 else:
                     need = "-"
                 self.evo_list.SetStringItem(index, 1, need)
