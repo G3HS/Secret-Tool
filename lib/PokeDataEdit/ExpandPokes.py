@@ -7,6 +7,67 @@ from lib.PokeDataEdit.ExpandPokesOffsets import *
 from lib.Tools.rom_insertion_operations import *
 from lib.Tools.LZ77 import *
 
+JPANSaveBlockEm = "\x21\x68\xFF\x23\x1B\x01\x5B\x18\x98\x88\x00\x28\x09\xD0"\
+"\x04\x28\x0A\xD0\x0D\x28\x0C\xD0\x0D\x2D\x1C\xDD\x01\x20\x08\xBC\x98\x46\xF0\xBD"\
+"\xC4\x21\x08\x4A\x06\xE0\x8E\x21\x89\x00\x07\x4A\x02\xE0\xBA\x21\x09\x01\x06\x4A"\
+"\x04\x3B\x18\x68\x10\x60\x04\x3A\x04\x39\x00\x29\xF8\xD1\xE7\xE7\xC0\x46\xC0\xD8"\
+"\x03\x02\xF8\xDA\x03\x02\x98\xE6\x03\x02\x00\x48\x00\x47\x2D\x2E\x15\x08\xFF\xFF"\
+"\xFF\xFF\xFF\x27\x3F\x01\xCF\x19\xF8\x80\xBE\x88\x00\x2E\x08\xD0\x04\x2E\x09\xD0"\
+"\x0D\x2E\x0B\xD0\x00\x00\x00\x48\x00\x47\x53\x28\x15\x08\xC4\x23\x08\x4A\x06\xE0"\
+"\x8E\x23\x9B\x00\x07\x4A\x02\xE0\xBA\x23\x1B\x01\x06\x4A\x04\x3F\x10\x68\x38\x60"\
+"\x04\x3A\x04\x3B\x00\x2B\xF8\xD1\xE9\xE7\xC0\xD8\x03\x02\xF8\xDA\x03\x02\x98\xE6"\
+"\x03\x02"
+
+JPANSaveSizeTblEm = "\x00\x00\x2C\x0F\x00\x00\xF0\x0F\xF0\x0F\xF0\x0F\xE0\x1F"\
+"\xF0\x0F\xD0\x2F\xB8\x0D\x00\x00\xF0\x0F\xF0\x0F\xF0\x0F\xE0\x1F\xF0\x0F\xD0"\
+"\x2F\xF0\x0F\xC0\x3F\xF0\x0F\xB0\x4F\xF0\x0F\xA0\x5F\xF0\x0F\x90\x6F\xF0\x0F"\
+"\x80\x7F\x50\x04"
+
+def RepointPokesEm(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_id, ini):
+    #-#-#-#
+    with open(rom, "r+b") as rom:
+        SUPERBACKUP = rom.read()
+        try:    
+            #Write JPAN's hack.
+            #-Save Size Table
+            rom.seek(0x5CDC00)
+            rom.write(JPANSaveSizeTblEm)
+            #-Hack
+            rom.seek(StartOffset)
+            rom.write(JPANSaveBlockEm)
+            #-Pointers
+            JPANPointer = MakeByteStringPointer(StartOffset+1)
+            JPANPointer61 = MakeByteStringPointer(StartOffset+61)
+            rom.seek(0x152E98)
+            rom.write("\x00\x48\x00\x47"+JPANPointer)
+            rom.seek(0x15284E)
+            rom.write("\x38\x47")
+            rom.seek(0x15288C)
+            rom.write(JPANPointer61)
+            rom.seek(0x0D9CC6)
+            rom.write("\x38\x47")
+            rom.seek(0x0D9D04)
+            rom.write(JPANPointer61)
+            rom.seek(0x0DA284)
+            rom.write("\x00\x48\x00\x47"+JPANPointer)
+
+            DONE = wx.MessageDialog(None, 
+                                "All tables has been expanded, the ini has been ammended, and evolutions have been changed.:)\n\n\nReloading 'MON Data.", 
+                                "Done!",
+                                wx.OK)
+            DONE.ShowModal()
+        except Exception as Error:
+            rom.seek(0)
+            rom.write(SUPERBACKUP)
+            TYPE, VALUE, TRACE = sys.exc_info()
+            TraceList = traceback.format_tb(TRACE)
+            sys.stderr.write("An error occurred while expanding the number of 'mons. Your rom has been restored to its previous state. Here is the traceback data:")
+            for value in TraceList:
+                sys.stderr.write(value)
+            sys.stderr.write(TYPE)
+            sys.stderr.write(VALUE)
+
+
 def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_id, ini):
     #-#-#-#
     with open(rom, "r+b") as rom:

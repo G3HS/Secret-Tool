@@ -20,3 +20,6 @@ ItemAniTablePointers = [0x12eae0]
 AuxCryTablePointers = [0x43328]
 FootPrintTablePointers = [0x105e14]
 
+class Em():
+    
+
