@@ -28,7 +28,7 @@ def RepointPokesEm(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, ro
     with open(rom, "r+b") as rom:
         SUPERBACKUP = rom.read()
         try:    
-            #Write JPAN's hack.
+            #Step 1: Installing the save block hack
             #-Save Size Table
             rom.seek(0x5CDC00)
             rom.write(JPANSaveSizeTblEm)
@@ -50,7 +50,63 @@ def RepointPokesEm(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, ro
             rom.write(JPANPointer61)
             rom.seek(0x0DA284)
             rom.write("\x00\x48\x00\x47"+JPANPointer)
-
+            
+            #Step 2: Get free RAM for the dex flags
+            #Ram offset, only safe one known to Chaos, 0x0203D800
+            OrgNewDexSize = NewDexSize
+            while NewDexSize % 8 != 0:
+                NewDexSize += 1
+            NeededFlagBytes = int(NewDexSize/8)
+            
+            NeededFlagBytesHex = unhexlify(hex(NeededFlagBytes).rstrip("L").lstrip("0x").zfill(2))[0]
+            
+            SeenFlagsRAMOffset = RAMOffset
+            CaughtFlagsRAMOffset = RAMOffset+NeededFlagBytes
+            SeenFlagsRAMPointer = make_32bit_number(SeenFlagsRAMOffset)
+            CaughtFlagsRAMPointer = make_32bit_number(CaughtFlagsRAMOffset)
+            #Make the game read the seen flags
+            rom.seek(0xC06EC)
+            rom.write(SeenFlagsRAMPointer)
+            rom.seek(0xC06AC)
+            rom.write("\x00\x00\x00\x00")
+            #Make the game read the caught flags
+            rom.seek(0xC0744)
+            rom.write(CaughtFlagsRAMPointer)
+            rom.seek(0xC06FE)
+            rom.write("\x00\x00\x00\x00\x00\x00")
+            rom.seek(0xC0710)
+            rom.write("\x15\xE0")
+            #Bypass redundant seen flags
+            rom.seek(0xC0720)
+            rom.write("\x0D\xE0")
+            #Make the game write the seen flags
+            rom.seek(0xC07C8)
+            rom.write(SeenFlagsRAMPointer)
+            rom.seek(0xC079E)
+            rom.write("\x00\x00\x00\x00")
+            rom.seek(0xC07AC)
+            rom.write("\x1C\xE0")
+            #Make the game write the caught flags
+            rom.seek(0xC07F0)
+            rom.write(CaughtFlagsRAMPointer)
+            rom.seek(0xC07DA)
+            rom.write("\x00\x00\x00\x00")
+            #Clear flags properly on New Game
+            rom.seek(0x843BC)
+            rom.write(SeenFlagsRAMPointer)
+            rom.seek(0x8439A)
+            rom.write("\x20\x1C\x00\x00")
+            rom.seek(0x843A0)
+            rom.write(NeededFlagBytesHex+"\x22")
+            rom.seek(0x843A6)
+            rom.write("\x20\x1C")
+            rom.seek(0x843A8)
+            rom.write(NeededFlagBytesHex+"\x30")
+            rom.seek(0x843AC)
+            rom.write(NeededFlagBytesHex+"\x22")
+            
+            
+            
             DONE = wx.MessageDialog(None, 
                                 "All tables has been expanded, the ini has been ammended, and evolutions have been changed.:)\n\n\nReloading 'MON Data.", 
                                 "Done!",
@@ -69,7 +125,7 @@ def RepointPokesEm(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, ro
 
 
 def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_id, ini):
-    #-#-#-#
+    """---------------------------"""
     with open(rom, "r+b") as rom:
         SUPERBACKUP = rom.read()
         try:    
@@ -736,10 +792,10 @@ def FindFreeSpace(starting, length, rom):
             return offset
                     
 class PokemonExpander(wx.Dialog):
-    def __init__(self, rom, parent=None, *args, **kw):
+    def __init__(self, rom, parent=None, game="FR", *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
-        
+        self.game = game
         self.offset = None
         self.rom = rom
         self.InitUI()
@@ -801,7 +857,8 @@ class PokemonExpander(wx.Dialog):
         RAM_txt = wx.StaticText(self, -1, "RAM Offset: 0x",style=wx.TE_CENTRE)
         hbox2.Add(RAM_txt, 0, wx.ALL|wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
         self.RAM = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
-        self.RAM.SetValue("0203c400")
+        if self.game == "FR": self.RAM.SetValue("0203c400")
+        if self.game == "Em": self.RAM.SetValue("0203D800")
         self.RAM.Bind(wx.EVT_TEXT, self.GetOffset)
         hbox2.Add(self.RAM, 0, wx.ALL|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
         vbox.Add(hbox2, 0, wx.ALL|wx.ALIGN_CENTER, 0)
