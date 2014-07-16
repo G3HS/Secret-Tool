@@ -953,7 +953,7 @@ class StatsTab(wx.Panel):
         t_offset = int(Globals.INI.get(Globals.OpenRomID, "TypeNames"), 0)
         t_name_length = int(Globals.INI.get(Globals.OpenRomID, "TypeNamesLength"), 0)
         t_number = int(Globals.INI.get(Globals.OpenRomID, "NumberofTypes"), 0)
-        list_of_types = []
+        Globals.TypeNames = []
         
         with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(t_offset, 0)
@@ -961,17 +961,17 @@ class StatsTab(wx.Panel):
                 temp_type = rom.read(t_name_length)
                 temp_type = convert_ascii_and_poke(temp_type, "to_poke")
                 temp_type = temp_type.split("\\xFF")
-                list_of_types.append(temp_type[0])
+                Globals.TypeNames.append(temp_type[0])
         
         TYPE1_txt = wx.StaticText(types, -1,"Type 1:")
         types_sizer.Add(TYPE1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.TYPE1 = ComboBox(types, -1, choices=list_of_types,
+        self.TYPE1 = ComboBox(types, -1, choices=Globals.TypeNames,
                                 style=wx.SUNKEN_BORDER, size=(80, -1))
         types_sizer.Add(self.TYPE1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         TYPE2_txt = wx.StaticText(types, -1,"Type 2:")
         types_sizer.Add(TYPE2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.TYPE2 = ComboBox(types, -1, choices=list_of_types,
+        self.TYPE2 = ComboBox(types, -1, choices=Globals.TypeNames,
                                 style=wx.SUNKEN_BORDER, size=(80, -1))
         types_sizer.Add(self.TYPE2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
@@ -2085,6 +2085,13 @@ class EvoTab(wx.Panel):
                 wx.CallAfter(self.arg.AppendItems,["Type Bank and Map Below"])
                 wx.CallAfter(self.arg_txt.SetLabel,"Map:")
                 self.arg_type = "Map"
+                self.arg.IgnoreEverything = False
+        elif self.evomethodsproperties[method] == "Type": #Type type //Hehe:p
+            if self.arg_type != "Type":
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,Globals.TypeNames)
+                wx.CallAfter(self.arg_txt.SetLabel,"Type:")
+                self.arg_type = "Type"
                 self.arg.IgnoreEverything = False
         else: #None type
             wx.CallAfter(self.arg.Clear)

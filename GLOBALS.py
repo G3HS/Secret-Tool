@@ -12,5 +12,6 @@ class Globals():
     latestRelease = None
     DownloadedZipName = None
     IMGWildCard = "PNG (*.png)|*.png;*.PNG|GIF (*.gif)|*.gif;*.GIF|All files (*.*)|*.*"
+    TypeNames = []
     
         
