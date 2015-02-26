@@ -1,6 +1,9 @@
 from binascii import hexlify, unhexlify
 import wx
 
+# Little endian
+bytes_to_int = lambda b : int(hexlify(''.join(i for i in reversed(b))), 16)
+
 def LZUncompress(rom, offset):
     """
     This function will take a byte string like "\xFF\xFF\x34\x48..." and 
@@ -15,10 +18,7 @@ def LZUncompress(rom, offset):
     if check != "\x10":
         return (False,False)
     ##Now, the next 3 bytes are little endian and tell the length of the uncompressed data.
-    tmp = rom.read(3)
-    data_length = tmp[2]+tmp[1]+tmp[0]
-    data_length = hexlify(data_length)
-    data_length = int(data_length, 16)
+    data_length = bytes_to_int(rom.read(3))
     
     uncompressed = ""
     i = 0
@@ -123,6 +123,4 @@ def LZCompress(data):
                 break
         compressed += unhexlify(hex(int(bits,2))[2:].zfill(2))+currCompSet
     return compressed
-        
-        
-        
+
