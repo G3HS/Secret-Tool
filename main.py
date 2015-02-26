@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*- 
 #venv pyi-env-name
 from __future__ import division
-import wx, os, binascii, ConfigParser, sys, textwrap, platform
+import wx, os, ConfigParser, sys, textwrap, platform
 from lib.Tools.rom_insertion_operations import *
 from lib.OverLoad.CheckListCtrl import *
 from lib.OverLoad.Button import *
@@ -11,11 +11,21 @@ from lib.PokeDataEdit.ExpandPokes import *
 from lib.CustomDialogs.BaseRepointer import *
 from cStringIO import StringIO
 from lib.CustomDialogs.EmailError import *
-import json, webbrowser
+import json
 import traceback
 import urllib2
 from lib.HexEditor.hexeditor import *
 from lib.PokeDataEdit.HabitatTab import *
+from lib.OverLoad.UpdateDialog import *
+from binascii import hexlify, unhexlify
+from lib.Tools.Recovery import *
+from lib.Tools.IniMerger import MergerPrompt
+
+try: from wx.lib.pubsub import Publisher as pub
+except: 
+    print "Changing pub mode"
+    from wx.lib.pubsub import setuparg1
+    from wx.lib.pubsub import pub
 
 from GLOBALS import *
 
@@ -25,7 +35,7 @@ MOVES_LIST = None
 ITEM_NAMES = None
 returned_offset = None
 
-description = textwrap.fill("POK\xe9MON Gen III Hacking Suite was developed to enable better cross-platform POK\xe9MON  Rom Hacking by removing the need for the .NET framework.  It was also created in order to be more adaptable to more advanced hacking techniques that change some boundaries, like the number of POK\xe9MON. In the past, these changes rendered some very necessary tools useless and which made using these new limits difficult.", 110)
+description = textwrap.fill("POK\xe9MON Gen III Hacking Suite was developed to enable better cross-platform POK\xe9MON Rom Hacking by removing the need for the .NET framework.  It was also created in order to be more adaptable to more advanced hacking techniques that change some boundaries, like the number of POK\xe9MON. In the past, these changes rendered some very necessary tools useless and which made using these new limits difficult.", 110)
 
 description = encode_per_platform(description)
 
@@ -35,7 +45,7 @@ licence = encode_per_platform(licence)
 
 class MainWindow(wx.Frame, wx.FileDropTarget):
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, title=title, size=(800,600))
+        wx.Frame.__init__(self, parent, title=title, size=(800,625))
         wx.FileDropTarget.__init__(self)
         
         self.SetDropTarget(self)
@@ -55,22 +65,27 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.CreateStatusBar() # A Statusbar in the bottom of the window
         # Setting up the menu.
         filemenu = wx.Menu()
+        toolmenu = wx.Menu()
         helpmenu = wx.Menu()
         # wx.ID_ABOUT and wx.ID_EXIT are standard IDs provided by wxWidgets.
         filemenu.Append(wx.ID_OPEN, "&Open"," Open a ROM.")
         help_ID = wx.NewId()
         ContactID = wx.NewId()
+        iniID = wx.NewId()
+        toolmenu.Append(iniID, "&Ini Merger","Merge a new and old ini.")
         helpmenu.Append(help_ID, "&Documentation"," Open documentation. Requires a pdf reader.")
         helpmenu.AppendSeparator()
         helpmenu.Append(ContactID, "&Contact"," Contact the developer.")
         helpmenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
         self.Bind(wx.EVT_MENU, self.open_file, id=wx.ID_OPEN)
+        self.Bind(wx.EVT_MENU, self.ini_merger, id=iniID)
         self.Bind(wx.EVT_MENU, self.Help, id=help_ID)
         self.Bind(wx.EVT_MENU, self.Contact, id=ContactID)
         self.Bind(wx.EVT_MENU, self.ABOUT, id=wx.ID_ABOUT)
         # Creating the menubar.
         menuBar = wx.MenuBar()
         menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
+        menuBar.Append(toolmenu,"&Tools")
         menuBar.Append(helpmenu,"&Help")
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
         p = platform.system()
@@ -86,10 +101,19 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         Globals.INI = ConfigParser.ConfigParser()
         ini = os.path.join("PokeRoms.ini") #self.path,
         Globals.INI.read(ini)
+        pub.subscribe(self.EXIT, "CloseG3HS")
+        pub.subscribe(self.ReloadRom, "ReloadRom")
         self.panel.Layout()
         self.Layout()
         self.Show(True)
     
+    def ini_merger(self, event=None):
+        MergerPrompt(self)
+    
+    def EXIT(self, data=None):
+        wx.CallAfter(self.Destroy)
+        wx.CallAfter(sys.exit)
+
     def Contact(self, event):
         emailer = ContactDialog(self)
         if emailer.ShowModal() == wx.ID_OK:
@@ -149,19 +173,28 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             sys.stderr.close()
             sys.stderr = StringIO()
             if "Permission denied" in read:
+                error = read.split("\n")[-2]
+                
                 ERROR = wx.MessageDialog(None, 
-                                    textwrap.fill("Hey, look, I gave it my best, but I was denied permission to access that file.  Check and make sure there aren't any crazy characters in the path, that it is not marked as 'read only', and that it is not open in another program.", 100), 
+                                    textwrap.fill("Hey, look, I gave it my best, but I was denied permission to access that file.  Check and make sure there aren't any crazy characters in the path, that it is not marked as 'read only', and that it is not open in another program.", 100)+"\n\nError:\n"+textwrap.fill(error, 100), 
                                     'Permission Denied', 
-                                    wx.YES_NO | wx.ICON_ERROR)
+                                    wx.OK | wx.ICON_ERROR)
                 ERROR.ShowModal()
                 return
+            ERROR = wx.MessageDialog(None, 
+                                "ERROR:\n\n"+read, 
+                                'Piped error from sys.stderr: PLEASE REPORT', 
+                                wx.OK | wx.ICON_ERROR)
+            ERROR.ShowModal()
             
+            """
             ERROR = wx.MessageDialog(None, 
                                 "ERROR:\n\n"+read+"\n\nWould you like to report this error?", 
                                 'Piped error from sys.stderr: PLEASE REPORT', 
                                 wx.YES_NO | wx.ICON_ERROR)
             if ERROR.ShowModal() == wx.ID_YES:
                 try:
+                    Finally = None
                     if "ConfigParser.NoOptionError" in read:
                         errors = read.split("\n")
                         sections = errors[-2].split("'")
@@ -172,7 +205,6 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
                     if "ConfigParser.NoSectionError" in read:
                         errors = read.split("\n")
                         sections = errors[-2].split("'")
@@ -182,27 +214,26 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
                     if "load_evos_into_list" in read and "IndexError: list index out of range" in read:
                         Finally = wx.MessageDialog(None, 
                                     textwrap.fill('This message does not need to be sent. This error occurs when a bad offset is loaded from the ini for the evolution table. It attempted to load data for an evolution type that does not exist. Please check your offset in the ini for "evolutiontable".',100), 
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
                     if "IndexError: list index out of range" in read and "get_move_data" in read:
                         Finally = wx.MessageDialog(None, 
                                     textwrap.fill('This message does not need to be sent. The only time this error happens is when a pointer for learned move data is not in the rom. Most commonly, this is solely due to the pointer being FFFFFF caused by repointing the move table and filling it with FF. So, in basic terms, you have the wrong learned moves offset in the ini. (Maybe you loaded this rom with the ini for an expanded rom or vice versa?)',110), 
                                     'I already know this error....', 
-                                    wx.OK | wx.ICON_INFORMATION)
+                                         wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
-                        return
                     if "load_stats_into_boxes" in read and "SetSelectedItem(): Inavlid item index" in read:
                         Finally = wx.MessageDialog(None, 
                                     textwrap.fill('This message does not need to be sent. This error occurs when loading an item number that is too high. 90% of the time, your rom is expanded and using a section of ini for the unexpanded rom, or vice versa. Please check your ini.',110), 
                                     'I already know this error....', 
                                     wx.OK | wx.ICON_INFORMATION)
                         Finally.ShowModal()
+                    Recovery()
+                    if Finally:
                         return
                 except:
                     ERROR = wx.MessageDialog(None, 
@@ -225,7 +256,9 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                                 "Report sent successfully. Thank you and have a great day.\n\nThe exact report that was sent was:\n------------------\n"+emailer.Report+"\n------------------", 
                                 'Report Sent!', 
                                 wx.OK | wx.ICON_INFORMATION)
-                    Finally.ShowModal()
+                    Finally.ShowModal()"""
+            #else:
+            Recovery()
     
     def set_timer(self):
         TIMER_ID = 10  # pick a number
@@ -249,7 +282,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             downloads = None
             for x in obj:
                 if x["tag_name"] == Globals.VersionNumber:
-                    downloads = x['assets'][0]['download_count']
+                    downloads = 0
+                    for asset in x['assets']: downloads += asset['download_count']
             if downloads != None:
                 D = description + "\n\nThis version has been downloaded {0} times around the world.".format(downloads)
             else:
@@ -288,7 +322,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                 directory = os.getcwd()
         open_dialog = wx.FileDialog(None, message="Open a rom...", 
                                     defaultDir=directory, 
-                                    wildcard = "Rom files (*.gba,*.bin)|*.gba;*.bin|All files (*.*)|*.*",
+                                    wildcard = "Rom files (*.gba,*.bin)|*.gba;*.GBA;*.BIN;*.bin|All files (*.*)|*.*",
                                     style=wx.FD_OPEN)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
@@ -301,6 +335,10 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
             except: pass
             wx.CallAfter(open_dialog.Destroy)
             wx.CallAfter(self.work_with_ini)
+            
+    def ReloadRom(self, *args):
+        self.open_rom = open(Globals.OpenRomName, "r+b")
+        wx.CallAfter(self.work_with_ini)
 
     def work_with_ini(self):
         #Here we are going to check if the game has been opened before.
@@ -308,17 +346,16 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         Globals.INI = ConfigParser.ConfigParser()
         ini = os.path.join("PokeRoms.ini") #self.path,
         Globals.INI.read(ini)
+        self.open_rom.seek(0xAC)
+        Globals.OpenRomGameCode = self.open_rom.read(4)
         if str(Globals.INI.get("ALL", "JustUseStandardIni")) == "True":
-            game_code_offset =  int("AC",16)
-            self.open_rom.seek(game_code_offset)
-            Globals.OpenRomID = self.open_rom.read(4)
+            Globals.OpenRomID = Globals.OpenRomGameCode
         
         else:
             rom_id_offset = int(Globals.INI.get("ALL", "OffsetThatContainsSecondRomID"),0)
             
             self.open_rom.seek(rom_id_offset) #Seek to last 2 bytes in rom
-            Globals.OpenRomID = self.open_rom.read(2)
-            Globals.OpenRomID = str(binascii.hexlify(Globals.OpenRomID)) 
+            Globals.OpenRomID = str(hexlify(self.open_rom.read(2))) 
 
             all_possible_rom_ids = Globals.INI.sections()
             
@@ -343,9 +380,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         wx.CallAfter(ERROR.Destroy)
                         wx.CallAfter(self.Destroy)
                 else:
-                    game_code_offset = int("AC",16)
-                    self.open_rom.seek(game_code_offset)
-                    game_code = self.open_rom.read(4)
+                    game_code = Globals.OpenRomGameCode
                     ini_gamecode = Globals.INI.get(Globals.OpenRomID, "gamecode")
                     if ini_gamecode != game_code:
                         ERROR = wx.MessageDialog(None,
@@ -360,9 +395,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                         else:
                             wx.CallAfter(ERROR.Destroy)
             else:
-                game_code_offset = int("AC",16)
-                self.open_rom.seek(game_code_offset)
-                game_code = self.open_rom.read(4)
+                game_code = Globals.OpenRomGameCode
                 if game_code not in all_possible_rom_ids:
                     ERROR = wx.MessageDialog(self,
                             "Section '{0}' was not found in the ini. How am I supposed to load data if I don't have it? This game code was loaded from 0xAC in your rom. Please check it.".format(game_code), 
@@ -375,11 +408,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
                 y = None
                 while y == None:
                     if x in all_possible_rom_ids:
-                        x = str(int(x) + 1)
-                        if len(x) != 4:
-                            n = 4 - len(x)
-                            for n in range(n):
-                                x = "0"+x
+                        x = str(int(x) + 1).zfill(4)
                         continue
                     else:
                         Globals.OpenRomID = x
@@ -402,7 +431,7 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.open_rom.close()
         wx.CallAfter(self.reload_all_tabs)
         self.SetTitle("Gen III Hacking Suite"+" ~ "+Globals.INI.get(Globals.OpenRomID, "name")+" ~ "+self.open_rom.name)
-            
+        
     def reload_all_tabs(self):
         try: self.tabbed_area.Destroy()
         except: pass
@@ -413,7 +442,8 @@ class MainWindow(wx.Frame, wx.FileDropTarget):
         self.panel.Layout()
         self.Layout()
         self.Show(True)
-
+        self.Refresh()
+        
 #############################################################
 #This class is what holds all of the main tabs.
 #############################################################
@@ -430,7 +460,8 @@ class TabbedEditorArea(wx.Notebook):
         
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
-        
+        self.Layout()
+		
     def OnPageChanged(self, event):
         old = event.GetOldSelection()
         new = event.GetSelection()
@@ -497,11 +528,13 @@ class PokemonDataEditor(wx.Panel):
                 
                 gamecode = Globals.INI.get(Globals.OpenRomID, "gamecode")
                 if gamecode == "BPRE":
-                    ExpandPokesTxt = "Expand POK\xe9MON"
-                    ExpandPokesTxt = encode_per_platform(ExpandPokesTxt)
-                    ExpandPokes = Button(self, 2, ExpandPokesTxt)
-                    self.Bind(wx.EVT_BUTTON, self.OnExpandPokes, id=2)
-                    self.sizer_top.Add(ExpandPokes, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+                    if len(Globals.PokeNames) == 0x19C:
+                        ExpandPokesTxt = "Expand POK\xe9MON"
+                        ExpandPokesTxt = encode_per_platform(ExpandPokesTxt)
+                        ExpandPokes = Button(self, 2, ExpandPokesTxt)
+                        self.Bind(wx.EVT_BUTTON, self.OnExpandPokes, id=2)
+                        self.sizer_top.Add(ExpandPokes, 0, 
+                                           wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
                 
                 self.sizer.Add(self.sizer_top, 0, wx.ALL, 2)
                 self.tabbed_area = DataEditingTabs(self)
@@ -561,13 +594,16 @@ class PokemonDataEditor(wx.Panel):
             wx.CallAfter(self.Pokes.SetSelection,index)
             wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentType))
             return
+        Matches = []
         for item in items:
             if item.startswith(currentText) or item.upper().startswith(currentText.upper()) or item.lower().startswith(currentText.lower()):
-                index = self.Pokes.FindString(item)
-                wx.CallAfter(self.Pokes.SetSelection,index)
-                wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentText))
-                wx.CallAfter(self.Pokes.SetMark,len(currentText),len(item))
-                break
+                Matches.append(item)
+        if Matches != []:
+            shortestmatch = min(Matches, key=len)
+            index = self.Pokes.FindString(shortestmatch)
+            wx.CallAfter(self.Pokes.SetSelection,index)
+            wx.CallAfter(self.Pokes.SetInsertionPoint,len(currentText))
+            wx.CallAfter(self.Pokes.SetMark,len(currentText),len(shortestmatch))
         if event is not None:
             event.Skip()
             
@@ -656,11 +692,13 @@ class PokemonDataEditor(wx.Panel):
         else:  self.tabbed_area.tutor.save()
         self.tabbed_area.dex.save()
         self.tabbed_area.sprites.save()
+        if gamecode[:3] != "BPR": pass
+        else: self.tabbed_area.habitats.save()
         self.GetParent().HexEditor.LoadFile(Globals.OpenRomName)
         
     def save_new_poke_name(self):
         name = self.Poke_Name.GetValue()
-        name = convert_ascii_and_poke(str(name), "to_ascii")
+        name = convert_ascii_and_poke(name, "to_ascii")
         name += "\xff"
         max_length = int(Globals.INI.get(Globals.OpenRomID, "PokeNamesLength"), 0)
         need = max_length-len(name)
@@ -694,8 +732,8 @@ class DataEditingTabs(wx.Notebook):
         self.sprites = SpriteTab(self, rom=Globals.OpenRomName, 
                                  config=Globals.INI, rom_id=Globals.OpenRomID)
         
-        self.habitats = HABITAT(self)
-        
+        if gamecode[:3] != "BPR": pass
+        else: self.habitats = HABITAT(self)
         self.AddPage(self.stats, "Stats")
         self.AddPage(self.moves, "Moves")
         self.AddPage(self.evo, "Evolutions")
@@ -713,7 +751,8 @@ class DataEditingTabs(wx.Notebook):
         self.SetSizer(sizer)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
-        
+        self.Layout()
+		
     def OnPageChanged(self, event):
         old = event.GetOldSelection()
         new = event.GetSelection()
@@ -788,23 +827,23 @@ class StatsTab(wx.Panel):
         self.DEF.Bind(wx.EVT_TEXT, self.update_BST)
         basic_stats_sizer.Add(self.DEF,(3, 1), wx.DefaultSpan,  wx.ALL, 4)
         
-        SPD_txt = wx.StaticText(basic_stats, -1,"SPD:")
-        basic_stats_sizer.Add(SPD_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
-        self.SPD = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
-        self.SPD.Bind(wx.EVT_TEXT, self.update_BST)
-        basic_stats_sizer.Add(self.SPD,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
         SpATK_txt = wx.StaticText(basic_stats, -1,"Sp. ATK:")
-        basic_stats_sizer.Add(SpATK_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(SpATK_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SpATK = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
         self.SpATK.Bind(wx.EVT_TEXT, self.update_BST)
-        basic_stats_sizer.Add(self.SpATK,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.SpATK,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         SpDEF_txt = wx.StaticText(basic_stats, -1,"Sp. DEF:")
-        basic_stats_sizer.Add(SpDEF_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        basic_stats_sizer.Add(SpDEF_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.SpDEF = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
         self.SpDEF.Bind(wx.EVT_TEXT, self.update_BST)
-        basic_stats_sizer.Add(self.SpDEF,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
+        basic_stats_sizer.Add(self.SpDEF,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        SPD_txt = wx.StaticText(basic_stats, -1,"SPD:")
+        basic_stats_sizer.Add(SPD_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.SPD = wx.TextCtrl(basic_stats, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.SPD.Bind(wx.EVT_TEXT, self.update_BST)
+        basic_stats_sizer.Add(self.SPD,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         basic_stats_sizer.SetFlexibleDirection(wx.BOTH)
         
@@ -832,20 +871,20 @@ class StatsTab(wx.Panel):
         self.e_DEF = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
         evs_sizer.Add(self.e_DEF,(3, 1), wx.DefaultSpan,  wx.ALL, 4)
         
-        e_SPD_txt = wx.StaticText(evs, -1,"SPD:")
-        evs_sizer.Add(e_SPD_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
-        self.e_SPD = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
-        evs_sizer.Add(self.e_SPD,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
-        
         e_SpATK_txt = wx.StaticText(evs, -1,"Sp. ATK:")
-        evs_sizer.Add(e_SpATK_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
+        evs_sizer.Add(e_SpATK_txt, (4, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.e_SpATK = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
-        evs_sizer.Add(self.e_SpATK,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        evs_sizer.Add(self.e_SpATK,(4, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         e_SpDEF_txt = wx.StaticText(evs, -1,"Sp. DEF:")
-        evs_sizer.Add(e_SpDEF_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        evs_sizer.Add(e_SpDEF_txt, (5, 0), wx.DefaultSpan,  wx.ALL, 6)
         self.e_SpDEF = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
-        evs_sizer.Add(self.e_SpDEF,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
+        evs_sizer.Add(self.e_SpDEF,(5, 1), wx.DefaultSpan,  wx.ALL, 4)
+        
+        e_SPD_txt = wx.StaticText(evs, -1,"SPD:")
+        evs_sizer.Add(e_SPD_txt, (6, 0), wx.DefaultSpan,  wx.ALL, 6)
+        self.e_SPD = wx.TextCtrl(evs, -1,style=wx.TE_CENTRE, size=(40,-1))
+        evs_sizer.Add(self.e_SPD,(6, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         evs.SetSizerAndFit(evs_sizer)
         
@@ -914,7 +953,7 @@ class StatsTab(wx.Panel):
         t_offset = int(Globals.INI.get(Globals.OpenRomID, "TypeNames"), 0)
         t_name_length = int(Globals.INI.get(Globals.OpenRomID, "TypeNamesLength"), 0)
         t_number = int(Globals.INI.get(Globals.OpenRomID, "NumberofTypes"), 0)
-        list_of_types = []
+        Globals.TypeNames = []
         
         with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(t_offset, 0)
@@ -922,17 +961,17 @@ class StatsTab(wx.Panel):
                 temp_type = rom.read(t_name_length)
                 temp_type = convert_ascii_and_poke(temp_type, "to_poke")
                 temp_type = temp_type.split("\\xFF")
-                list_of_types.append(temp_type[0])
+                Globals.TypeNames.append(temp_type[0])
         
         TYPE1_txt = wx.StaticText(types, -1,"Type 1:")
         types_sizer.Add(TYPE1_txt, (0, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.TYPE1 = ComboBox(types, -1, choices=list_of_types,
+        self.TYPE1 = ComboBox(types, -1, choices=Globals.TypeNames,
                                 style=wx.SUNKEN_BORDER, size=(80, -1))
         types_sizer.Add(self.TYPE1, (0, 1), wx.DefaultSpan,  wx.ALL, 4)
         
         TYPE2_txt = wx.StaticText(types, -1,"Type 2:")
         types_sizer.Add(TYPE2_txt, (1, 0), wx.DefaultSpan,  wx.ALL, 4)
-        self.TYPE2 = ComboBox(types, -1, choices=list_of_types,
+        self.TYPE2 = ComboBox(types, -1, choices=Globals.TypeNames,
                                 style=wx.SUNKEN_BORDER, size=(80, -1))
         types_sizer.Add(self.TYPE2, (1, 1), wx.DefaultSpan,  wx.ALL, 4)
         
@@ -1125,83 +1164,47 @@ class StatsTab(wx.Panel):
         
     def create_string_of_hex_values_to_be_written(self):
         try:
-            HP = hex(int(self.HP.GetValue(), 0))[2:]
+            HP = hex(int(self.HP.GetValue(), 0))[2:].zfill(2)
             if len(HP) > 2:
                 HP = "FF"
-            elif len(HP) == 0:
-                HP = "00"
-            elif len(HP) == 1:
-                HP = "0"+HP
                 
-            ATK = hex(int(self.ATK.GetValue(), 0))[2:]
+            ATK = hex(int(self.ATK.GetValue(), 0))[2:].zfill(2)
             if len(ATK) > 2:
                 ATK = "FF"
-            elif len(ATK) == 0:
-                ATK = "00"
-            elif len(ATK) == 1:
-                ATK = "0"+ATK
                 
-            DEF = hex(int(self.DEF.GetValue(), 0))[2:]
+            DEF = hex(int(self.DEF.GetValue(), 0))[2:].zfill(2)
             if len(DEF) > 2:
                 DEF = "FF"
-            elif len(DEF) == 0:
-                DEF = "00"
-            elif len(DEF) == 1:
-                DEF = "0"+DEF
                  
-            SPD = hex(int(self.SPD.GetValue(), 0))[2:]
+            SPD = hex(int(self.SPD.GetValue(), 0))[2:].zfill(2)
             if len(SPD) > 2:
                 SPD = "FF"
-            elif len(SPD) == 0:
-                SPD = "00"
-            elif len(SPD) == 1:
-                SPD = "0"+SPD
                  
-            SpATK = hex(int(self.SpATK.GetValue(), 0))[2:]
+            SpATK = hex(int(self.SpATK.GetValue(), 0))[2:].zfill(2)
             if len(SpATK) > 2:
                 SpATK = "FF"
-            elif len(SpATK) == 0:
-                SpATK = "00"
-            elif len(SpATK) == 1:
-                SpATK = "0"+SpATK
                  
-            SpDEF = hex(int(self.SpDEF.GetValue(), 0))[2:]
+            SpDEF = hex(int(self.SpDEF.GetValue(), 0))[2:].zfill(2)
             if len(SpDEF) > 2:
                 SpDEF = "FF"
-            elif len(SpDEF) == 0:
-                SpDEF = "00"
-            elif len(SpDEF) == 1:
-                SpDEF = "0"+SpDEF
             
             tmp = self.TYPE1.GetSelection()
             if tmp == -1:
                 tmp = 1
-            TYPE1 = hex(int(tmp))[2:]
-            if len(TYPE1) == 1:
-                TYPE1 = "0"+TYPE1
+            TYPE1 = hex(int(tmp))[2:].zfill(2)
             
             tmp = self.TYPE2.GetSelection()
             if tmp == -1:
                 tmp = 1
-            TYPE2 = hex(int(tmp))[2:]
-            if len(TYPE2) == 1:
-                TYPE2 = "0"+TYPE2
+            TYPE2 = hex(int(tmp))[2:].zfill(2)
             
-            CATCHRATE = hex(int(self.CATCHRATE.GetValue(), 0))[2:]
+            CATCHRATE = hex(int(self.CATCHRATE.GetValue(), 0))[2:].zfill(2)
             if len(CATCHRATE) > 2:
                 CATCHRATE = "FF"
-            elif len(CATCHRATE) == 0:
-                CATCHRATE = "00"
-            elif len(CATCHRATE) == 1:
-                CATCHRATE = "0"+CATCHRATE
                 
-            BASEEXP = hex(int(self.BASEEXP.GetValue(), 0))[2:]
+            BASEEXP = hex(int(self.BASEEXP.GetValue(), 0))[2:].zfill(2)
             if len(BASEEXP) > 2:
                 BASEEXP = "FF"
-            elif len(BASEEXP) == 0:
-                BASEEXP = "00"
-            elif len(BASEEXP) == 1:
-                BASEEXP = "0"+BASEEXP
                 
             evs_list = [str(self.e_SPD.GetValue()), str(self.e_DEF.GetValue()),
                             str(self.e_ATK.GetValue()), str(self.e_HP.GetValue()),
@@ -1224,96 +1227,62 @@ class StatsTab(wx.Panel):
             tmp = self.ITEM1.GetSelection()
             if tmp == -1:
                 tmp = 1
-            ITEM1 = hex(int(tmp))[2:]
-            ITEM1_len = len(ITEM1)
-            if ITEM1_len < 4:
-                for n in range(4-ITEM1_len):
-                    ITEM1 = "0"+ITEM1
+            ITEM1 = hex(int(tmp))[2:].zfill(4)
+            
             ITEM1 = ITEM1[2:]+ITEM1[:2] #Flip the bytes around.
 
             tmp = self.ITEM2.GetSelection()
             if tmp == -1:
                 tmp = 1
-            ITEM2 = hex(int(tmp))[2:]
-            ITEM2_len = len(ITEM2)
-            if ITEM2_len < 4:
-                for n in range(4-ITEM2_len):
-                    ITEM2 = "0"+ITEM2
+            ITEM2 = hex(int(tmp))[2:].zfill(4)
+            
             ITEM2 = ITEM2[2:]+ITEM2[:2] #Flip the bytes around.
             
-            GENDER = hex(int(self.GENDER.GetValue(), 0))[2:]
+            GENDER = hex(int(self.GENDER.GetValue(), 0))[2:].zfill(2)
             if len(GENDER) > 2:
                 GENDER = "FF"
-            elif len(GENDER) == 0:
-                GENDER = "00"
-            elif len(GENDER) == 1:
-                GENDER = "0"+GENDER
                 
-            HATCH = hex(int(self.HATCH.GetValue(), 0))[2:]
+            HATCH = hex(int(self.HATCH.GetValue(), 0))[2:].zfill(2)
             if len(HATCH) > 2:
                 HATCH = "FF"
-            elif len(HATCH) == 0:
-                HATCH = "00"
-            elif len(HATCH) == 1:
-                HATCH = "0"+HATCH
                 
-            FRIEND = hex(int(self.FRIEND.GetValue(), 0))[2:]
+            FRIEND = hex(int(self.FRIEND.GetValue(), 0))[2:].zfill(2)
             if len(FRIEND) > 2:
                 FRIEND = "FF"
-            elif len(FRIEND) == 0:
-                FRIEND = "00"
-            elif len(FRIEND) == 1:
-                FRIEND = "0"+FRIEND
             
             tmp = self.LEVEL.GetSelection()
             if tmp == -1:
                 tmp = 1
-            LEVEL = hex(int(tmp))[2:]
-            if len(LEVEL) == 1:
-                LEVEL = "0"+LEVEL          
+            LEVEL = hex(int(tmp))[2:].zfill(2)        
             
             tmp = self.EGG1.GetSelection()
             if tmp == -1:
                 tmp = 1
-            EGG1 = hex(int(tmp)+1)[2:]
-            if len(EGG1) == 1:
-                EGG1 = "0"+EGG1 
+            EGG1 = hex(int(tmp)+1)[2:].zfill(2)
             
             tmp = self.EGG2.GetSelection()
             if tmp == -1:
                 tmp = 1
-            EGG2 = hex(int(tmp)+1)[2:]
-            if len(EGG2) == 1:
-                EGG2 = "0"+EGG2 
+            EGG2 = hex(int(tmp)+1)[2:].zfill(2)
             
             tmp = self.ABILITY1.GetSelection()
             if tmp == -1:
                 tmp = 1
-            ABILITY1 = hex(int(tmp))[2:]
-            if len(ABILITY1) == 1:
-                ABILITY1 = "0"+ABILITY1 
+            ABILITY1 = hex(int(tmp))[2:].zfill(2)
             
             tmp = self.ABILITY2.GetSelection()
             if tmp == -1:
                 tmp = 1
-            ABILITY2 = hex(int(tmp))[2:]
-            if len(ABILITY2) == 1:
-                ABILITY2 = "0"+ABILITY2 
+            ABILITY2 = hex(int(tmp))[2:].zfill(2)
                 
-            RUNRATE = hex(int(self.RUNRATE.GetValue(), 0))[2:]
+            RUNRATE = hex(int(self.RUNRATE.GetValue(), 0))[2:].zfill(2)
             if len(RUNRATE) > 2:
                 RUNRATE = "FF"
-            elif len(RUNRATE) == 0:
-                RUNRATE = "00"
-            elif len(RUNRATE) == 1:
-                RUNRATE = "0"+RUNRATE
             
             tmp = self.COLOR.GetSelection()
             if tmp == -1:
                 tmp = 1
-            COLOR = hex(int(tmp))[2:]
-            if len(COLOR) == 1:
-                COLOR = "0"+COLOR
+            COLOR = hex(int(tmp))[2:].zfill(2)
                 
             #Create a string off all of the stats to be written to the rom.
             base = HP+ATK+DEF+SPD+SpATK+SpDEF
@@ -1335,6 +1304,7 @@ class StatsTab(wx.Panel):
                                 'Data Error', 
                                 wx.OK | wx.ICON_ERROR)
             ERROR.ShowModal()
+            return False
         
     def sort_base_stats(self):
         d = self.base_stats_dict
@@ -1378,9 +1348,10 @@ class StatsTab(wx.Panel):
         
     def save(self):
         string = self.create_string_of_hex_values_to_be_written()
+        if not string: return
         with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(self.basestatsoffset, 0)
-            string = binascii.unhexlify(string)
+            string = unhexlify(string)
             rom.write(string)
         
 class MovesTab(wx.Panel):
@@ -1576,6 +1547,8 @@ class MovesTab(wx.Panel):
                 Current = self.MOVESET.GetItemCount()
         self.overwrite = repoint.cb.IsChecked()
         self.UPDATE_FRACTION()
+        self.save()
+        repoint.Destroy()
         
     def OnAdd(self, *args):
         self.UPDATE_FRACTION()
@@ -1759,7 +1732,7 @@ class MovesTab(wx.Panel):
             if Jambo51HackCheck == "False":
                 while True:
                         last_read = rom.read(2)
-                        if last_read != "\xff\xff":
+                        if last_read != "\xff\xff" and last_read != "\x00\xff":
                             #moves will be a tupple of (move, level)
                             last_read = get_bytes_string_from_hex_string(last_read)
                             last_read = split_string_into_bytes(last_read)
@@ -1865,7 +1838,7 @@ class EvoTab(wx.Panel):
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.arg_type = None
         self.generate_UI()
-        
+        self.Locations = self.get_locations()
         self.SetSizer(self.sizer)
 
     def generate_UI(self):
@@ -1904,6 +1877,13 @@ class EvoTab(wx.Panel):
         self.arg = ComboBox(EVO, -1, choices=[],
                                             style=wx.SUNKEN_BORDER, size=(100, -1))
         editor_area_b.Add(self.arg, 0, wx.EXPAND | wx.ALL, 5)
+        
+        BankMapSizer = wx.BoxSizer(wx.HORIZONTAL)
+        editor_area_b.Add(BankMapSizer, 0, wx.EXPAND | wx.ALL, 0)
+        self.Bank = wx.TextCtrl(EVO, -1,style=wx.TE_CENTRE, size=(40,-1))
+        self.Map = wx.TextCtrl(EVO, -1,style=wx.TE_CENTRE, size=(40,-1))
+        BankMapSizer.Add(self.Bank, 0, wx.EXPAND | wx.ALL, 5)
+        BankMapSizer.Add(self.Map, 0, wx.EXPAND | wx.ALL, 5)
         
         poke_txt = wx.StaticText(EVO, -1, "Evolves Into:")
         editor_area_c.Add(poke_txt, 0, wx.EXPAND | wx.ALL, 5)
@@ -1960,6 +1940,13 @@ class EvoTab(wx.Panel):
                 arg += 1
             elif arg == -1:
                 arg = 0
+            elif self.evomethodsproperties[method] == "Location":
+                arg += self.Locations[0]
+            elif self.evomethodsproperties[method] == "Map":
+                try:
+                    arg = int(self.Map.GetValue()[:2].zfill(2)+self.Bank.GetValue()[:2].zfill(2),16)
+                except:
+                    arg = 0
             poke = self.poke.GetSelection()
             if poke == -1:
                 poke = 1
@@ -2019,6 +2006,13 @@ class EvoTab(wx.Panel):
                 arg += 1
             elif arg == -1:
                 arg = 0
+            elif self.evomethodsproperties[method] == "Location":
+                arg += self.Locations[0]
+            elif self.evomethodsproperties[method] == "Map":
+                try:
+                    arg = int(self.Map.GetValue()[:2].zfill(2)+self.Bank.GetValue()[:2].zfill(2),16)
+                except:
+                    arg = 0
             poke = self.poke.GetSelection()
             if poke == -1:
                 poke = 1
@@ -2035,7 +2029,7 @@ class EvoTab(wx.Panel):
         type = self.change_method(self.method)
         if self.evomethodsproperties[type] == "Level":
             self.arg.SetSelection(self.evos[sel][1]-1)
-        elif self.evomethodsproperties[type] == "Item":
+        elif self.evomethodsproperties[type] != None:
             self.arg.SetSelection(self.evos[sel][1])
         else:
             self.arg.SetSelection(0)
@@ -2054,8 +2048,6 @@ class EvoTab(wx.Panel):
                 wx.CallAfter(self.arg_txt.SetLabel,"Level:")
                 self.arg.IgnoreEverything = True
                 self.arg_type = "Level"
-                #wx.CallAfter(self.arg.SetSelection,0)
-            
         elif self.evomethodsproperties[method] == "Item": #Item type
             if self.arg_type != "Item":
                 global ITEM_NAMES
@@ -2064,7 +2056,43 @@ class EvoTab(wx.Panel):
                 wx.CallAfter(self.arg_txt.SetLabel,"Item:")
                 self.arg_type = "Item"
                 self.arg.IgnoreEverything = False
-                #wx.CallAfter(self.arg.SetSelection,0)
+        elif self.evomethodsproperties[method] == "Pokemon": #Pokemon type
+            if self.arg_type != "Pokemon":
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,Globals.PokeNames)
+                wx.CallAfter(self.arg_txt.SetLabel,"Pokemon:")
+                self.arg_type = "Pokemon"
+                self.arg.IgnoreEverything = False
+        elif self.evomethodsproperties[method] == "Move": #Move type
+            if self.arg_type != "Move":
+                global MOVES_LIST
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,MOVES_LIST)
+                wx.CallAfter(self.arg_txt.SetLabel,"Move:")
+                self.arg_type = "Move"
+                self.arg.IgnoreEverything = False
+        elif self.evomethodsproperties[method] == "Location" or self.evomethodsproperties[method] == "MapName": #Location type
+            if self.arg_type != "Location":
+                Locations_List = self.Locations[1]
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,Locations_List)
+                wx.CallAfter(self.arg_txt.SetLabel,"Location:")
+                self.arg_type = "Location"
+                self.arg.IgnoreEverything = False
+        elif self.evomethodsproperties[method] == "Map": #Map type
+            if self.arg_type != "Map":
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,["Type Bank and Map Below"])
+                wx.CallAfter(self.arg_txt.SetLabel,"Map:")
+                self.arg_type = "Map"
+                self.arg.IgnoreEverything = False
+        elif self.evomethodsproperties[method] == "Type": #Type type //Hehe:p
+            if self.arg_type != "Type":
+                wx.CallAfter(self.arg.Clear)
+                wx.CallAfter(self.arg.AppendItems,Globals.TypeNames)
+                wx.CallAfter(self.arg_txt.SetLabel,"Type:")
+                self.arg_type = "Type"
+                self.arg.IgnoreEverything = False
         else: #None type
             wx.CallAfter(self.arg.Clear)
             wx.CallAfter(self.arg.AppendItems,["-None needed-"])
@@ -2072,7 +2100,26 @@ class EvoTab(wx.Panel):
             self.arg.IgnoreEverything = False
             self.arg_type = None
         return method
-        
+    
+    def get_locations(self):
+        LocationTable = int(Globals.INI.get(Globals.OpenRomID, "locationnames"), 0)
+        locationstart = int(Globals.INI.get(Globals.OpenRomID, "locationstart"), 0)
+        locationend = int(Globals.INI.get(Globals.OpenRomID, "locationend"), 0)
+        locationtblfmt = int(Globals.INI.get(Globals.OpenRomID, "locationtblfmt"), 0)
+        lst = []
+        with open(Globals.OpenRomName, "r+b") as rom:
+            for x in range((locationend-locationstart)+1):
+                rom.seek(LocationTable+x*4*locationtblfmt)
+                offset = read_pointer(rom.read(4))
+                rom.seek(offset)
+                string = ""
+                read = ""
+                while read != "\xFF":
+                    read = rom.read(1)
+                    string += read
+                lst.append(convert_ascii_and_poke(string[:-1],"to_poke"))
+        return (locationstart, lst)
+                
     def load_everything(self):
         EvolutionTable = int(Globals.INI.get(Globals.OpenRomID, "EvolutionTable"), 0)
         EvolutionsPerPoke = int(Globals.INI.get(Globals.OpenRomID, "EvolutionsPerPoke"), 0)
@@ -2101,20 +2148,56 @@ class EvoTab(wx.Panel):
     def load_evos_into_list(self):
         EvolutionMethods = Globals.INI.get(Globals.OpenRomID, "EvolutionMethods").split(",")
         global ITEM_NAMES
+        global MOVES_LIST
         self.evo_list.DeleteAllItems()
         for opts in self.evos:
-            index = self.evo_list.InsertStringItem(sys.maxint, EvolutionMethods[opts[0]])
-            if self.evomethodsproperties[opts[0]] == "Level":
-                need = "Level: "+str(opts[1])
-            elif self.evomethodsproperties[opts[0]] == "Item":
-                need = "Item: "+ITEM_NAMES[opts[1]]
-            else:
-                need = "-"
-            self.evo_list.SetStringItem(index, 1, need)
-            if opts[0] != 0:
-                self.evo_list.SetStringItem(index, 2, Globals.PokeNames[opts[2]])
-            else:
+            if opts[0] == 0 and opts[2] == 0:
+                index = self.evo_list.InsertStringItem(sys.maxint, "None")
+                self.evo_list.SetStringItem(index, 1, "-")
                 self.evo_list.SetStringItem(index, 2, "-")
+            else:
+                try: method = EvolutionMethods[opts[0]]
+                except: 
+                    method = EvolutionMethods[0]
+                    opts[0] = 0
+                    opts[1] = 0
+                    opts[2] = 0
+                    index = self.evo_list.InsertStringItem(sys.maxint, "None")
+                    self.evo_list.SetStringItem(index, 1, "-")
+                    self.evo_list.SetStringItem(index, 2, "-")
+                    continue
+                index = self.evo_list.InsertStringItem(sys.maxint, method)
+                try: 
+                    assettype = self.evomethodsproperties[opts[0]]
+                    asset = opts[1]
+                except: 
+                    assettype = self.evomethodsproperties[0]
+                    asset = 0
+                    opts[0] = 0
+                    opts[1] = 0
+                    opts[2] = 0
+                    index = self.evo_list.InsertStringItem(sys.maxint, "None")
+                    self.evo_list.SetStringItem(index, 1, "-")
+                    self.evo_list.SetStringItem(index, 2, "-")
+                    continue
+                if assettype == "Level":
+                    need = "Level: "+str(asset)
+                elif assettype == "Item":
+                    need = "Item: "+ITEM_NAMES[asset]
+                elif assettype == "Pokemon":
+                    need = "Pokemon: "+Globals.PokeNames[asset]
+                elif assettype == "Move":
+                    need = "Move: "+MOVES_LIST[asset]
+                elif assettype == "Location":
+                    need = "Location: "+self.Locations[1][asset-self.Locations[0]]
+                elif assettype == "Map":
+                    bankmap = hex(asset).rstrip("L").lstrip("0x").zfill(4)
+                    need = "Bank|Map: "+bankmap[2:]+"|"+bankmap[:2]
+                else:
+                    need = "-"
+                self.evo_list.SetStringItem(index, 1, need)
+                self.evo_list.SetStringItem(index, 2, Globals.PokeNames[opts[2]])
+            
 
     def save(self):
         hex_string = ""
@@ -2435,10 +2518,9 @@ class PokeDexTab(wx.Panel):
             
     def OnFoot(self, *args):
         if not self.lastPath: self.lastPath = os.getcwd()
-        wildcard = "PNG (*.png)|*.png|GIF (*.gif)|*.gif|TIFF (*.tif,*.tiff)|*.tif;*.tiff|All files (*.*)|*.*"
         open_dialog = wx.FileDialog(self, message="Open a footprint (16x16)...", 
                                     defaultDir=self.lastPath, style=wx.OPEN,
-                                    wildcard=wildcard)
+                                    wildcard=Globals.IMGWildCard)
         if open_dialog.ShowModal() == wx.ID_OK:
             filename = open_dialog.GetPath()
             self.lastPath = os.path.dirname(filename)
@@ -2490,8 +2572,7 @@ class PokeDexTab(wx.Panel):
                 else: pokedex = pokedex+(index)*LengthofPokedexEntry
             rom.seek(pokedex)
             
-            Type = self.Type.GetValue()
-            Type = convert_ascii_and_poke(Type, "to_ascii")
+            Type = convert_ascii_and_poke(self.Type.GetValue(), "to_ascii")
             Type = Type[:11]+"\xff"
             rom.write(Type)
             
@@ -3513,13 +3594,13 @@ class MOVE_REPOINTER(wx.Dialog):
                 if Jambo51HackCheck == "False":
                     learnedmoveslength = int(Globals.INI.get(Globals.OpenRomID, "learnedmoveslength"), 0)
                     amount_of_bytes = self.num*learnedmoveslength
-                    for n in range(amount_of_bytes):
-                        rom.write("\x00")
+                    for n in range(int(amount_of_bytes/2)):
+                        rom.write("\x00\xCA")
                     rom.write("\xff\xff\xfe\xfe")
                 else:
                     amount_of_bytes = self.num*3
-                    for n in range(amount_of_bytes):
-                        rom.write("\x00")
+                    for n in range(int(amount_of_bytes/2)):
+                        rom.write("\x00\xCA")
                     rom.write("\xff\xff\xff\xfe")
             
             self.OnClose()
@@ -3555,7 +3636,7 @@ class MOVE_REPOINTER(wx.Dialog):
                     start = offset+len(search)
                 
     def OnClose(self, *args):
-        wx.CallAfter(self.Destroy)
+        wx.CallAfter(self.Close)
 
 class EGG_MOVE_REPOINTER(wx.Dialog):
     def __init__(self, parent, need, *args, **kw):
@@ -3783,7 +3864,7 @@ class NumberofEvosChanger(wx.Dialog):
         elif new_number == 32: write = "F000"
         else: write = "F019"
         
-        change1write = binascii.unhexlify(write)
+        change1write = unhexlify(write)
         
         with open(Globals.OpenRomName, "r+b") as rom:
             for offset in change1:
@@ -3818,13 +3899,13 @@ class NumberofEvosChanger(wx.Dialog):
             elif new_number == 32: write = "790189460000"
             else: write = "B9008946C819"
             
-        TheShedinjaFixWrite = binascii.unhexlify(write)
+        TheShedinjaFixWrite = unhexlify(write)
         
         with open(Globals.OpenRomName, "r+b") as rom:
             rom.seek(TheShedinjaFix, 0)
             rom.write(TheShedinjaFixWrite)
         
-        change3 = [] 
+        change3 = []
         tmp = Globals.INI.get(Globals.OpenRomID, "ChangeToNewNumberTimes8").split(",")
         for offset in tmp:
             change3.append(int(offset, 0))
@@ -3955,7 +4036,12 @@ class POKEDEXEntryRepointer(wx.Dialog):
         
         try: int(_offset_, 16)
         except: return
-        
+        b = wx.StaticBox(pnl, label='Colors')
+        sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)        
+        sbs.Add(wx.RadioButton(pnl, label='256 Colors', 
+            style=wx.RB_GROUP))
+        sbs.Add(wx.RadioButton(pnl, label='16 Colors'))
+        sbs.Add(wx.RadioButton(pnl, label='2 Colors'))
         returned_offset = _offset_
 
     def OnSearch(self, *args):
@@ -3991,21 +4077,17 @@ def OnUpdateTimer(instance):
     global timer
     timer.Stop()
     del timer
-    global latestRelease
     global LatestGoodBuild
     if UseDevBuild == False:
-        latestRelease = LatestGoodBuild
+        Globals.latestRelease = LatestGoodBuild
     Message = "An update is available for this suite:\n\n"
-    Message += "Version: "+latestRelease["name"]+"\n\n"
-    Message += "Updates:\n"+latestRelease["body"]+"\n\n"
-    if latestRelease["prerelease"] == True:
+    Message += "Version: "+Globals.latestRelease["name"]+"\n\n"
+    Message += "Updates:\n"+Globals.latestRelease["body"]+"\n\n"
+    if Globals.latestRelease["prerelease"] == True:
         Message += "Please note that this is a prerelease and may not work properly.\n\n"
     Message +="Would you like to update?"
-    UpdateDialog = wx.MessageDialog(None,Message, 
-                                    "Update is available...", wx.YES_NO|wx.RESIZE_BORDER)
-    if UpdateDialog.ShowModal() == wx.ID_YES:
-        webbrowser.open("https://github.com/thekaratekid552/Secret-Tool/releases")
-        wx.CallAfter(frame.Destroy)
+    Updater = UpdateDialog(frame,Message)
+        
 
 def OnMessageTimer(instance):
     global Msgtimer
@@ -4014,10 +4096,30 @@ def OnMessageTimer(instance):
     global MSG
     MSG = textwrap.fill(MSG,110)
     Message = "A message from karatekid552:\n\n"+MSG
-    UpdateDialog = wx.MessageDialog(None,Message, 
-                                                        "Message", wx.OK)
+    UpdateDialog = wx.MessageDialog(None,Message,"Message", wx.OK)
     UpdateDialog.ShowModal()
+
+def DetermineHigherVersion(new, old):
+    new = new.lstrip("v").split(".")
+    old = old.lstrip("v").split(".")
+    for n, v in enumerate(new):
+        new[n] = int(new[n],16)
+    for n, v in enumerate(old):
+        old[n] = int(old[n],16)
+    h = False
+    for num, v in enumerate(new):
+        try: old[num]
+        except: 
+            if h: return False
+            else: return True
+        if old[num] >= v:
+            h = True
+            continue
+        elif old[num] < v:
+            return True
+        return False
         
+
 app = wx.App(False)
 name = "POK\xe9MON Gen III Hacking Suite"
 name = encode_per_platform(name)
@@ -4036,7 +4138,7 @@ try:
         response = urllib2.urlopen(r)
         obj = response.read()
         obj = json.loads(obj)
-        latestRelease = obj[0]
+        Globals.latestRelease = obj[0]
         LatestGoodBuild = None
         timer = None
         UseDevBuild = False
@@ -4045,15 +4147,15 @@ try:
                 LatestGoodBuild = x
                 break
         CheckForDevBuilds = Globals.INI.get("ALL", "CheckForDevBuilds")
-        if latestRelease["tag_name"] != Globals.VersionNumber:
-            if latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
+        if DetermineHigherVersion(Globals.latestRelease["tag_name"],Globals.VersionNumber):
+            if Globals.latestRelease["prerelease"] != True or CheckForDevBuilds == "True":
                 UseDevBuild = True
                 timer = wx.Timer(frame, 99)
                 timer.Start(500)
                 wx.EVT_TIMER(frame, 99, OnUpdateTimer)
         if not timer:
             if LatestGoodBuild:
-                if LatestGoodBuild["tag_name"] != Globals.VersionNumber:
+                if DetermineHigherVersion(LatestGoodBuild["tag_name"],Globals.VersionNumber):
                     UseDevBuild = False
                     timer = wx.Timer(frame, 99)
                     timer.Start(500)

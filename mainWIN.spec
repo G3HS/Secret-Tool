@@ -1,6 +1,6 @@
 # -*- mode: python -*-
-a = Analysis(['D:\\Secret-Tool\\main.py'],
-             pathex=['D:\\Secret-Tool'])
+a = Analysis(['E:\\Secret-Tool\\main.py'],
+             pathex=['E:\\Secret-Tool'])
 for d in a.datas:
     if 'pyconfig' in d[0]: 
         a.datas.remove(d)
@@ -11,7 +11,7 @@ exe = EXE( pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          icon="D:\\Secret-Tool\\Icon\\Multi.ico",
+          icon="E:\\Secret-Tool\\Icon\\Multi.ico",
           name=os.path.join('dist', 'Gen_III_Suite.exe'),
           debug=False,
           strip=False,

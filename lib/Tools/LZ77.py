@@ -123,4 +123,3 @@ def LZCompress(data):
                 break
         compressed += unhexlify(hex(int(bits,2))[2:].zfill(2))+currCompSet
     return compressed
-

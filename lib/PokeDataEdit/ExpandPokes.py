@@ -7,8 +7,125 @@ from lib.PokeDataEdit.ExpandPokesOffsets import *
 from lib.Tools.rom_insertion_operations import *
 from lib.Tools.LZ77 import *
 
-def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_id, ini):
+JPANSaveBlockEm = "\x21\x68\xFF\x23\x1B\x01\x5B\x18\x98\x88\x00\x28\x09\xD0"\
+"\x04\x28\x0A\xD0\x0D\x28\x0C\xD0\x0D\x2D\x1C\xDD\x01\x20\x08\xBC\x98\x46\xF0\xBD"\
+"\xC4\x21\x08\x4A\x06\xE0\x8E\x21\x89\x00\x07\x4A\x02\xE0\xBA\x21\x09\x01\x06\x4A"\
+"\x04\x3B\x18\x68\x10\x60\x04\x3A\x04\x39\x00\x29\xF8\xD1\xE7\xE7\xC0\x46\xC0\xD8"\
+"\x03\x02\xF8\xDA\x03\x02\x98\xE6\x03\x02\x00\x48\x00\x47\x2D\x2E\x15\x08\xFF\xFF"\
+"\xFF\xFF\xFF\x27\x3F\x01\xCF\x19\xF8\x80\xBE\x88\x00\x2E\x08\xD0\x04\x2E\x09\xD0"\
+"\x0D\x2E\x0B\xD0\x00\x00\x00\x48\x00\x47\x53\x28\x15\x08\xC4\x23\x08\x4A\x06\xE0"\
+"\x8E\x23\x9B\x00\x07\x4A\x02\xE0\xBA\x23\x1B\x01\x06\x4A\x04\x3F\x10\x68\x38\x60"\
+"\x04\x3A\x04\x3B\x00\x2B\xF8\xD1\xE9\xE7\xC0\xD8\x03\x02\xF8\xDA\x03\x02\x98\xE6"\
+"\x03\x02"
+
+JPANSaveSizeTblEm = "\x00\x00\x2C\x0F\x00\x00\xF0\x0F\xF0\x0F\xF0\x0F\xE0\x1F"\
+"\xF0\x0F\xD0\x2F\xB8\x0D\x00\x00\xF0\x0F\xF0\x0F\xF0\x0F\xE0\x1F\xF0\x0F\xD0"\
+"\x2F\xF0\x0F\xC0\x3F\xF0\x0F\xB0\x4F\xF0\x0F\xA0\x5F\xF0\x0F\x90\x6F\xF0\x0F"\
+"\x80\x7F\x50\x04"
+
+def RepointPokesEm(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_id, ini):
     #-#-#-#
+    with open(rom, "r+b") as rom:
+        SUPERBACKUP = rom.read()
+        try:    
+            #Step 1: Installing the save block hack
+            #-Save Size Table
+            rom.seek(0x5CDC00)
+            rom.write(JPANSaveSizeTblEm)
+            #-Hack
+            rom.seek(StartOffset)
+            rom.write(JPANSaveBlockEm)
+            #-Pointers
+            JPANPointer = MakeByteStringPointer(StartOffset+1)
+            JPANPointer61 = MakeByteStringPointer(StartOffset+61)
+            rom.seek(0x152E98)
+            rom.write("\x00\x48\x00\x47"+JPANPointer)
+            rom.seek(0x15284E)
+            rom.write("\x38\x47")
+            rom.seek(0x15288C)
+            rom.write(JPANPointer61)
+            rom.seek(0x0D9CC6)
+            rom.write("\x38\x47")
+            rom.seek(0x0D9D04)
+            rom.write(JPANPointer61)
+            rom.seek(0x0DA284)
+            rom.write("\x00\x48\x00\x47"+JPANPointer)
+            
+            #Step 2: Get free RAM for the dex flags
+            #Ram offset, only safe one known to Chaos, 0x0203D800
+            OrgNewDexSize = NewDexSize
+            while NewDexSize % 8 != 0:
+                NewDexSize += 1
+            NeededFlagBytes = int(NewDexSize/8)
+            
+            NeededFlagBytesHex = unhexlify(hex(NeededFlagBytes).rstrip("L").lstrip("0x").zfill(2))[0]
+            
+            SeenFlagsRAMOffset = RAMOffset
+            CaughtFlagsRAMOffset = RAMOffset+NeededFlagBytes
+            SeenFlagsRAMPointer = make_32bit_number(SeenFlagsRAMOffset)
+            CaughtFlagsRAMPointer = make_32bit_number(CaughtFlagsRAMOffset)
+            #Make the game read the seen flags
+            rom.seek(0xC06EC)
+            rom.write(SeenFlagsRAMPointer)
+            rom.seek(0xC06AC)
+            rom.write("\x00\x00\x00\x00")
+            #Make the game read the caught flags
+            rom.seek(0xC0744)
+            rom.write(CaughtFlagsRAMPointer)
+            rom.seek(0xC06FE)
+            rom.write("\x00\x00\x00\x00\x00\x00")
+            rom.seek(0xC0710)
+            rom.write("\x15\xE0")
+            #Bypass redundant seen flags
+            rom.seek(0xC0720)
+            rom.write("\x0D\xE0")
+            #Make the game write the seen flags
+            rom.seek(0xC07C8)
+            rom.write(SeenFlagsRAMPointer)
+            rom.seek(0xC079E)
+            rom.write("\x00\x00\x00\x00")
+            rom.seek(0xC07AC)
+            rom.write("\x1C\xE0")
+            #Make the game write the caught flags
+            rom.seek(0xC07F0)
+            rom.write(CaughtFlagsRAMPointer)
+            rom.seek(0xC07DA)
+            rom.write("\x00\x00\x00\x00")
+            #Clear flags properly on New Game
+            rom.seek(0x843BC)
+            rom.write(SeenFlagsRAMPointer)
+            rom.seek(0x8439A)
+            rom.write("\x20\x1C\x00\x00")
+            rom.seek(0x843A0)
+            rom.write(NeededFlagBytesHex+"\x22")
+            rom.seek(0x843A6)
+            rom.write("\x20\x1C")
+            rom.seek(0x843A8)
+            rom.write(NeededFlagBytesHex+"\x30")
+            rom.seek(0x843AC)
+            rom.write(NeededFlagBytesHex+"\x22")
+            
+            
+            
+            DONE = wx.MessageDialog(None, 
+                                "All tables has been expanded, the ini has been ammended, and evolutions have been changed.:)\n\n\nReloading 'MON Data.", 
+                                "Done!",
+                                wx.OK)
+            DONE.ShowModal()
+        except Exception as Error:
+            rom.seek(0)
+            rom.write(SUPERBACKUP)
+            TYPE, VALUE, TRACE = sys.exc_info()
+            TraceList = traceback.format_tb(TRACE)
+            sys.stderr.write("An error occurred while expanding the number of 'mons. Your rom has been restored to its previous state. Here is the traceback data:")
+            for value in TraceList:
+                sys.stderr.write(value)
+            sys.stderr.write(TYPE)
+            sys.stderr.write(VALUE)
+
+
+def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_id, ini):
+    """---------------------------"""
     with open(rom, "r+b") as rom:
         SUPERBACKUP = rom.read()
         try:    
@@ -146,11 +263,16 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             NewStatsOffset = FindFreeSpace(StartOffset, len(BaseStats),rom)
             rom.seek(NewStatsOffset)
             rom.write(BaseStats)     
-            ##Write the pointers for the names
+            ##Write the pointers for the stats
             StatsPointer = MakeByteStringPointer(NewStatsOffset)
             for offset in StatsTablePointers:
                 rom.seek(offset)
                 rom.write(StatsPointer)
+            #Fix pointers for egg hatch speed.
+            EggHatchPointer = MakeByteStringPointer(NewStatsOffset+17)
+            for offset in EggHatchRoutinePointers:
+                rom.seek(offset)
+                rom.write(EggHatchPointer)
             #Level-up movepool table
             LearnedMovesTable = int(ini.get(rom_id, "LearnedMoves"), 0)
             rom.seek(LearnedMovesTable)
@@ -185,8 +307,8 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.write(BlankPalette)
             BlankImagePointer = MakeByteStringPointer(BlankImageOffset)
             BlankPalettePointer = MakeByteStringPointer(BlankPaletteOffset)
-            NewImageEntry = BlankImagePointer+"\x00\x08\x00\x00"
-            NewPaletteEntry = BlankPalettePointer+"\x00\x00\x00\x00"
+            NewImageEntry = BlankImagePointer+"\x00\x08"
+            NewPaletteEntry = BlankPalettePointer+"\x00\x00"
             frontspritetable = int(ini.get(rom_id, "frontspritetable"), 0)
             backspritetable = int(ini.get(rom_id, "backspritetable"), 0)
             frontpalettetable = int(ini.get(rom_id, "frontpalettetable"), 0)
@@ -199,8 +321,11 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(frontspritetable)
             rom.write("\xFF"*len(FrontSprites))
             ##Write the sprite table
-            while len(FrontSprites)/8 < TotalPokesAfterChanges:
-                FrontSprites += NewImageEntry
+            count = len(FrontSprites)/8
+            while count < TotalPokesAfterChanges:
+                count = len(FrontSprites)/8
+                FrontSprites += (NewImageEntry+make_16bit_number(count))
+                
             NewFSOffset = FindFreeSpace(StartOffset, len(FrontSprites),rom)
             rom.seek(NewFSOffset)
             rom.write(FrontSprites)     
@@ -221,8 +346,10 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(backspritetable)
             rom.write("\xFF"*len(BackSprites))
             ##Write the sprite table
-            while len(BackSprites)/8 < TotalPokesAfterChanges:
-                BackSprites += NewImageEntry
+            count = len(BackSprites)/8
+            while count < TotalPokesAfterChanges:
+                count = len(BackSprites)/8
+                BackSprites += (NewImageEntry+make_16bit_number(count))
             NewBSOffset = FindFreeSpace(StartOffset, len(BackSprites),rom)
             rom.seek(NewBSOffset)
             rom.write(BackSprites)     
@@ -244,8 +371,10 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(frontpalettetable)
             rom.write("\xFF"*len(NormalPals))
             ##Write the palette table
-            while len(NormalPals)/8 < TotalPokesAfterChanges:
-                NormalPals += NewPaletteEntry
+            count = len(NormalPals)/8
+            while count < TotalPokesAfterChanges:
+                count = len(NormalPals)/8
+                NormalPals += (NewPaletteEntry+make_16bit_number(count))
             NewNPalOffset = FindFreeSpace(StartOffset, len(NormalPals),rom)
             rom.seek(NewNPalOffset)
             rom.write(NormalPals)     
@@ -266,8 +395,10 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
             rom.seek(shinypalettetable)
             rom.write("\xFF"*len(ShinyPals))
             ##Write the palette table
-            while len(ShinyPals)/8 < TotalPokesAfterChanges:
-                ShinyPals += NewPaletteEntry
+            count = len(ShinyPals)/8
+            while count < TotalPokesAfterChanges:
+                count = len(ShinyPals)/8
+                ShinyPals += (NewPaletteEntry+make_16bit_number(count))
             NewSPalOffset = FindFreeSpace(StartOffset, len(ShinyPals),rom)
             rom.seek(NewSPalOffset)
             rom.write(ShinyPals)     
@@ -627,6 +758,11 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
 
             with open("PokeRoms.ini", "w") as PokeRomsIni:
                 ini.write(PokeRomsIni)
+            DONE = wx.MessageDialog(None, 
+                                "All tables has been expanded, the ini has been ammended, and evolutions have been changed.:)\n\n\nReloading 'MON Data.", 
+                                "Done!",
+                                wx.OK)
+            DONE.ShowModal()
         except Exception as Error:
             rom.seek(0)
             rom.write(SUPERBACKUP)
@@ -637,6 +773,7 @@ def RepointPokes(rom, NewNumberOfPokes, NewDexSize, RAMOffset, StartOffset, rom_
                 sys.stderr.write(value)
             sys.stderr.write(TYPE)
             sys.stderr.write(VALUE)
+            
 def FindFreeSpace(starting, length, rom):
         search = "\xFF"*length
         rom.seek(0)
@@ -655,10 +792,10 @@ def FindFreeSpace(starting, length, rom):
             return offset
                     
 class PokemonExpander(wx.Dialog):
-    def __init__(self, rom, parent=None, *args, **kw):
+    def __init__(self, rom, parent=None, game="FR", *args, **kw):
         wx.Dialog.__init__(self, parent=parent, id=wx.ID_ANY)
         self.SetWindowStyle( self.GetWindowStyle() | wx.STAY_ON_TOP | wx.RESIZE_BORDER )
-        
+        self.game = game
         self.offset = None
         self.rom = rom
         self.InitUI()
@@ -720,7 +857,8 @@ class PokemonExpander(wx.Dialog):
         RAM_txt = wx.StaticText(self, -1, "RAM Offset: 0x",style=wx.TE_CENTRE)
         hbox2.Add(RAM_txt, 0, wx.ALL|wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
         self.RAM = wx.TextCtrl(self, -1,style=wx.TE_CENTRE, size=(100,-1))
-        self.RAM.SetValue("0203c400")
+        if self.game == "FR": self.RAM.SetValue("0203c400")
+        if self.game == "Em": self.RAM.SetValue("0203D800")
         self.RAM.Bind(wx.EVT_TEXT, self.GetOffset)
         hbox2.Add(self.RAM, 0, wx.ALL|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
         vbox.Add(hbox2, 0, wx.ALL|wx.ALIGN_CENTER, 0)

@@ -1,5 +1,8 @@
 import wx
-from PIL import Image
+try:
+    import Image
+except ImportError:
+    from PIL import Image
 
 def WxBitmapToPilImage( myBitmap ) :
     return WxImageToPilImage( WxBitmapToWxImage( myBitmap ) )

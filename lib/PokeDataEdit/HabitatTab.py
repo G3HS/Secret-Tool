@@ -5,6 +5,7 @@ import wx, sys
 from GLOBALS import *
 from lib.Tools.rom_insertion_operations import *
 from lib.OverLoad.Button import *
+from lib.CustomDialogs.BaseRepointer import *
 
 class HABITAT(wx.Panel):
     def __init__(self, parent):
@@ -50,6 +51,14 @@ class HABITAT(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.OnMoveDown, id=6)
         butons_vbox.Add(MOVE_DOWN, 0, wx.EXPAND | wx.ALL, 5)
         
+        ADD_PAGE =  Button(self, 9, u"Add Page")
+        self.Bind(wx.EVT_BUTTON, self.OnAddPage, id=9)
+        butons_vbox.Add(ADD_PAGE, 0, wx.EXPAND | wx.ALL, 5)
+
+        DELETE_PAGE =  Button(self, 10, u"Remove Page")
+        self.Bind(wx.EVT_BUTTON, self.OnDeletePage, id=10)
+        butons_vbox.Add(DELETE_PAGE, 0, wx.EXPAND | wx.ALL, 5)
+        
         PAGE_MOVE_UP = Button(self, 7, "Move Page Up")
         self.Bind(wx.EVT_BUTTON, self.OnMovePageUp, id=7)
         butons_vbox.Add(PAGE_MOVE_UP, 0, wx.EXPAND | wx.ALL, 5)
@@ -72,10 +81,118 @@ class HABITAT(wx.Panel):
         self.Layout()
         
         self.LoadHabitatData()
+   
+    def save(self, event=None):
+        if not self.Changed: return
+        #Calculate table size:
+        Size = 0
+        for habitat in self.HabitatNames:
+            Size += 8
+            for page in self.Habitats[habitat]:
+                Size += 8
+                for poke in page:
+                    Size += 8
+        #Request an offset to reconstruct the table at
+        Rep = Repointer(Globals.OpenRomName, parent=None, need=Size, 
+                        repoint_what="habitat table")
+        if Rep.ShowModal() == wx.ID_OK:
+            NewTableOffset = Rep.offset
+        else: return
+        #Contruct table string
+        #Get all of the Pokes, but sorted into page strings.
+        allpagesofpokes = []
+        from binascii import hexlify
+        for habitat in self.HabitatNames:
+            for page in self.Habitats[habitat]:
+                pagestring = ""
+                for poke in page:
+                    pagestring += make_16bit_number(poke)
+                allpagesofpokes.append(pagestring)
+        """
+        In order to simplify the creation of the table, it will be inverted 
+        with pokes being first, pages next, and then habitats last.
+        
+        What this next set does is get all of the pointers for each page.
+        """
+        totalsize = 0
+        pagessize = 0
+        allpages = []
+        for pokepage in allpagesofpokes:
+            size = len(pokepage)
+            NumOfPokes = size/2
+            
+            Pointer = MakeByteStringPointer(NewTableOffset+totalsize)
+            writableNumOfPokes = make_32bit_number(NumOfPokes)
+            
+            allpages.append(Pointer+writableNumOfPokes)
+            totalsize += size
+            pagessize += 8
+        #Create final pointers for habitats.
+        counter = 0
+        allhabitats = []
+        storetotalsize = totalsize
+        while totalsize%4 != 0:
+            totalsize += 1
+        for habitat in self.HabitatNames:
+            pageCounter = 0
+            Pointer = MakeByteStringPointer(NewTableOffset+totalsize)
+            for page in self.Habitats[habitat]:
+                size = len(allpages[counter])
+                pageCounter += 1
+                counter += 1
+                totalsize += size
+            writeablePageNumber = make_32bit_number(pageCounter)
+            allhabitats.append(Pointer+writeablePageNumber)
+        #Create table:
+        table = ""
+        for n in allpagesofpokes:
+            table += n
+        while len(table)%4 != 0:
+            table += "\x00"
+        for n in allpages:
+            table += n
+        for n in allhabitats:
+            table += n
+        with open(Globals.OpenRomName, "r+b") as rom:
+            #Write new table
+            rom.seek(NewTableOffset)
+            rom.write(table)
+            #Remove old table
+            LogOffset = self.TableOffset
+            for habitat in self.HabitatNames:
+                rom.seek(LogOffset)
+                PagesOffset = read_pointer(rom.read(4))
+                PagesNum = read_number(rom.read(4))
+                rom.seek(-8, 1)
+                rom.write("\xFF"*8)
+                LogOffset += 8
+                for n in range(PagesNum):
+                    rom.seek(PagesOffset)
+                    PokesOffset = read_pointer(rom.read(4))
+                    PokesNum = read_number(rom.read(4))
+                    rom.seek(-8, 1)
+                    rom.write("\xFF"*8)
+                    PagesOffset += 8
+                    PokesList = []
+                    for p in range(PokesNum):
+                        rom.seek(PokesOffset)
+                        rom.write("\xFF\xFF")
+                        PokesOffset += 2
+            #Change pointers
+            writepointer = MakeByteStringPointer(NewTableOffset+storetotalsize+pagessize)
+            for pointer in self.habitatpointers:
+                pointer = int(pointer,0)
+                rom.seek(pointer)
+                rom.write(writepointer)
         
     def LoadHabitatData(self):
-        self.TableOffset = int(Globals.INI.get(Globals.OpenRomID, "habitats"), 0)
-        self.Habitats = {"Grassland":[],"Forest":[],"Water's-edge":[],"Sea":[],"Cave":[],"Mountain":[],"Rough-terrain":[],"Urban":[],"Rare":[]}
+        self.habitatpointers = Globals.INI.get(Globals.OpenRomID,"habitatpointers").split(",")
+        with open(Globals.OpenRomName, "rb") as rom:
+            rom.seek(int(self.habitatpointers[0],0))
+            self.TableOffset = read_pointer(rom.read(4))
+        self.Habitats = {"Grassland":[],"Forest":[],"Water's-edge":[],"Sea":[],
+                         "Cave":[],"Mountain":[],"Rough-terrain":[],"Urban":[],
+                         "Rare":[]}
         with open(Globals.OpenRomName, "rb") as rom:
             LogOffset = self.TableOffset
             for habitat in self.HabitatNames:
@@ -97,6 +214,7 @@ class HABITAT(wx.Panel):
         for habitat in self.HabitatNames:
             index = self.HabitatTypeList.InsertStringItem(sys.maxint, habitat)
         self.FindNonUsedPokes()
+        self.Changed = False
         
     def OnSelectHabitat(self, event):
         self.PageList.DeleteAllItems()
@@ -139,6 +257,7 @@ class HABITAT(wx.Panel):
     def OnAddPoke(self, event):
         POKE = self.POKE_NAME.GetSelection()
         if POKE != -1:
+            self.Changed = True
             self.SearchAndRemovePoke(POKE)
             self.Habitats[self.CurrentHabitat][self.CurrentPage].append(POKE)
             self.ReloadPokesList()
@@ -149,6 +268,7 @@ class HABITAT(wx.Panel):
     def OnDeletePoke(self, event):
         selection = self.PokeList.GetFocusedItem()
         if selection != -1:
+            self.Changed = True
             del self.Habitats[self.CurrentHabitat][self.CurrentPage][selection]
             self.ReloadPokesList()
             length = len(self.Habitats[self.CurrentHabitat][self.CurrentPage])
@@ -161,6 +281,7 @@ class HABITAT(wx.Panel):
     def OnMoveUp(self, *args):
         poke = self.PokeList.GetFocusedItem()
         if poke != -1:
+            self.Changed = True
             poke = self.PokeList.GetItem(poke, 0)
             poke = poke.GetText()
             poke = Globals.PokeNames.index(poke)
@@ -175,6 +296,7 @@ class HABITAT(wx.Panel):
     def OnMoveDown(self, *args):
         poke = self.PokeList.GetFocusedItem()
         if poke != -1:
+            self.Changed = True
             poke = self.PokeList.GetItem(poke, 0)
             poke = poke.GetText()
             poke = Globals.PokeNames.index(poke)
@@ -186,8 +308,23 @@ class HABITAT(wx.Panel):
                 self.PokeList.Select(index+1)
                 self.PokeList.Focus(index+1)
     
+    def OnAddPage(self, event):
+        if self.CurrentHabitat:
+            self.Changed = True
+            self.Habitats[self.CurrentHabitat].append([])
+            self.ReloadPagesList()
+            
+    def OnDeletePage(self, event):
+        if self.CurrentHabitat:
+            self.Changed = True
+            del self.Habitats[self.CurrentHabitat][self.CurrentPage]
+            self.ReloadPokesList()
+            self.ReloadPagesList()
+            self.FindNonUsedPokes()
+            
     def OnMovePageUp(self, *args):
         if self.CurrentPage == 0: return
+        self.Changed = True
         self.Habitats[self.CurrentHabitat][self.CurrentPage], self.Habitats[self.CurrentHabitat][self.CurrentPage-1] = self.Habitats[self.CurrentHabitat][self.CurrentPage-1], self.Habitats[self.CurrentHabitat][self.CurrentPage]
         self.ReloadPagesList()
         self.CurrentPage -= 1
@@ -198,6 +335,7 @@ class HABITAT(wx.Panel):
     def OnMovePageDown(self, *args):
         length = len(self.Habitats[self.CurrentHabitat])-1
         if self.CurrentPage == length: return
+        self.Changed = True
         self.Habitats[self.CurrentHabitat][self.CurrentPage], self.Habitats[self.CurrentHabitat][self.CurrentPage+1] = self.Habitats[self.CurrentHabitat][self.CurrentPage+1], self.Habitats[self.CurrentHabitat][self.CurrentPage]
         self.ReloadPagesList()
         self.CurrentPage += 1
@@ -206,6 +344,8 @@ class HABITAT(wx.Panel):
         self.ReloadPokesList()
         
     def ReloadPokesList(self):
+        if not self.CurrentHabitat: self.CurrentHabitat = 0
+        if not self.CurrentPage: self.CurrentPage = 0
         self.PokeList.DeleteAllItems()
         for poke in self.Habitats[self.CurrentHabitat][self.CurrentPage]:
             index = self.PokeList.InsertStringItem(sys.maxint, Globals.PokeNames[poke])

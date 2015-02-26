@@ -286,7 +286,39 @@ def distance(color1, color2):
 def best_match(sample, colors):
     by_distance = sorted(colors, key=lambda c: distance(c, sample))
     return by_distance[0]
+    
+def BestPalette(Palettes, ImagePal):
+    BestPaletteTracker = []
+    for pal in Palettes:
+        BestPaletteTracker.append(0)
+    for color in ImagePal:
+        CurrentBestColor = []
+        for pal in Palettes:
+            CurrentBestColor.append(0)
+        for num, pal in enumerate(Palettes):
+            BestColor = best_match(color,pal)
+            CurrentBestColor[num] = distance(color, BestColor)
+        closest = min(CurrentBestColor)
+        count = 0
+        for x in CurrentBestColor:
+            if x == closest:
+                count += 1
+        if count == 1:
+            index = CurrentBestColor.index(closest)
+            BestPaletteTracker[index] += 1
+    return BestPaletteTracker.index(max(BestPaletteTracker))
 
+def GetImageColors(image):
+    palette = []
+    data = image.GetData()
+    for z in range(len(data)/3):
+        color = [int(hexlify(data[:1]),16),
+                 int(hexlify(data[1:2]),16),
+                 int(hexlify(data[2:3]),16)]
+        data = data[3:]
+        palette.append(color)
+    return palette
+                    
 def ConvertNormalImageToGBAUnderPal(image, palette,size=(64,64)):
     """
     This function will take a normal wx.Image and return tuple

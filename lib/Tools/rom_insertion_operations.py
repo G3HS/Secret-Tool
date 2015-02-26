@@ -92,8 +92,7 @@ def get_bytes_string_from_hex_string(string):
 def split_string_into_bytes(string):
     if len(string)%2 != 0:
         string = "0"+string
-    list_of_bytes = re.findall('..',string)
-    return list_of_bytes
+    return re.findall('..',string)
     
 def insert_string_of_bytes_into_rom(offset, rom, string):
     offset = get_decimal_offset_from_hex_string(offset)
@@ -156,8 +155,37 @@ def read_number(string):
     Hex = hexlify(string)
     return int(Hex, 16)
 
+def make_number(integer):
+    """
+    Take an integer and make it into a writable number.
+    """
+    hexvalue = hex(integer).rstrip("L").lstrip("0x")
+    if len(hexvalue)%2 != 0:
+        hexvalue = "0"+hexvalue
+    return unhexlify(hexvalue)[::-1]
+
+def make_32bit_number(integer):
+    """
+    Take an integer and make it into a writable 32bit number.
+    """
+    hexvalue = hex(integer).rstrip("L").lstrip("0x").zfill(8)
+    return unhexlify(hexvalue)[::-1]
+
+def make_16bit_number(integer):
+    """
+    Take an integer and make it into a writable 16bit number.
+    """
+    hexvalue = hex(integer).rstrip("L").lstrip("0x").zfill(4)
+    return unhexlify(hexvalue)[::-1]
+
 def convert_ascii_and_poke(string, mode):
     #modes: "to_poke" and "to_ascii"
+    """
+    to_poke to read from rom.
+    to_ascii to convert back into rom form.
+    
+    """
+    
     chart = ENCODING
     
     if mode == "to_ascii":
