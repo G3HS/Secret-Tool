@@ -1,4 +1,4 @@
-﻿#!/usr/lib/python
+#!/usr/lib/python
 # -*- coding: utf-8 -*- 
 #venv pyi-env-name
 from __future__ import division
