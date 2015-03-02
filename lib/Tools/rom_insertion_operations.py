@@ -1,4 +1,4 @@
-﻿#!/usr/local/bin/python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 from binascii import unhexlify, hexlify
 import string as st
