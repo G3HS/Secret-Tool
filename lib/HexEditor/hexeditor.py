@@ -648,6 +648,7 @@ class HexEditor(wx.Panel):
 
     def __init__(self, parent, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
+        self.table = None
         #3/6/14- Need to define self.OpenFile
         self.OpenFile = None
         self.__init_ctrls(parent)
@@ -925,6 +926,7 @@ class HexEditor(wx.Panel):
         return self.grid.GetTable().length
 
     def _set_grid_table(self, table):
+        self.table = table
         self.grid.BeginBatch()
         self._reset_grid()
         self.grid.SetTable(table)
@@ -977,6 +979,8 @@ class HexEditor(wx.Panel):
         if not isinstance(binary, basestring):
             raise Exception("binary must be string")
 
+        if self.table:
+            wx.CallAfter(self.table.Destroy)
         table = HexGridTable(binary, length)
         self._set_grid_table(table)
 
